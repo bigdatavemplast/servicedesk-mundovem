@@ -20,6 +20,7 @@ import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } fr
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as AuthenticatedChamadosIndexRouteImport } from './routes/_authenticated/chamados.index'
 import { Route as AuthenticatedBaseConhecimentoIndexRouteImport } from './routes/_authenticated/base-conhecimento.index'
+import { Route as AuthenticatedAssistenteIndexRouteImport } from './routes/_authenticated/assistente.index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedChamadosNovoRouteImport } from './routes/_authenticated/chamados.novo'
 import { Route as AuthenticatedChamadosIdRouteImport } from './routes/_authenticated/chamados.$id'
@@ -87,6 +88,12 @@ const AuthenticatedBaseConhecimentoIndexRoute =
   AuthenticatedBaseConhecimentoIndexRouteImport.update({
     id: '/base-conhecimento/',
     path: '/base-conhecimento/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAssistenteIndexRoute =
+  AuthenticatedAssistenteIndexRouteImport.update({
+    id: '/assistente/',
+    path: '/assistente/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
@@ -165,6 +172,7 @@ export interface FileRoutesByFullPath {
   '/chamados/$id': typeof AuthenticatedChamadosIdRoute
   '/chamados/novo': typeof AuthenticatedChamadosNovoRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/assistente/': typeof AuthenticatedAssistenteIndexRoute
   '/base-conhecimento/': typeof AuthenticatedBaseConhecimentoIndexRoute
   '/chamados/': typeof AuthenticatedChamadosIndexRoute
   '/base-conhecimento/$id/editar': typeof AuthenticatedBaseConhecimentoIdEditarRoute
@@ -187,6 +195,7 @@ export interface FileRoutesByTo {
   '/chamados/$id': typeof AuthenticatedChamadosIdRoute
   '/chamados/novo': typeof AuthenticatedChamadosNovoRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
+  '/assistente': typeof AuthenticatedAssistenteIndexRoute
   '/base-conhecimento': typeof AuthenticatedBaseConhecimentoIndexRoute
   '/chamados': typeof AuthenticatedChamadosIndexRoute
   '/base-conhecimento/$id/editar': typeof AuthenticatedBaseConhecimentoIdEditarRoute
@@ -211,6 +220,7 @@ export interface FileRoutesById {
   '/_authenticated/chamados/$id': typeof AuthenticatedChamadosIdRoute
   '/_authenticated/chamados/novo': typeof AuthenticatedChamadosNovoRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/assistente/': typeof AuthenticatedAssistenteIndexRoute
   '/_authenticated/base-conhecimento/': typeof AuthenticatedBaseConhecimentoIndexRoute
   '/_authenticated/chamados/': typeof AuthenticatedChamadosIndexRoute
   '/_authenticated/base-conhecimento/$id/editar': typeof AuthenticatedBaseConhecimentoIdEditarRoute
@@ -235,6 +245,7 @@ export interface FileRouteTypes {
     | '/chamados/$id'
     | '/chamados/novo'
     | '/admin/'
+    | '/assistente/'
     | '/base-conhecimento/'
     | '/chamados/'
     | '/base-conhecimento/$id/editar'
@@ -257,6 +268,7 @@ export interface FileRouteTypes {
     | '/chamados/$id'
     | '/chamados/novo'
     | '/admin'
+    | '/assistente'
     | '/base-conhecimento'
     | '/chamados'
     | '/base-conhecimento/$id/editar'
@@ -280,6 +292,7 @@ export interface FileRouteTypes {
     | '/_authenticated/chamados/$id'
     | '/_authenticated/chamados/novo'
     | '/_authenticated/admin/'
+    | '/_authenticated/assistente/'
     | '/_authenticated/base-conhecimento/'
     | '/_authenticated/chamados/'
     | '/_authenticated/base-conhecimento/$id/editar'
@@ -374,6 +387,13 @@ declare module '@tanstack/react-router' {
       path: '/base-conhecimento'
       fullPath: '/base-conhecimento/'
       preLoaderRoute: typeof AuthenticatedBaseConhecimentoIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/assistente/': {
+      id: '/_authenticated/assistente/'
+      path: '/assistente'
+      fullPath: '/assistente/'
+      preLoaderRoute: typeof AuthenticatedAssistenteIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/': {
@@ -474,6 +494,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedChamadosIdRoute: typeof AuthenticatedChamadosIdRoute
   AuthenticatedChamadosNovoRoute: typeof AuthenticatedChamadosNovoRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
+  AuthenticatedAssistenteIndexRoute: typeof AuthenticatedAssistenteIndexRoute
   AuthenticatedBaseConhecimentoIndexRoute: typeof AuthenticatedBaseConhecimentoIndexRoute
   AuthenticatedChamadosIndexRoute: typeof AuthenticatedChamadosIndexRoute
 }
@@ -490,6 +511,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedChamadosIdRoute: AuthenticatedChamadosIdRoute,
   AuthenticatedChamadosNovoRoute: AuthenticatedChamadosNovoRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
+  AuthenticatedAssistenteIndexRoute: AuthenticatedAssistenteIndexRoute,
   AuthenticatedBaseConhecimentoIndexRoute:
     AuthenticatedBaseConhecimentoIndexRoute,
   AuthenticatedChamadosIndexRoute: AuthenticatedChamadosIndexRoute,
