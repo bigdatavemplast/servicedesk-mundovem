@@ -46,25 +46,31 @@ export type Database = {
       }
       ai_messages: {
         Row: {
+          confianca: number | null
           content: string
           conversation_id: string
           created_at: string | null
+          fontes: Json
           id: string
           role: string
           user_id: string | null
         }
         Insert: {
+          confianca?: number | null
           content: string
           conversation_id: string
           created_at?: string | null
+          fontes?: Json
           id?: string
           role: string
           user_id?: string | null
         }
         Update: {
+          confianca?: number | null
           content?: string
           conversation_id?: string
           created_at?: string | null
+          fontes?: Json
           id?: string
           role?: string
           user_id?: string | null
@@ -271,6 +277,7 @@ export type Database = {
           categoria_id: string | null
           criado_em: string
           descricao: string
+          embedding: string | null
           fechado_em: string | null
           id: string
           numero: string
@@ -297,6 +304,7 @@ export type Database = {
           categoria_id?: string | null
           criado_em?: string
           descricao: string
+          embedding?: string | null
           fechado_em?: string | null
           id?: string
           numero: string
@@ -323,6 +331,7 @@ export type Database = {
           categoria_id?: string | null
           criado_em?: string
           descricao?: string
+          embedding?: string | null
           fechado_em?: string | null
           id?: string
           numero?: string
@@ -420,6 +429,53 @@ export type Database = {
           },
         ]
       }
+      documentos_assistente: {
+        Row: {
+          ativo: boolean
+          atualizado_em: string
+          categoria: string | null
+          conteudo: string
+          criado_em: string
+          criado_por: string | null
+          embedding: string | null
+          id: string
+          tipo: string
+          titulo: string
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_em?: string
+          categoria?: string | null
+          conteudo: string
+          criado_em?: string
+          criado_por?: string | null
+          embedding?: string | null
+          id?: string
+          tipo?: string
+          titulo: string
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_em?: string
+          categoria?: string | null
+          conteudo?: string
+          criado_em?: string
+          criado_por?: string | null
+          embedding?: string | null
+          id?: string
+          tipo?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_assistente_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       historico_chamado: {
         Row: {
           acao: string
@@ -502,6 +558,70 @@ export type Database = {
             columns: ["chamado_id"]
             isOneToOne: false
             referencedRelation: "chamados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      perguntas_sem_resposta: {
+        Row: {
+          atualizado_em: string
+          confianca: number | null
+          contexto: string | null
+          conversation_id: string | null
+          criado_em: string
+          id: string
+          pergunta: string
+          resolvida: boolean
+          respondido_por: string | null
+          resposta_oficial: string | null
+          user_id: string | null
+        }
+        Insert: {
+          atualizado_em?: string
+          confianca?: number | null
+          contexto?: string | null
+          conversation_id?: string | null
+          criado_em?: string
+          id?: string
+          pergunta: string
+          resolvida?: boolean
+          respondido_por?: string | null
+          resposta_oficial?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          atualizado_em?: string
+          confianca?: number | null
+          contexto?: string | null
+          conversation_id?: string | null
+          criado_em?: string
+          id?: string
+          pergunta?: string
+          resolvida?: boolean
+          respondido_por?: string | null
+          resposta_oficial?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "perguntas_sem_resposta_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "perguntas_sem_resposta_respondido_por_fkey"
+            columns: ["respondido_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "perguntas_sem_resposta_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -669,6 +789,20 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      match_conhecimento: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          query_embedding: string
+        }
+        Returns: {
+          conteudo: string
+          origem: string
+          ref_id: string
+          similarity: number
+          titulo: string
+        }[]
       }
       unaccent: { Args: { "": string }; Returns: string }
     }

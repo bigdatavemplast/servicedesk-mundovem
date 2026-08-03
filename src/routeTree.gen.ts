@@ -13,17 +13,20 @@ import { Route as McpRouteImport } from './routes/mcp'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiAssistenteRouteImport } from './routes/api/assistente'
 import { Route as AuthenticatedFilaRouteImport } from './routes/_authenticated/fila'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as AuthenticatedChamadosIndexRouteImport } from './routes/_authenticated/chamados.index'
 import { Route as AuthenticatedBaseConhecimentoIndexRouteImport } from './routes/_authenticated/base-conhecimento.index'
+import { Route as AuthenticatedAssistenteIndexRouteImport } from './routes/_authenticated/assistente.index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedChamadosNovoRouteImport } from './routes/_authenticated/chamados.novo'
 import { Route as AuthenticatedChamadosIdRouteImport } from './routes/_authenticated/chamados.$id'
 import { Route as AuthenticatedBaseConhecimentoNovoRouteImport } from './routes/_authenticated/base-conhecimento.novo'
 import { Route as AuthenticatedBaseConhecimentoIdRouteImport } from './routes/_authenticated/base-conhecimento.$id'
+import { Route as AuthenticatedAssistenteConversaIdRouteImport } from './routes/_authenticated/assistente.$conversaId'
 import { Route as AuthenticatedAdminUsuariosRouteImport } from './routes/_authenticated/admin.usuarios'
 import { Route as AuthenticatedAdminCategoriasRouteImport } from './routes/_authenticated/admin.categorias'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
@@ -47,6 +50,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAssistenteRoute = ApiAssistenteRouteImport.update({
+  id: '/api/assistente',
+  path: '/api/assistente',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedFilaRoute = AuthenticatedFilaRouteImport.update({
@@ -83,6 +91,12 @@ const AuthenticatedBaseConhecimentoIndexRoute =
     path: '/base-conhecimento/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAssistenteIndexRoute =
+  AuthenticatedAssistenteIndexRouteImport.update({
+    id: '/assistente/',
+    path: '/assistente/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   id: '/admin/',
   path: '/admin/',
@@ -109,6 +123,12 @@ const AuthenticatedBaseConhecimentoIdRoute =
   AuthenticatedBaseConhecimentoIdRouteImport.update({
     id: '/base-conhecimento/$id',
     path: '/base-conhecimento/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAssistenteConversaIdRoute =
+  AuthenticatedAssistenteConversaIdRouteImport.update({
+    id: '/assistente/$conversaId',
+    path: '/assistente/$conversaId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAdminUsuariosRoute =
@@ -149,15 +169,18 @@ export interface FileRoutesByFullPath {
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/fila': typeof AuthenticatedFilaRoute
+  '/api/assistente': typeof ApiAssistenteRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/admin/categorias': typeof AuthenticatedAdminCategoriasRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
+  '/assistente/$conversaId': typeof AuthenticatedAssistenteConversaIdRoute
   '/base-conhecimento/$id': typeof AuthenticatedBaseConhecimentoIdRouteWithChildren
   '/base-conhecimento/novo': typeof AuthenticatedBaseConhecimentoNovoRoute
   '/chamados/$id': typeof AuthenticatedChamadosIdRoute
   '/chamados/novo': typeof AuthenticatedChamadosNovoRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/assistente/': typeof AuthenticatedAssistenteIndexRoute
   '/base-conhecimento/': typeof AuthenticatedBaseConhecimentoIndexRoute
   '/chamados/': typeof AuthenticatedChamadosIndexRoute
   '/base-conhecimento/$id/editar': typeof AuthenticatedBaseConhecimentoIdEditarRoute
@@ -170,15 +193,18 @@ export interface FileRoutesByTo {
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/fila': typeof AuthenticatedFilaRoute
+  '/api/assistente': typeof ApiAssistenteRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/admin/categorias': typeof AuthenticatedAdminCategoriasRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
+  '/assistente/$conversaId': typeof AuthenticatedAssistenteConversaIdRoute
   '/base-conhecimento/$id': typeof AuthenticatedBaseConhecimentoIdRouteWithChildren
   '/base-conhecimento/novo': typeof AuthenticatedBaseConhecimentoNovoRoute
   '/chamados/$id': typeof AuthenticatedChamadosIdRoute
   '/chamados/novo': typeof AuthenticatedChamadosNovoRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
+  '/assistente': typeof AuthenticatedAssistenteIndexRoute
   '/base-conhecimento': typeof AuthenticatedBaseConhecimentoIndexRoute
   '/chamados': typeof AuthenticatedChamadosIndexRoute
   '/base-conhecimento/$id/editar': typeof AuthenticatedBaseConhecimentoIdEditarRoute
@@ -193,15 +219,18 @@ export interface FileRoutesById {
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/fila': typeof AuthenticatedFilaRoute
+  '/api/assistente': typeof ApiAssistenteRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/_authenticated/admin/categorias': typeof AuthenticatedAdminCategoriasRoute
   '/_authenticated/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
+  '/_authenticated/assistente/$conversaId': typeof AuthenticatedAssistenteConversaIdRoute
   '/_authenticated/base-conhecimento/$id': typeof AuthenticatedBaseConhecimentoIdRouteWithChildren
   '/_authenticated/base-conhecimento/novo': typeof AuthenticatedBaseConhecimentoNovoRoute
   '/_authenticated/chamados/$id': typeof AuthenticatedChamadosIdRoute
   '/_authenticated/chamados/novo': typeof AuthenticatedChamadosNovoRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/assistente/': typeof AuthenticatedAssistenteIndexRoute
   '/_authenticated/base-conhecimento/': typeof AuthenticatedBaseConhecimentoIndexRoute
   '/_authenticated/chamados/': typeof AuthenticatedChamadosIndexRoute
   '/_authenticated/base-conhecimento/$id/editar': typeof AuthenticatedBaseConhecimentoIdEditarRoute
@@ -216,15 +245,18 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-protected-resource'
     | '/dashboard'
     | '/fila'
+    | '/api/assistente'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/admin/categorias'
     | '/admin/usuarios'
+    | '/assistente/$conversaId'
     | '/base-conhecimento/$id'
     | '/base-conhecimento/novo'
     | '/chamados/$id'
     | '/chamados/novo'
     | '/admin/'
+    | '/assistente/'
     | '/base-conhecimento/'
     | '/chamados/'
     | '/base-conhecimento/$id/editar'
@@ -237,15 +269,18 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-protected-resource'
     | '/dashboard'
     | '/fila'
+    | '/api/assistente'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/admin/categorias'
     | '/admin/usuarios'
+    | '/assistente/$conversaId'
     | '/base-conhecimento/$id'
     | '/base-conhecimento/novo'
     | '/chamados/$id'
     | '/chamados/novo'
     | '/admin'
+    | '/assistente'
     | '/base-conhecimento'
     | '/chamados'
     | '/base-conhecimento/$id/editar'
@@ -259,15 +294,18 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-protected-resource'
     | '/_authenticated/dashboard'
     | '/_authenticated/fila'
+    | '/api/assistente'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/_authenticated/admin/categorias'
     | '/_authenticated/admin/usuarios'
+    | '/_authenticated/assistente/$conversaId'
     | '/_authenticated/base-conhecimento/$id'
     | '/_authenticated/base-conhecimento/novo'
     | '/_authenticated/chamados/$id'
     | '/_authenticated/chamados/novo'
     | '/_authenticated/admin/'
+    | '/_authenticated/assistente/'
     | '/_authenticated/base-conhecimento/'
     | '/_authenticated/chamados/'
     | '/_authenticated/base-conhecimento/$id/editar'
@@ -280,6 +318,7 @@ export interface RootRouteChildren {
   McpRoute: typeof McpRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  ApiAssistenteRoute: typeof ApiAssistenteRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
 }
@@ -312,6 +351,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/assistente': {
+      id: '/api/assistente'
+      path: '/api/assistente'
+      fullPath: '/api/assistente'
+      preLoaderRoute: typeof ApiAssistenteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/fila': {
@@ -356,6 +402,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBaseConhecimentoIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/assistente/': {
+      id: '/_authenticated/assistente/'
+      path: '/assistente'
+      fullPath: '/assistente/'
+      preLoaderRoute: typeof AuthenticatedAssistenteIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/': {
       id: '/_authenticated/admin/'
       path: '/admin'
@@ -389,6 +442,13 @@ declare module '@tanstack/react-router' {
       path: '/base-conhecimento/$id'
       fullPath: '/base-conhecimento/$id'
       preLoaderRoute: typeof AuthenticatedBaseConhecimentoIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/assistente/$conversaId': {
+      id: '/_authenticated/assistente/$conversaId'
+      path: '/assistente/$conversaId'
+      fullPath: '/assistente/$conversaId'
+      preLoaderRoute: typeof AuthenticatedAssistenteConversaIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/usuarios': {
@@ -449,11 +509,13 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFilaRoute: typeof AuthenticatedFilaRoute
   AuthenticatedAdminCategoriasRoute: typeof AuthenticatedAdminCategoriasRoute
   AuthenticatedAdminUsuariosRoute: typeof AuthenticatedAdminUsuariosRoute
+  AuthenticatedAssistenteConversaIdRoute: typeof AuthenticatedAssistenteConversaIdRoute
   AuthenticatedBaseConhecimentoIdRoute: typeof AuthenticatedBaseConhecimentoIdRouteWithChildren
   AuthenticatedBaseConhecimentoNovoRoute: typeof AuthenticatedBaseConhecimentoNovoRoute
   AuthenticatedChamadosIdRoute: typeof AuthenticatedChamadosIdRoute
   AuthenticatedChamadosNovoRoute: typeof AuthenticatedChamadosNovoRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
+  AuthenticatedAssistenteIndexRoute: typeof AuthenticatedAssistenteIndexRoute
   AuthenticatedBaseConhecimentoIndexRoute: typeof AuthenticatedBaseConhecimentoIndexRoute
   AuthenticatedChamadosIndexRoute: typeof AuthenticatedChamadosIndexRoute
 }
@@ -463,6 +525,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFilaRoute: AuthenticatedFilaRoute,
   AuthenticatedAdminCategoriasRoute: AuthenticatedAdminCategoriasRoute,
   AuthenticatedAdminUsuariosRoute: AuthenticatedAdminUsuariosRoute,
+  AuthenticatedAssistenteConversaIdRoute:
+    AuthenticatedAssistenteConversaIdRoute,
   AuthenticatedBaseConhecimentoIdRoute:
     AuthenticatedBaseConhecimentoIdRouteWithChildren,
   AuthenticatedBaseConhecimentoNovoRoute:
@@ -470,6 +534,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedChamadosIdRoute: AuthenticatedChamadosIdRoute,
   AuthenticatedChamadosNovoRoute: AuthenticatedChamadosNovoRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
+  AuthenticatedAssistenteIndexRoute: AuthenticatedAssistenteIndexRoute,
   AuthenticatedBaseConhecimentoIndexRoute:
     AuthenticatedBaseConhecimentoIndexRoute,
   AuthenticatedChamadosIndexRoute: AuthenticatedChamadosIndexRoute,
@@ -486,6 +551,7 @@ const rootRouteChildren: RootRouteChildren = {
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
+  ApiAssistenteRoute: ApiAssistenteRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
 }
