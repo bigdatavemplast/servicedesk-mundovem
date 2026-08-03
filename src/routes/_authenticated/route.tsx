@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, redirect, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Ticket, PlusCircle, BookOpen, LogOut, Users, FolderTree, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Ticket, PlusCircle, BookOpen, LogOut, Users, FolderTree, ShieldCheck, Bot } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { NotificationBell } from "@/components/NotificationBell";
 
