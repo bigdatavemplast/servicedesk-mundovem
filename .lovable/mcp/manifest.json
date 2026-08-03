@@ -1,0 +1,222 @@
+{
+  "version": 1,
+  "sdk_version": "0.26.1",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://qnajflcpknyjhbxaehye.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "vemplast-support-hub",
+      "version": "0.1.0",
+      "title": "Vemplast Support Hub"
+    },
+    "tools": [
+      {
+        "name": "listar_chamados",
+        "title": "Listar chamados",
+        "description": "Lista os chamados do Service Desk visíveis para o usuário autenticado, com filtros opcionais de status, prioridade e busca por título.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "status": {
+              "description": "Filtrar por status do chamado.",
+              "type": "string",
+              "enum": [
+                "aberto",
+                "em_andamento",
+                "aguardando_usuario",
+                "aguardando_terceiro",
+                "resolvido",
+                "fechado",
+                "cancelado"
+              ]
+            },
+            "prioridade": {
+              "description": "Filtrar por prioridade.",
+              "type": "string",
+              "enum": [
+                "baixa",
+                "media",
+                "alta",
+                "critica"
+              ]
+            },
+            "busca": {
+              "description": "Texto para buscar no título do chamado.",
+              "type": "string",
+              "minLength": 1
+            },
+            "limite": {
+              "default": 20,
+              "description": "Quantidade máxima de chamados.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "obter_chamado",
+        "title": "Obter chamado",
+        "description": "Retorna os detalhes completos de um chamado (por número SD-XXXXX ou id), incluindo comentários e histórico.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "numero": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Número do chamado (ex.: SD-00042) ou o id UUID."
+            }
+          },
+          "required": [
+            "numero"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "criar_chamado",
+        "title": "Abrir chamado",
+        "description": "Abre um novo chamado no Service Desk em nome do usuário autenticado. O número SD-XXXXX é gerado automaticamente.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "titulo": {
+              "type": "string",
+              "minLength": 3,
+              "description": "Título curto e objetivo do chamado."
+            },
+            "descricao": {
+              "type": "string",
+              "minLength": 3,
+              "description": "Descrição detalhada do problema ou solicitação."
+            },
+            "prioridade": {
+              "default": "media",
+              "description": "Prioridade do chamado.",
+              "type": "string",
+              "enum": [
+                "baixa",
+                "media",
+                "alta",
+                "critica"
+              ]
+            },
+            "categoria_id": {
+              "description": "Id da categoria (opcional).",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "subcategoria_id": {
+              "description": "Id da subcategoria (opcional).",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "required": [
+            "titulo",
+            "descricao"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "comentar_chamado",
+        "title": "Comentar chamado",
+        "description": "Adiciona um comentário a um chamado existente. Use interno=true para uma nota visível apenas para a equipe de atendimento.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "numero": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Número do chamado (ex.: SD-00042) ou o id UUID."
+            },
+            "mensagem": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Texto do comentário."
+            },
+            "interno": {
+              "default": false,
+              "description": "Se verdadeiro, o comentário é uma nota interna.",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "numero",
+            "mensagem"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "buscar_base_conhecimento",
+        "title": "Buscar na base de conhecimento",
+        "description": "Busca artigos publicados na base de conhecimento do Service Desk por termo no título ou conteúdo.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "termo": {
+              "type": "string",
+              "minLength": 2,
+              "description": "Termo de busca."
+            },
+            "limite": {
+              "default": 5,
+              "description": "Quantidade máxima de artigos.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            }
+          },
+          "required": [
+            "termo"
+          ]
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}

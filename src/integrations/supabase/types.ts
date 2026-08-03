@@ -16,22 +16,28 @@ export type Database = {
     Tables: {
       ai_conversations: {
         Row: {
+          closed_at: string | null
           created_at: string | null
           id: string
+          status: string | null
           title: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          closed_at?: string | null
           created_at?: string | null
           id?: string
+          status?: string | null
           title?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          closed_at?: string | null
           created_at?: string | null
           id?: string
+          status?: string | null
           title?: string | null
           updated_at?: string | null
           user_id?: string
@@ -45,6 +51,7 @@ export type Database = {
           created_at: string | null
           id: string
           role: string
+          user_id: string | null
         }
         Insert: {
           content: string
@@ -52,6 +59,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           role: string
+          user_id?: string | null
         }
         Update: {
           content?: string
@@ -59,8 +67,16 @@ export type Database = {
           created_at?: string | null
           id?: string
           role?: string
+          user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ai_messages_conversation_fk"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ai_messages_conversation_id_fkey"
             columns: ["conversation_id"]
@@ -118,6 +134,39 @@ export type Database = {
           },
         ]
       }
+      assistant_logs: {
+        Row: {
+          artigos_utilizados: number | null
+          confidence: number | null
+          criado_em: string | null
+          feedback: boolean | null
+          id: string
+          pergunta: string
+          resposta: string
+          usuario_id: string | null
+        }
+        Insert: {
+          artigos_utilizados?: number | null
+          confidence?: number | null
+          criado_em?: string | null
+          feedback?: boolean | null
+          id?: string
+          pergunta: string
+          resposta: string
+          usuario_id?: string | null
+        }
+        Update: {
+          artigos_utilizados?: number | null
+          confidence?: number | null
+          criado_em?: string | null
+          feedback?: boolean | null
+          id?: string
+          pergunta?: string
+          resposta?: string
+          usuario_id?: string | null
+        }
+        Relationships: []
+      }
       base_conhecimento: {
         Row: {
           atualizado_em: string
@@ -125,6 +174,7 @@ export type Database = {
           categoria_id: string | null
           conteudo: string
           criado_em: string
+          embedding: string | null
           id: string
           publicado: boolean
           slug: string
@@ -138,6 +188,7 @@ export type Database = {
           categoria_id?: string | null
           conteudo: string
           criado_em?: string
+          embedding?: string | null
           id?: string
           publicado?: boolean
           slug: string
@@ -151,6 +202,7 @@ export type Database = {
           categoria_id?: string | null
           conteudo?: string
           criado_em?: string
+          embedding?: string | null
           id?: string
           publicado?: boolean
           slug?: string
@@ -595,6 +647,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      buscar_artigos_semanticos: {
+        Args: { match_count?: number; query_embedding: string }
+        Returns: {
+          conteudo: string
+          id: string
+          similarity: number
+          titulo: string
+        }[]
+      }
       has_any_role: {
         Args: {
           _roles: Database["public"]["Enums"]["app_role"][]
