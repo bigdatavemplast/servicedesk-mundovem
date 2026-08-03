@@ -26,6 +26,7 @@ import { Route as AuthenticatedChamadosNovoRouteImport } from './routes/_authent
 import { Route as AuthenticatedChamadosIdRouteImport } from './routes/_authenticated/chamados.$id'
 import { Route as AuthenticatedBaseConhecimentoNovoRouteImport } from './routes/_authenticated/base-conhecimento.novo'
 import { Route as AuthenticatedBaseConhecimentoIdRouteImport } from './routes/_authenticated/base-conhecimento.$id'
+import { Route as AuthenticatedAssistenteConversaIdRouteImport } from './routes/_authenticated/assistente.$conversaId'
 import { Route as AuthenticatedAdminUsuariosRouteImport } from './routes/_authenticated/admin.usuarios'
 import { Route as AuthenticatedAdminCategoriasRouteImport } from './routes/_authenticated/admin.categorias'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
@@ -124,6 +125,12 @@ const AuthenticatedBaseConhecimentoIdRoute =
     path: '/base-conhecimento/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAssistenteConversaIdRoute =
+  AuthenticatedAssistenteConversaIdRouteImport.update({
+    id: '/assistente/$conversaId',
+    path: '/assistente/$conversaId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminUsuariosRoute =
   AuthenticatedAdminUsuariosRouteImport.update({
     id: '/admin/usuarios',
@@ -167,6 +174,7 @@ export interface FileRoutesByFullPath {
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/admin/categorias': typeof AuthenticatedAdminCategoriasRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
+  '/assistente/$conversaId': typeof AuthenticatedAssistenteConversaIdRoute
   '/base-conhecimento/$id': typeof AuthenticatedBaseConhecimentoIdRouteWithChildren
   '/base-conhecimento/novo': typeof AuthenticatedBaseConhecimentoNovoRoute
   '/chamados/$id': typeof AuthenticatedChamadosIdRoute
@@ -190,6 +198,7 @@ export interface FileRoutesByTo {
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/admin/categorias': typeof AuthenticatedAdminCategoriasRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
+  '/assistente/$conversaId': typeof AuthenticatedAssistenteConversaIdRoute
   '/base-conhecimento/$id': typeof AuthenticatedBaseConhecimentoIdRouteWithChildren
   '/base-conhecimento/novo': typeof AuthenticatedBaseConhecimentoNovoRoute
   '/chamados/$id': typeof AuthenticatedChamadosIdRoute
@@ -215,6 +224,7 @@ export interface FileRoutesById {
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/_authenticated/admin/categorias': typeof AuthenticatedAdminCategoriasRoute
   '/_authenticated/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
+  '/_authenticated/assistente/$conversaId': typeof AuthenticatedAssistenteConversaIdRoute
   '/_authenticated/base-conhecimento/$id': typeof AuthenticatedBaseConhecimentoIdRouteWithChildren
   '/_authenticated/base-conhecimento/novo': typeof AuthenticatedBaseConhecimentoNovoRoute
   '/_authenticated/chamados/$id': typeof AuthenticatedChamadosIdRoute
@@ -240,6 +250,7 @@ export interface FileRouteTypes {
     | '/.mcp/invoke-tool/$tool'
     | '/admin/categorias'
     | '/admin/usuarios'
+    | '/assistente/$conversaId'
     | '/base-conhecimento/$id'
     | '/base-conhecimento/novo'
     | '/chamados/$id'
@@ -263,6 +274,7 @@ export interface FileRouteTypes {
     | '/.mcp/invoke-tool/$tool'
     | '/admin/categorias'
     | '/admin/usuarios'
+    | '/assistente/$conversaId'
     | '/base-conhecimento/$id'
     | '/base-conhecimento/novo'
     | '/chamados/$id'
@@ -287,6 +299,7 @@ export interface FileRouteTypes {
     | '/.mcp/invoke-tool/$tool'
     | '/_authenticated/admin/categorias'
     | '/_authenticated/admin/usuarios'
+    | '/_authenticated/assistente/$conversaId'
     | '/_authenticated/base-conhecimento/$id'
     | '/_authenticated/base-conhecimento/novo'
     | '/_authenticated/chamados/$id'
@@ -431,6 +444,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBaseConhecimentoIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/assistente/$conversaId': {
+      id: '/_authenticated/assistente/$conversaId'
+      path: '/assistente/$conversaId'
+      fullPath: '/assistente/$conversaId'
+      preLoaderRoute: typeof AuthenticatedAssistenteConversaIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/usuarios': {
       id: '/_authenticated/admin/usuarios'
       path: '/admin/usuarios'
@@ -489,6 +509,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFilaRoute: typeof AuthenticatedFilaRoute
   AuthenticatedAdminCategoriasRoute: typeof AuthenticatedAdminCategoriasRoute
   AuthenticatedAdminUsuariosRoute: typeof AuthenticatedAdminUsuariosRoute
+  AuthenticatedAssistenteConversaIdRoute: typeof AuthenticatedAssistenteConversaIdRoute
   AuthenticatedBaseConhecimentoIdRoute: typeof AuthenticatedBaseConhecimentoIdRouteWithChildren
   AuthenticatedBaseConhecimentoNovoRoute: typeof AuthenticatedBaseConhecimentoNovoRoute
   AuthenticatedChamadosIdRoute: typeof AuthenticatedChamadosIdRoute
@@ -504,6 +525,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFilaRoute: AuthenticatedFilaRoute,
   AuthenticatedAdminCategoriasRoute: AuthenticatedAdminCategoriasRoute,
   AuthenticatedAdminUsuariosRoute: AuthenticatedAdminUsuariosRoute,
+  AuthenticatedAssistenteConversaIdRoute:
+    AuthenticatedAssistenteConversaIdRoute,
   AuthenticatedBaseConhecimentoIdRoute:
     AuthenticatedBaseConhecimentoIdRouteWithChildren,
   AuthenticatedBaseConhecimentoNovoRoute:
