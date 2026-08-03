@@ -13,7 +13,7 @@ export default defineTool({
     interno: z.boolean().default(false).describe("Se verdadeiro, o comentário é uma nota interna."),
   },
   annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
-  handler: async ({ numero, conteudo, interno }, ctx) => {
+  handler: async ({ numero, mensagem, interno }, ctx) => {
     if (!ctx.isAuthenticated()) {
       return { content: [{ type: "text", text: "Não autenticado." }], isError: true };
     }
@@ -39,7 +39,7 @@ export default defineTool({
       .insert({
         chamado_id: chamado.id,
         autor_id: ctx.getUserId() as string,
-        conteudo,
+        conteudo: mensagem,
         interno: interno ?? false,
       })
       .select("id, conteudo, interno, criado_em")

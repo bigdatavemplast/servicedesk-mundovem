@@ -35,7 +35,7 @@ export default defineTool({
     const [{ data: comentarios }, { data: historico }] = await Promise.all([
       supabase
         .from("comentarios_chamado")
-        .select("id, mensagem, interno, criado_em, autor_id")
+        .select("id, conteudo, interno, criado_em, autor_id")
         .eq("chamado_id", chamado.id)
         .order("criado_em"),
       supabase
