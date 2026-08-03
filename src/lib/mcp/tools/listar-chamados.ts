@@ -2,7 +2,15 @@ import { defineTool } from "@lovable.dev/mcp-js";
 import { z } from "zod";
 import { supabaseForUser } from "../supabase";
 
-const STATUS = ["aberto", "em_andamento", "aguardando_terceiros", "resolvido", "fechado", "cancelado"] as const;
+const STATUS = [
+  "aberto",
+  "em_andamento",
+  "aguardando_usuario",
+  "aguardando_terceiro",
+  "resolvido",
+  "fechado",
+  "cancelado",
+] as const;
 
 export default defineTool({
   name: "listar_chamados",
