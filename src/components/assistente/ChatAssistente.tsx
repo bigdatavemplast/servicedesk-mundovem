@@ -93,8 +93,10 @@ export function ChatAssistente({
         prepareSendMessagesRequest: async ({ messages, body }) => {
           const { data } = await supabase.auth.getSession();
           const token = data.session?.access_token;
+          const headers: Record<string, string> = {};
+          if (token) headers["Authorization"] = `Bearer ${token}`;
           return {
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
+            headers,
             body: { ...body, messages, conversationId },
           };
         },
