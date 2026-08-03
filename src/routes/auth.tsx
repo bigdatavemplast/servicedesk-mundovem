@@ -9,17 +9,29 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Ticket, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
+function safeNext(next: unknown): string | null {
+  if (typeof next !== "string" || !next.startsWith("/") || next.startsWith("//")) return null;
+  return next;
+}
+
 export const Route = createFileRoute("/auth")({
   ssr: false,
-  beforeLoad: async () => {
+  validateSearch: (s: Record<string, unknown>) => ({ next: safeNext(s.next) ?? undefined }),
+  beforeLoad: async ({ search }) => {
     const { data } = await supabase.auth.getUser();
-    if (data.user) throw redirect({ to: "/dashboard" });
+    if (data.user) {
+      const next = safeNext(search.next);
+      if (next) throw redirect({ href: next });
+      throw redirect({ to: "/dashboard" });
+    }
   },
   component: AuthPage,
 });
 
 function AuthPage() {
   const navigate = useNavigate();
+  const { next } = Route.useSearch();
+  const nextPath = safeNext(next);
   const [loading, setLoading] = useState(false);
 
   const [loginEmail, setLoginEmail] = useState("");
@@ -37,6 +49,10 @@ function AuthPage() {
     setLoading(false);
     if (error) return toast.error(error.message);
     toast.success("Bem-vindo!");
+    if (nextPath) {
+      window.location.href = nextPath;
+      return;
+    }
     navigate({ to: "/dashboard" });
   }
 
@@ -47,7 +63,7 @@ function AuthPage() {
       email: regEmail,
       password: regPass,
       options: {
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: nextPath ? window.location.origin + nextPath : window.location.origin,
         data: { nome, departamento: depto },
       },
     });
