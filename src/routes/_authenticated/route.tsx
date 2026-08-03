@@ -43,6 +43,7 @@ function AppShell() {
       title: "PRINCIPAL",
       items: [
         { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+        { to: "/assistente", icon: Bot, label: "Assistente" },
         { to: "/chamados/novo", icon: PlusCircle, label: "Novo chamado" },
         { to: "/chamados", icon: Ticket, label: "Meus chamados" },
         { to: "/base-conhecimento", icon: BookOpen, label: "Base de conhecimento" },
