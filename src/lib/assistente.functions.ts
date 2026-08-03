@@ -80,7 +80,12 @@ export const carregarMensagens = createServerFn({ method: "GET" })
         id: m.id as string,
         role: m.role as string,
         content: m.content as string,
-        fontes: (m.fontes ?? []) as unknown,
+        fontes: (Array.isArray(m.fontes) ? m.fontes : []) as Array<{
+          origem: string;
+          ref_id: string;
+          titulo: string;
+          similaridade: number;
+        }>,
         confianca: m.confianca as number | null,
       })),
     };
