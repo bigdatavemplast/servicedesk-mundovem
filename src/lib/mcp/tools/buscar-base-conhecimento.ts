@@ -17,11 +17,14 @@ export default defineTool({
       return { content: [{ type: "text", text: "Não autenticado." }], isError: true };
     }
     const supabase = supabaseForUser(ctx);
+    // Escapa curingas/reservados do PostgREST para o termo não alterar a lógica do filtro.
+    const termoSeguro = termo.replace(/[\\%_]/g, (c) => `\\${c}`).replace(/[(),.:"']/g, " ");
     const { data, error } = await supabase
       .from("base_conhecimento")
       .select("id, titulo, conteudo, criado_em")
-      .or(`titulo.ilike.%${termo}%,conteudo.ilike.%${termo}%`)
+      .or(`titulo.ilike."%${termoSeguro}%",conteudo.ilike."%${termoSeguro}%"`)
       .limit(limite ?? 5);
+
 
     if (error) return { content: [{ type: "text", text: error.message }], isError: true };
     if (!data?.length) {
