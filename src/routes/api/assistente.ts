@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { convertToModelMessages, streamText, type UIMessage } from "ai";
+import { convertToModelMessages, stepCountIs, streamText, type UIMessage } from "ai";
 import { createLovableAiGatewayProvider, MODELO_CHAT } from "@/lib/ai-gateway.server";
-import { buscarContexto, montarSystemPrompt, type Fonte } from "@/lib/assistente-rag.server";
+import { montarPromptAgente, type Fonte } from "@/lib/assistente-rag.server";
+import { criarFerramentasAssistente } from "@/lib/assistente-tools.server";
 import { autenticarRequisicao } from "@/lib/supabase-request.server";
 
 type CorpoRequisicao = {
@@ -10,6 +11,7 @@ type CorpoRequisicao = {
 };
 
 const CONFIANCA_MINIMA = 0.62;
+
 
 function textoDaMensagem(mensagem: UIMessage | undefined): string {
   if (!mensagem) return "";
@@ -87,7 +89,20 @@ export const Route = createFileRoute("/api/assistente")({
           await supabase.from("ai_conversations").update({ title: titulo }).eq("id", conversationId);
         }
 
-        const contexto = await buscarContexto(supabase, pergunta, apiKey);
+        // Fontes coletadas pelas ferramentas durante o raciocínio do agente.
+        const fontesUsadas: Fonte[] = [];
+        let confianca = 0;
+        const ferramentas = criarFerramentasAssistente({
+          supabase,
+          userId,
+          apiKey,
+          registrarFontes: (fontes) => {
+            for (const f of fontes) {
+              if (!fontesUsadas.some((x) => x.ref_id === f.ref_id)) fontesUsadas.push(f);
+              confianca = Math.max(confianca, f.similaridade);
+            }
+          },
+        });
 
         const gateway = createLovableAiGatewayProvider(apiKey);
 
@@ -95,8 +110,10 @@ export const Route = createFileRoute("/api/assistente")({
         try {
           resultado = streamText({
             model: gateway(MODELO_CHAT),
-            system: montarSystemPrompt(contexto, perfil?.nome ?? null),
+            system: montarPromptAgente(perfil?.nome ?? null),
             messages: await convertToModelMessages(mensagens),
+            tools: ferramentas,
+            stopWhen: stepCountIs(50),
             providerOptions: { lovable: { reasoningEffort: "none" } },
             onFinish: async ({ text }) => {
               const { error } = await supabase.from("ai_messages").insert({
@@ -104,8 +121,8 @@ export const Route = createFileRoute("/api/assistente")({
                 user_id: userId,
                 role: "assistant",
                 content: text,
-                fontes: contexto.fontes as unknown as never,
-                confianca: contexto.confianca,
+                fontes: fontesUsadas as unknown as never,
+                confianca,
               });
               if (error) console.error("[assistente] erro ao salvar resposta", error);
 
@@ -114,13 +131,13 @@ export const Route = createFileRoute("/api/assistente")({
                 .update({ updated_at: new Date().toISOString() })
                 .eq("id", conversationId);
 
-              if (contexto.confianca < CONFIANCA_MINIMA) {
+              if (confianca < CONFIANCA_MINIMA) {
                 const { error: erroPergunta } = await supabase.from("perguntas_sem_resposta").insert({
                   pergunta,
-                  contexto: contexto.fontes.map((f) => f.titulo).join(" | ") || null,
+                  contexto: fontesUsadas.map((f) => f.titulo).join(" | ") || null,
                   conversation_id: conversationId,
                   user_id: userId,
-                  confianca: contexto.confianca,
+                  confianca,
                 });
                 if (erroPergunta) console.error("[assistente] erro ao registrar lacuna", erroPergunta);
               }
@@ -137,9 +154,7 @@ export const Route = createFileRoute("/api/assistente")({
         return resultado.toUIMessageStreamResponse({
           originalMessages: mensagens,
           messageMetadata: ({ part }) =>
-            part.type === "finish"
-              ? { fontes: contexto.fontes satisfies Fonte[], confianca: contexto.confianca }
-              : undefined,
+            part.type === "finish" ? { fontes: fontesUsadas, confianca } : undefined,
           onError: (erro) => {
             console.error("[assistente] erro de streaming", erro);
             const mensagem = erro instanceof Error ? erro.message : String(erro);
@@ -148,6 +163,7 @@ export const Route = createFileRoute("/api/assistente")({
             return "Ocorreu um erro ao gerar a resposta.";
           },
         });
+
       },
     },
   },
