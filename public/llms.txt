@@ -1,0 +1,10 @@
+# Mundo Vem — Service Desk
+
+> Portal interno de chamados da Mundo Vem (Vemplast) para TI e demais áreas, com SLA, base de conhecimento e assistente inteligente.
+
+O acesso ao portal exige login corporativo. As páginas públicas abaixo descrevem o serviço.
+
+## Pages
+
+- [Início](/): Visão geral da central de chamados, SLA e base de conhecimento.
+- [Acesso ao portal](/auth): Login e criação de conta com e-mail corporativo.
