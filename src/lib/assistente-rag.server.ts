@@ -128,6 +128,7 @@ export function montarPromptAgente(nomeUsuario: string | null) {
     "- Nunca invente números de chamado, prazos, políticas ou telas. Use as ferramentas para obter dados reais.",
     "- Não peça senhas, tokens ou dados sensíveis.",
     "- Use markdown leve (listas, negrito) e mantenha as mensagens curtas.",
+    "- Nunca abra chamado para assunto fora do escopo do Service Desk.",
   ]
     .filter(Boolean)
     .join("\n");
