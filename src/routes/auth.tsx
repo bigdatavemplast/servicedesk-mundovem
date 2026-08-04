@@ -96,12 +96,16 @@ function AuthPage() {
   return (
     <div className="grid min-h-screen place-items-center bg-muted/30 px-4">
       <div className="w-full max-w-md">
-        <div className="mb-6 flex items-center justify-center gap-2 font-semibold">
-          <div className="grid h-9 w-9 place-items-center rounded-md bg-primary text-primary-foreground">
-            <Ticket className="h-5 w-5" />
+        <div className="mb-6 flex flex-col items-center justify-center gap-2 text-center font-semibold">
+          <div className="flex items-center gap-2">
+            <div className="grid h-9 w-9 place-items-center rounded-md bg-primary text-primary-foreground">
+              <Ticket className="h-5 w-5" />
+            </div>
+            <span className="text-lg">Mundo Vem — Service Desk</span>
           </div>
-          <span className="text-lg">Mundo Vem — Service Desk</span>
+          <h1 className="text-xl font-bold tracking-tight">Acesso ao portal de chamados</h1>
         </div>
+
 
         <Card>
           <CardHeader>
