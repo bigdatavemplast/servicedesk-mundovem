@@ -129,7 +129,7 @@ RETURNS TABLE (
 )
 LANGUAGE sql
 STABLE
-SECURITY INVOKER
+SECURITY DEFINER
 SET search_path = public
 AS $$
   WITH artigos AS (
