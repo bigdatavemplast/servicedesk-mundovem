@@ -14,9 +14,30 @@ function safeNext(next: unknown): string | null {
   return next;
 }
 
+const TITULO = "Acesso ao portal — Mundo Vem Service Desk";
+const DESCRICAO =
+  "Entre com seu e-mail corporativo Mundo Vem para abrir e acompanhar chamados de TI e das demais áreas atendidas.";
+const URL_PAGINA = "https://servicedesk-mundovem.lovable.app/auth";
+
 export const Route = createFileRoute("/auth")({
   ssr: false,
+  head: () => ({
+    meta: [
+      { title: TITULO },
+      { name: "description", content: DESCRICAO },
+      { property: "og:title", content: TITULO },
+      { property: "og:description", content: DESCRICAO },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: URL_PAGINA },
+      { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: TITULO },
+      { name: "twitter:description", content: DESCRICAO },
+      { name: "robots", content: "noindex, follow" },
+    ],
+    links: [{ rel: "canonical", href: URL_PAGINA }],
+  }),
   validateSearch: (s: Record<string, unknown>) => ({ next: safeNext(s.next) ?? undefined }),
+
   beforeLoad: async ({ search }) => {
     const { data } = await supabase.auth.getUser();
     if (data.user) {
@@ -75,12 +96,16 @@ function AuthPage() {
   return (
     <div className="grid min-h-screen place-items-center bg-muted/30 px-4">
       <div className="w-full max-w-md">
-        <div className="mb-6 flex items-center justify-center gap-2 font-semibold">
-          <div className="grid h-9 w-9 place-items-center rounded-md bg-primary text-primary-foreground">
-            <Ticket className="h-5 w-5" />
+        <div className="mb-6 flex flex-col items-center justify-center gap-2 text-center font-semibold">
+          <div className="flex items-center gap-2">
+            <div className="grid h-9 w-9 place-items-center rounded-md bg-primary text-primary-foreground">
+              <Ticket className="h-5 w-5" />
+            </div>
+            <span className="text-lg">Mundo Vem — Service Desk</span>
           </div>
-          <span className="text-lg">Mundo Vem — Service Desk</span>
+          <h1 className="text-xl font-bold tracking-tight">Acesso ao portal de chamados</h1>
         </div>
+
 
         <Card>
           <CardHeader>

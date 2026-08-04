@@ -3,14 +3,56 @@ import { Button } from "@/components/ui/button";
 import { Ticket, ShieldCheck, Zap, BookOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
+const TITULO = "Central de Chamados — Mundo Vem Service Desk";
+const DESCRICAO =
+  "Portal oficial da Mundo Vem para abrir e acompanhar chamados de TI e demais áreas, com SLA por prioridade e base de conhecimento.";
+const URL_PAGINA = "https://servicedesk-mundovem.lovable.app/";
+
 export const Route = createFileRoute("/")({
   ssr: false,
+  head: () => ({
+    meta: [
+      { title: TITULO },
+      { name: "description", content: DESCRICAO },
+      { property: "og:title", content: TITULO },
+      { property: "og:description", content: DESCRICAO },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: URL_PAGINA },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: TITULO },
+      { name: "twitter:description", content: DESCRICAO },
+    ],
+    links: [{ rel: "canonical", href: URL_PAGINA }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@graph": [
+            {
+              "@type": "Organization",
+              name: "Mundo Vem",
+              alternateName: "Vemplast",
+              url: URL_PAGINA,
+            },
+            {
+              "@type": "WebSite",
+              name: "Mundo Vem — Service Desk",
+              url: URL_PAGINA,
+              inLanguage: "pt-BR",
+            },
+          ],
+        }),
+      },
+    ],
+  }),
   beforeLoad: async () => {
     const { data } = await supabase.auth.getUser();
     if (data.user) throw redirect({ to: "/dashboard" });
   },
   component: Landing,
 });
+
 
 function Landing() {
   return (
@@ -53,7 +95,7 @@ function Landing() {
           ].map(({ icon: Icon, title, desc }) => (
             <div key={title} className="rounded-lg border bg-card p-6">
               <Icon className="h-6 w-6 text-primary" />
-              <h3 className="mt-4 font-semibold">{title}</h3>
+              <h2 className="mt-4 font-semibold">{title}</h2>
               <p className="mt-2 text-sm text-muted-foreground">{desc}</p>
             </div>
           ))}

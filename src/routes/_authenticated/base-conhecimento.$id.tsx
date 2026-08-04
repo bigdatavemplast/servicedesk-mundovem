@@ -46,6 +46,22 @@ function DetalhePage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Article",
+            headline: artigo.titulo,
+            datePublished: artigo.criado_em,
+            dateModified: (artigo as any).atualizado_em ?? artigo.criado_em,
+            inLanguage: "pt-BR",
+            author: { "@type": "Person", name: (artigo.autor as any)?.nome ?? "Mundo Vem" },
+            publisher: { "@type": "Organization", name: "Mundo Vem" },
+          }),
+        }}
+      />
+
       <div className="flex items-center justify-between">
         <Button variant="ghost" size="sm" onClick={() => navigate({ to: "/base-conhecimento" })}>
           <ArrowLeft className="mr-2 h-4 w-4" /> Base de conhecimento
