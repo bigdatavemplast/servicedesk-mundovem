@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { convertToModelMessages, streamText, type UIMessage } from "ai";
+import { convertToModelMessages, stepCountIs, streamText, type UIMessage } from "ai";
 import { createLovableAiGatewayProvider, MODELO_CHAT } from "@/lib/ai-gateway.server";
-import { buscarContexto, montarSystemPrompt, type Fonte } from "@/lib/assistente-rag.server";
+import { montarPromptAgente, type Fonte } from "@/lib/assistente-rag.server";
+import { criarFerramentasAssistente } from "@/lib/assistente-tools.server";
 import { autenticarRequisicao } from "@/lib/supabase-request.server";
 
 type CorpoRequisicao = {
@@ -10,6 +11,7 @@ type CorpoRequisicao = {
 };
 
 const CONFIANCA_MINIMA = 0.62;
+
 
 function textoDaMensagem(mensagem: UIMessage | undefined): string {
   if (!mensagem) return "";
