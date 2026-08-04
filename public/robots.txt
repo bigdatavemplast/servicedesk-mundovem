@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /chamados
+Disallow: /fila
+Disallow: /admin
+Disallow: /assistente
+Disallow: /base-conhecimento
+Disallow: /api/
+
+Sitemap: https://servicedesk-mundovem.lovable.app/sitemap.xml
