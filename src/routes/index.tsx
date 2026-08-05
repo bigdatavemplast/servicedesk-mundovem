@@ -2,6 +2,7 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Ticket, ShieldCheck, Zap, BookOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { serializarJsonLd } from "@/lib/json-ld";
 
 const TITULO = "Central de Chamados — Mundo Vem Service Desk";
 const DESCRICAO =
@@ -26,7 +27,7 @@ export const Route = createFileRoute("/")({
     scripts: [
       {
         type: "application/ld+json",
-        children: JSON.stringify({
+        children: serializarJsonLd({
           "@context": "https://schema.org",
           "@graph": [
             {
