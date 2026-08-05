@@ -49,7 +49,7 @@ function DetalhePage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
+          __html: serializarJsonLd({
             "@context": "https://schema.org",
             "@type": "Article",
             headline: artigo.titulo,
