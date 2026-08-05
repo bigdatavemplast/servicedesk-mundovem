@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Pencil } from "lucide-react";
+import { serializarJsonLd } from "@/lib/json-ld";
 
 export const Route = createFileRoute("/_authenticated/base-conhecimento/$id")({
   component: DetalhePage,
@@ -49,7 +50,7 @@ function DetalhePage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
+          __html: serializarJsonLd({
             "@context": "https://schema.org",
             "@type": "Article",
             headline: artigo.titulo,
