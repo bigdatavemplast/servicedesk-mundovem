@@ -36,7 +36,9 @@ export const Route = createFileRoute("/auth")({
     ],
     links: [{ rel: "canonical", href: URL_PAGINA }],
   }),
-  validateSearch: (s: Record<string, unknown>) => ({ next: safeNext(s.next) ?? undefined }),
+  validateSearch: (s: Record<string, unknown>): { next?: string } => ({
+    next: safeNext(s.next) ?? undefined,
+  }),
 
   beforeLoad: async ({ search }) => {
     const { data } = await supabase.auth.getUser();
