@@ -38,6 +38,8 @@ function NovoChamadoPage() {
   const [prioridade, setPrioridade] = useState<"baixa"|"media"|"alta"|"critica">("media");
   const [categoriaId, setCategoriaId] = useState<string>("");
   const [subcategoriaId, setSubcategoriaId] = useState<string>("");
+  const [anexos, setAnexos] = useState<File[]>([]);
+  const [progresso, setProgresso] = useState<Record<string, number>>({});
 
   const { data: categorias = [] } = useQuery({
     queryKey: ["categorias"],
@@ -65,7 +67,7 @@ function NovoChamadoPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.from("chamados").insert({
+    const { data: criado, error } = await supabase.from("chamados").insert({
       titulo,
       descricao,
       prioridade,
@@ -73,12 +75,34 @@ function NovoChamadoPage() {
       categoria_id: categoriaId || null,
       subcategoria_id: subcategoriaId || null,
       numero: "", // trigger irá gerar
-    } as never);
+    } as never).select("id").maybeSingle();
+
+    if (error || !criado) {
+      setLoading(false);
+      return toast.error(error?.message ?? "Falha ao criar chamado");
+    }
+
+    let falhas = 0;
+    for (const file of anexos) {
+      try {
+        await enviarAnexo({
+          chamadoId: criado.id,
+          autorId: user.id,
+          file,
+          onProgress: (pct) => setProgresso((p) => ({ ...p, [file.name]: pct })),
+        });
+      } catch (err) {
+        falhas += 1;
+        toast.error(err instanceof Error ? err.message : `Falha ao anexar ${file.name}`);
+      }
+    }
+
     setLoading(false);
-    if (error) return toast.error(error.message);
-    toast.success("Chamado criado com sucesso!");
+    if (falhas === 0) toast.success("Chamado criado com sucesso!");
+    else toast.warning("Chamado criado, mas alguns anexos falharam.");
     navigate({ to: "/chamados" });
   }
+
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
