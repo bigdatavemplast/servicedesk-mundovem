@@ -162,6 +162,17 @@ function NovoChamadoPage() {
               <Textarea id="descricao" required rows={6} value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Descreva o ocorrido, passos executados, mensagens de erro, etc." />
             </div>
 
+            <div className="space-y-2">
+              <Label>Anexos (opcional)</Label>
+              <AnexoDropzone
+                onArquivos={(novos) => setAnexos((atual) => [...atual, ...novos])}
+                pendentes={anexos}
+                progresso={progresso}
+                onRemover={(i) => setAnexos((atual) => atual.filter((_, idx) => idx !== i))}
+                disabled={loading}
+              />
+            </div>
+
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => navigate({ to: "/chamados" })}>Cancelar</Button>
               <Button type="submit" disabled={loading}>
