@@ -177,51 +177,8 @@ function DetalheChamadoPage() {
     onError: (e: any) => toast.error(e.message),
   });
 
-  const { data: anexos = [] } = useQuery({
-    queryKey: ["chamado-anexos", id],
-    queryFn: async () => {
-      const { data } = await supabase.from("anexos_chamado")
-        .select("id,nome_arquivo,storage_path,tamanho_bytes,content_type,criado_em,autor_id,autor:profiles(nome)")
-        .eq("chamado_id", id).order("criado_em", { ascending: false });
-      return data ?? [];
-    },
-  });
 
-  async function handleUpload(files: FileList | null) {
-    if (!files || files.length === 0) return;
-    setUploading(true);
-    try {
-      for (const file of Array.from(files)) {
-        if (file.size > 20 * 1024 * 1024) { toast.error(`${file.name}: máximo 20MB`); continue; }
-        const path = `${id}/${crypto.randomUUID()}-${file.name}`;
-        const up = await supabase.storage.from("chamados-anexos").upload(path, file, { contentType: file.type });
-        if (up.error) { toast.error(up.error.message); continue; }
-        const ins = await supabase.from("anexos_chamado").insert({
-          chamado_id: id, autor_id: user.id, nome_arquivo: file.name,
-          storage_path: path, tamanho_bytes: file.size, content_type: file.type,
-        } as never);
-        if (ins.error) toast.error(ins.error.message);
-      }
-      qc.invalidateQueries({ queryKey: ["chamado-anexos", id] });
-      toast.success("Anexos enviados");
-    } finally { setUploading(false); }
-  }
 
-  async function baixarAnexo(path: string, nome: string) {
-    const { data, error } = await supabase.storage.from("chamados-anexos").createSignedUrl(path, 60);
-    if (error || !data) return toast.error("Falha ao gerar link");
-    const a = document.createElement("a"); a.href = data.signedUrl; a.download = nome; a.click();
-  }
-
-  const removerAnexo = useMutation({
-    mutationFn: async (a: any) => {
-      await supabase.storage.from("chamados-anexos").remove([a.storage_path]);
-      const { error } = await supabase.from("anexos_chamado").delete().eq("id", a.id);
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["chamado-anexos", id] }),
-    onError: (e: any) => toast.error(e.message),
-  });
 
   const avaliar = useMutation({
     mutationFn: async () => {
