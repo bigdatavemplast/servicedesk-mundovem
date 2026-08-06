@@ -8,7 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowLeft, AlertTriangle, Clock, Loader2, Paperclip, Upload, Trash2, Star, Download } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Clock, Loader2, Star } from "lucide-react";
+import { AnexosSecao } from "@/components/anexos/AnexosSecao";
+
 
 export const Route = createFileRoute("/_authenticated/chamados/$id")({
   head: () => ({
@@ -70,7 +72,7 @@ function DetalheChamadoPage() {
   const [interno, setInterno] = useState(false);
   const [nota, setNota] = useState(0);
   const [avaliacaoComentario, setAvaliacaoComentario] = useState("");
-  const [uploading, setUploading] = useState(false);
+  
 
   const { data: roles = [] } = useQuery({
     queryKey: ["my-roles", user.id],
@@ -177,51 +179,8 @@ function DetalheChamadoPage() {
     onError: (e: any) => toast.error(e.message),
   });
 
-  const { data: anexos = [] } = useQuery({
-    queryKey: ["chamado-anexos", id],
-    queryFn: async () => {
-      const { data } = await supabase.from("anexos_chamado")
-        .select("id,nome_arquivo,storage_path,tamanho_bytes,content_type,criado_em,autor_id,autor:profiles(nome)")
-        .eq("chamado_id", id).order("criado_em", { ascending: false });
-      return data ?? [];
-    },
-  });
 
-  async function handleUpload(files: FileList | null) {
-    if (!files || files.length === 0) return;
-    setUploading(true);
-    try {
-      for (const file of Array.from(files)) {
-        if (file.size > 20 * 1024 * 1024) { toast.error(`${file.name}: máximo 20MB`); continue; }
-        const path = `${id}/${crypto.randomUUID()}-${file.name}`;
-        const up = await supabase.storage.from("chamados-anexos").upload(path, file, { contentType: file.type });
-        if (up.error) { toast.error(up.error.message); continue; }
-        const ins = await supabase.from("anexos_chamado").insert({
-          chamado_id: id, autor_id: user.id, nome_arquivo: file.name,
-          storage_path: path, tamanho_bytes: file.size, content_type: file.type,
-        } as never);
-        if (ins.error) toast.error(ins.error.message);
-      }
-      qc.invalidateQueries({ queryKey: ["chamado-anexos", id] });
-      toast.success("Anexos enviados");
-    } finally { setUploading(false); }
-  }
 
-  async function baixarAnexo(path: string, nome: string) {
-    const { data, error } = await supabase.storage.from("chamados-anexos").createSignedUrl(path, 60);
-    if (error || !data) return toast.error("Falha ao gerar link");
-    const a = document.createElement("a"); a.href = data.signedUrl; a.download = nome; a.click();
-  }
-
-  const removerAnexo = useMutation({
-    mutationFn: async (a: any) => {
-      await supabase.storage.from("chamados-anexos").remove([a.storage_path]);
-      const { error } = await supabase.from("anexos_chamado").delete().eq("id", a.id);
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["chamado-anexos", id] }),
-    onError: (e: any) => toast.error(e.message),
-  });
 
   const avaliar = useMutation({
     mutationFn: async () => {
@@ -271,37 +230,8 @@ function DetalheChamadoPage() {
             <CardContent><p className="whitespace-pre-wrap text-sm">{chamado.descricao}</p></CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="pb-2 flex flex-row items-center justify-between">
-              <CardTitle className="text-sm flex items-center gap-2"><Paperclip className="h-4 w-4" />Anexos ({anexos.length})</CardTitle>
-              <label className="cursor-pointer">
-                <input type="file" multiple className="hidden" disabled={uploading}
-                  onChange={(e) => { handleUpload(e.target.files); e.target.value = ""; }} />
-                <span className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs hover:bg-muted">
-                  {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />} Enviar
-                </span>
-              </label>
-            </CardHeader>
-            <CardContent className="space-y-1">
-              {anexos.length === 0 && <p className="text-xs text-muted-foreground">Nenhum anexo.</p>}
-              {anexos.map((a: any) => (
-                <div key={a.id} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
-                  <button className="flex items-center gap-2 text-left hover:underline" onClick={() => baixarAnexo(a.storage_path, a.nome_arquivo)}>
-                    <Download className="h-3 w-3" />
-                    <span>{a.nome_arquivo}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {a.tamanho_bytes ? `(${(a.tamanho_bytes / 1024).toFixed(0)} KB)` : ""} · {a.autor?.nome ?? ""}
-                    </span>
-                  </button>
-                  {(a.autor_id === user.id || roles.includes("admin")) && (
-                    <Button size="icon" variant="ghost" onClick={() => removerAnexo.mutate(a)}>
-                      <Trash2 className="h-3 w-3 text-red-500" />
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </CardContent>
-          </Card>
+          <AnexosSecao chamadoId={id} userId={user.id} podeRemoverTodos={roles.includes("admin")} />
+
 
           {podeAvaliar && (
             <Card className="border-emerald-200 bg-emerald-50/40">
