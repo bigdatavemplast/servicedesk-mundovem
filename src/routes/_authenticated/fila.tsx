@@ -7,6 +7,19 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const Route = createFileRoute("/_authenticated/fila")({
+  head: () => ({
+    meta: [
+      { title: "Fila de atendimento | Mundo Vem Service Desk" },
+      { name: "description", content: "Fila dos técnicos com chamados pendentes, prioridade e sinalização de risco de estouro de SLA." },
+      { property: "og:title", content: "Fila de atendimento | Mundo Vem Service Desk" },
+      { property: "og:description", content: "Fila dos técnicos com chamados pendentes, prioridade e sinalização de risco de estouro de SLA." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "Fila de atendimento | Mundo Vem Service Desk" },
+      { name: "twitter:description", content: "Fila dos técnicos com chamados pendentes, prioridade e sinalização de risco de estouro de SLA." },
+      { name: "robots", content: "noindex, follow" },
+    ],
+  }),
   component: FilaPage,
 });
 

@@ -5,6 +5,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FolderTree, ShieldCheck, Users, Ticket, BookOpen, Tag } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/")({
+  head: () => ({
+    meta: [
+      { title: "Administração | Mundo Vem Service Desk" },
+      { name: "description", content: "Painel administrativo do Service Desk com acesso à gestão de usuários, categorias e conteúdos internos." },
+      { property: "og:title", content: "Administração | Mundo Vem Service Desk" },
+      { property: "og:description", content: "Painel administrativo do Service Desk com acesso à gestão de usuários, categorias e conteúdos internos." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "Administração | Mundo Vem Service Desk" },
+      { name: "twitter:description", content: "Painel administrativo do Service Desk com acesso à gestão de usuários, categorias e conteúdos internos." },
+      { name: "robots", content: "noindex, follow" },
+    ],
+  }),
   beforeLoad: async ({ context }) => {
     const { data } = await supabase.from("user_roles").select("role").eq("user_id", context.user.id);
     if (!(data ?? []).some((r) => r.role === "admin")) throw redirect({ to: "/dashboard" });

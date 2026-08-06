@@ -7,6 +7,19 @@ import { Card } from "@/components/ui/card";
 import { PlusCircle } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/chamados/")({
+  head: () => ({
+    meta: [
+      { title: "Meus chamados | Mundo Vem Service Desk" },
+      { name: "description", content: "Consulte a lista dos seus chamados de TI e demais áreas, com status, prioridade e prazos de SLA." },
+      { property: "og:title", content: "Meus chamados | Mundo Vem Service Desk" },
+      { property: "og:description", content: "Consulte a lista dos seus chamados de TI e demais áreas, com status, prioridade e prazos de SLA." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "Meus chamados | Mundo Vem Service Desk" },
+      { name: "twitter:description", content: "Consulte a lista dos seus chamados de TI e demais áreas, com status, prioridade e prazos de SLA." },
+      { name: "robots", content: "noindex, follow" },
+    ],
+  }),
   component: ChamadosPage,
 });
 

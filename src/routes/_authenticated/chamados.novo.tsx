@@ -12,6 +12,19 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/chamados/novo")({
+  head: () => ({
+    meta: [
+      { title: "Abrir novo chamado | Mundo Vem Service Desk" },
+      { name: "description", content: "Registre um novo chamado escolhendo categoria, subcategoria e prioridade para atendimento pelo Service Desk." },
+      { property: "og:title", content: "Abrir novo chamado | Mundo Vem Service Desk" },
+      { property: "og:description", content: "Registre um novo chamado escolhendo categoria, subcategoria e prioridade para atendimento pelo Service Desk." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "Abrir novo chamado | Mundo Vem Service Desk" },
+      { name: "twitter:description", content: "Registre um novo chamado escolhendo categoria, subcategoria e prioridade para atendimento pelo Service Desk." },
+      { name: "robots", content: "noindex, follow" },
+    ],
+  }),
   component: NovoChamadoPage,
 });
 

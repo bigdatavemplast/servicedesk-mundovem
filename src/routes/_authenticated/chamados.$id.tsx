@@ -11,6 +11,19 @@ import { toast } from "sonner";
 import { ArrowLeft, AlertTriangle, Clock, Loader2, Paperclip, Upload, Trash2, Star, Download } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/chamados/$id")({
+  head: () => ({
+    meta: [
+      { title: "Detalhe do chamado | Mundo Vem Service Desk" },
+      { name: "description", content: "Veja histórico, comentários, anexos e andamento do atendimento deste chamado do Service Desk da Mundo Vem." },
+      { property: "og:title", content: "Detalhe do chamado | Mundo Vem Service Desk" },
+      { property: "og:description", content: "Veja histórico, comentários, anexos e andamento do atendimento deste chamado do Service Desk da Mundo Vem." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "Detalhe do chamado | Mundo Vem Service Desk" },
+      { name: "twitter:description", content: "Veja histórico, comentários, anexos e andamento do atendimento deste chamado do Service Desk da Mundo Vem." },
+      { name: "robots", content: "noindex, follow" },
+    ],
+  }),
   component: DetalheChamadoPage,
 });
 
