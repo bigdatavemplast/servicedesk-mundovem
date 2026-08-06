@@ -8,7 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowLeft, AlertTriangle, Clock, Loader2, Paperclip, Upload, Trash2, Star, Download } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Clock, Loader2, Star } from "lucide-react";
+import { AnexosSecao } from "@/components/anexos/AnexosSecao";
+
 
 export const Route = createFileRoute("/_authenticated/chamados/$id")({
   head: () => ({
