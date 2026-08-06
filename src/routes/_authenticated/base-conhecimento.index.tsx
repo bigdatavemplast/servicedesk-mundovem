@@ -8,6 +8,19 @@ import { Input } from "@/components/ui/input";
 import { BookOpen, Eye, PlusCircle } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/base-conhecimento/")({
+  head: () => ({
+    meta: [
+      { title: "Base de conhecimento | Mundo Vem Service Desk" },
+      { name: "description", content: "Pesquise artigos e procedimentos internos para resolver dúvidas de TI e das demais áreas por conta própria." },
+      { property: "og:title", content: "Base de conhecimento | Mundo Vem Service Desk" },
+      { property: "og:description", content: "Pesquise artigos e procedimentos internos para resolver dúvidas de TI e das demais áreas por conta própria." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "Base de conhecimento | Mundo Vem Service Desk" },
+      { name: "twitter:description", content: "Pesquise artigos e procedimentos internos para resolver dúvidas de TI e das demais áreas por conta própria." },
+      { name: "robots", content: "noindex, follow" },
+    ],
+  }),
   component: BasePage,
 });
 

@@ -12,6 +12,19 @@ import { toast } from "sonner";
 import { Plus, Trash2, Loader2, FolderTree } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/categorias")({
+  head: () => ({
+    meta: [
+      { title: "Categorias e SLAs | Mundo Vem Service Desk" },
+      { name: "description", content: "Configure categorias, subcategorias e prazos de SLA usados na classificação dos chamados." },
+      { property: "og:title", content: "Categorias e SLAs | Mundo Vem Service Desk" },
+      { property: "og:description", content: "Configure categorias, subcategorias e prazos de SLA usados na classificação dos chamados." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "Categorias e SLAs | Mundo Vem Service Desk" },
+      { name: "twitter:description", content: "Configure categorias, subcategorias e prazos de SLA usados na classificação dos chamados." },
+      { name: "robots", content: "noindex, follow" },
+    ],
+  }),
   beforeLoad: async ({ context }) => {
     const { data } = await supabase.from("user_roles").select("role").eq("user_id", context.user.id);
     if (!(data ?? []).some((r) => r.role === "admin")) throw redirect({ to: "/dashboard" });

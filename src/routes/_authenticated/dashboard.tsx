@@ -11,6 +11,19 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
+  head: () => ({
+    meta: [
+      { title: "Painel de indicadores | Mundo Vem Service Desk" },
+      { name: "description", content: "Acompanhe volume de chamados, cumprimento de SLA, tempo médio de resolução e chamados críticos da Mundo Vem." },
+      { property: "og:title", content: "Painel de indicadores | Mundo Vem Service Desk" },
+      { property: "og:description", content: "Acompanhe volume de chamados, cumprimento de SLA, tempo médio de resolução e chamados críticos da Mundo Vem." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "Painel de indicadores | Mundo Vem Service Desk" },
+      { name: "twitter:description", content: "Acompanhe volume de chamados, cumprimento de SLA, tempo médio de resolução e chamados críticos da Mundo Vem." },
+      { name: "robots", content: "noindex, follow" },
+    ],
+  }),
   component: DashboardPage,
 });
 

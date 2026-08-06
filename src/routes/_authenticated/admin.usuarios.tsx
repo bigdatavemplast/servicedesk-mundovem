@@ -21,6 +21,19 @@ import { Users, Loader2, Pencil, Trash2, KeyRound, UserPlus } from "lucide-react
 import { criarUsuario, atualizarUsuario, excluirUsuario, definirPapel } from "@/lib/admin-users.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/usuarios")({
+  head: () => ({
+    meta: [
+      { title: "Gestão de usuários | Mundo Vem Service Desk" },
+      { name: "description", content: "Crie, edite e desative contas de colaboradores e defina papéis de acesso no Service Desk da Mundo Vem." },
+      { property: "og:title", content: "Gestão de usuários | Mundo Vem Service Desk" },
+      { property: "og:description", content: "Crie, edite e desative contas de colaboradores e defina papéis de acesso no Service Desk da Mundo Vem." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "Gestão de usuários | Mundo Vem Service Desk" },
+      { name: "twitter:description", content: "Crie, edite e desative contas de colaboradores e defina papéis de acesso no Service Desk da Mundo Vem." },
+      { name: "robots", content: "noindex, follow" },
+    ],
+  }),
   beforeLoad: async ({ context }) => {
     const { data } = await supabase.from("user_roles").select("role").eq("user_id", context.user.id);
     if (!(data ?? []).some((r) => r.role === "admin")) throw redirect({ to: "/dashboard" });
