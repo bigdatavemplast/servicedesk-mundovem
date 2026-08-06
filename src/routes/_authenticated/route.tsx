@@ -117,7 +117,13 @@ function AppShell() {
           <div className="hidden md:block" />
           <div className="flex items-center gap-2">
             <NotificationBell userId={user.id} />
-            <Button variant="outline" size="sm" className="md:hidden" onClick={handleSignOut}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="md:hidden"
+              onClick={handleSignOut}
+              aria-label="Sair do portal"
+            >
               <LogOut className="h-4 w-4" />
             </Button>
           </div>
