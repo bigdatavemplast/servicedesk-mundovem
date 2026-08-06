@@ -271,37 +271,8 @@ function DetalheChamadoPage() {
             <CardContent><p className="whitespace-pre-wrap text-sm">{chamado.descricao}</p></CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="pb-2 flex flex-row items-center justify-between">
-              <CardTitle className="text-sm flex items-center gap-2"><Paperclip className="h-4 w-4" />Anexos ({anexos.length})</CardTitle>
-              <label className="cursor-pointer">
-                <input type="file" multiple className="hidden" disabled={uploading}
-                  onChange={(e) => { handleUpload(e.target.files); e.target.value = ""; }} />
-                <span className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs hover:bg-muted">
-                  {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />} Enviar
-                </span>
-              </label>
-            </CardHeader>
-            <CardContent className="space-y-1">
-              {anexos.length === 0 && <p className="text-xs text-muted-foreground">Nenhum anexo.</p>}
-              {anexos.map((a: any) => (
-                <div key={a.id} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
-                  <button className="flex items-center gap-2 text-left hover:underline" onClick={() => baixarAnexo(a.storage_path, a.nome_arquivo)}>
-                    <Download className="h-3 w-3" />
-                    <span>{a.nome_arquivo}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {a.tamanho_bytes ? `(${(a.tamanho_bytes / 1024).toFixed(0)} KB)` : ""} · {a.autor?.nome ?? ""}
-                    </span>
-                  </button>
-                  {(a.autor_id === user.id || roles.includes("admin")) && (
-                    <Button size="icon" variant="ghost" onClick={() => removerAnexo.mutate(a)}>
-                      <Trash2 className="h-3 w-3 text-red-500" />
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </CardContent>
-          </Card>
+          <AnexosSecao chamadoId={id} userId={user.id} podeRemoverTodos={roles.includes("admin")} />
+
 
           {podeAvaliar && (
             <Card className="border-emerald-200 bg-emerald-50/40">
