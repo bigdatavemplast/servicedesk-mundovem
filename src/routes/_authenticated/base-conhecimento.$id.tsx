@@ -8,19 +8,37 @@ import { ArrowLeft, Pencil } from "lucide-react";
 import { serializarJsonLd } from "@/lib/json-ld";
 
 export const Route = createFileRoute("/_authenticated/base-conhecimento/$id")({
-  head: () => ({
-    meta: [
-      { title: "Artigo da base de conhecimento | Mundo Vem Service Desk" },
-      { name: "description", content: "Leia o procedimento completo publicado pela equipe do Service Desk da Mundo Vem." },
-      { property: "og:title", content: "Artigo da base de conhecimento | Mundo Vem Service Desk" },
-      { property: "og:description", content: "Leia o procedimento completo publicado pela equipe do Service Desk da Mundo Vem." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: "Artigo da base de conhecimento | Mundo Vem Service Desk" },
-      { name: "twitter:description", content: "Leia o procedimento completo publicado pela equipe do Service Desk da Mundo Vem." },
-      { name: "robots", content: "noindex, follow" },
-    ],
-  }),
+  loader: async ({ params }) => {
+    const { data } = await supabase
+      .from("base_conhecimento")
+      .select("titulo,conteudo")
+      .eq("id", params.id)
+      .maybeSingle();
+    const titulo = data?.titulo ?? null;
+    const resumo = (data?.conteudo ?? "").replace(/\s+/g, " ").trim().slice(0, 155);
+    return { titulo, resumo };
+  },
+  head: ({ params, loaderData }) => {
+    const nome = loaderData?.titulo ?? `Artigo ${String(params.id).slice(0, 8)}`;
+    const titulo = `${nome} | Base de conhecimento Mundo Vem`;
+    const descricao =
+      loaderData?.resumo && loaderData.resumo.length >= 50
+        ? loaderData.resumo
+        : `Procedimento "${nome}" publicado pela equipe do Service Desk da Mundo Vem, com passo a passo para resolver a solicitação.`;
+    return {
+      meta: [
+        { title: titulo },
+        { name: "description", content: descricao },
+        { property: "og:title", content: titulo },
+        { property: "og:description", content: descricao },
+        { property: "og:type", content: "article" },
+        { name: "twitter:card", content: "summary" },
+        { name: "twitter:title", content: titulo },
+        { name: "twitter:description", content: descricao },
+        { name: "robots", content: "noindex, follow" },
+      ],
+    };
+  },
   component: DetalhePage,
 });
 

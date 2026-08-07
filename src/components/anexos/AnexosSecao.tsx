@@ -44,7 +44,7 @@ function Miniatura({ anexo, onAmpliar }: { anexo: Anexo; onAmpliar: (url: string
       aria-label={`Ampliar imagem ${anexo.nome_arquivo}`}
       className="h-10 w-10 shrink-0 overflow-hidden rounded border"
     >
-      <img src={url} alt={anexo.nome_arquivo} className="h-full w-full object-cover" loading="lazy" />
+      <img src={url} alt="" className="h-full w-full object-cover" loading="lazy" />
     </button>
   );
 }
