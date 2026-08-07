@@ -133,6 +133,9 @@ function AppShell() {
           <Outlet />
         </div>
       </main>
+
+      <AssistenteFlutuante />
+
     </div>
   );
 }
