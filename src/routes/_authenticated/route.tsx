@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { LayoutDashboard, Ticket, PlusCircle, BookOpen, LogOut, Users, FolderTree, ShieldCheck, Bot } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { NotificationBell } from "@/components/NotificationBell";
+import { AssistenteFlutuante } from "@/components/assistente/AssistenteFlutuante";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -132,6 +133,9 @@ function AppShell() {
           <Outlet />
         </div>
       </main>
+
+      <AssistenteFlutuante />
+
     </div>
   );
 }
