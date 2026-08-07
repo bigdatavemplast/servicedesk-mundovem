@@ -13,19 +13,24 @@ import { AnexosSecao } from "@/components/anexos/AnexosSecao";
 
 
 export const Route = createFileRoute("/_authenticated/chamados/$id")({
-  head: () => ({
-    meta: [
-      { title: "Detalhe do chamado | Mundo Vem Service Desk" },
-      { name: "description", content: "Veja histórico, comentários, anexos e andamento do atendimento deste chamado do Service Desk da Mundo Vem." },
-      { property: "og:title", content: "Detalhe do chamado | Mundo Vem Service Desk" },
-      { property: "og:description", content: "Veja histórico, comentários, anexos e andamento do atendimento deste chamado do Service Desk da Mundo Vem." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: "Detalhe do chamado | Mundo Vem Service Desk" },
-      { name: "twitter:description", content: "Veja histórico, comentários, anexos e andamento do atendimento deste chamado do Service Desk da Mundo Vem." },
-      { name: "robots", content: "noindex, follow" },
-    ],
-  }),
+  head: ({ params }) => {
+    const ref = String(params.id).slice(0, 8);
+    const titulo = `Chamado ${ref} | Mundo Vem Service Desk`;
+    const descricao = `Acompanhe o chamado ${ref}: status, prioridade, SLA, comentários, anexos e histórico completo do atendimento na Mundo Vem.`;
+    return {
+      meta: [
+        { title: titulo },
+        { name: "description", content: descricao },
+        { property: "og:title", content: titulo },
+        { property: "og:description", content: descricao },
+        { property: "og:type", content: "website" },
+        { name: "twitter:card", content: "summary" },
+        { name: "twitter:title", content: titulo },
+        { name: "twitter:description", content: descricao },
+        { name: "robots", content: "noindex, follow" },
+      ],
+    };
+  },
   component: DetalheChamadoPage,
 });
 
