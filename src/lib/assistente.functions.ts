@@ -56,11 +56,12 @@ export const carregarMensagens = createServerFn({ method: "GET" })
     return input;
   })
   .handler(async ({ data, context }) => {
+    // A separação por usuário é garantida pelo RLS: colaboradores só leem as
+    // próprias conversas; admin/atendente podem consultar qualquer conversa.
     const { data: conversa, error: erroConversa } = await context.supabase
       .from("ai_conversations")
       .select("id, title")
       .eq("id", data.conversationId)
-      .eq("user_id", context.userId)
       .maybeSingle();
 
     if (erroConversa) throw new Error(erroConversa.message);
