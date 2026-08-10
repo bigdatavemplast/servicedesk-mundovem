@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { convertToModelMessages, stepCountIs, streamText, type UIMessage } from "ai";
+import { convertToModelMessages, generateText, stepCountIs, streamText, type UIMessage } from "ai";
 import { createLovableAiGatewayProvider, MODELO_CHAT } from "@/lib/ai-gateway.server";
 import { montarPromptAgente, type Fonte } from "@/lib/assistente-rag.server";
 import { criarFerramentasAssistente } from "@/lib/assistente-tools.server";
