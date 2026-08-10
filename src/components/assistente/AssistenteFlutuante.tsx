@@ -152,8 +152,9 @@ export function AssistenteFlutuante() {
         type="button"
         onClick={() => setAberto((v) => !v)}
         aria-label={aberto ? "Fechar assistente" : "Abrir assistente"}
-        className="fixed bottom-4 right-4 z-50 grid h-12 w-12 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg transition hover:opacity-90 sm:bottom-6 sm:right-6"
+        className="fixed bottom-16 right-8 z-50 grid h-12 w-12 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg transition hover:opacity-90 sm:bottom-20 sm:right-10"
       >
+
         {aberto ? <X className="h-5 w-5" /> : <Bot className="h-5 w-5" />}
       </button>
     </>
