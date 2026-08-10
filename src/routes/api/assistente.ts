@@ -84,9 +84,29 @@ export const Route = createFileRoute("/api/assistente")({
         });
         if (erroUsuario) console.error("[assistente] erro ao salvar pergunta", erroUsuario);
 
-       if (!conversa.title) {
-  const titulo = pergunta.slice(0, 60) + (pergunta.length > 60 ? "…" : "");
-  await supabase.from("ai_conversations").update({ title: titulo }).eq("id", conversationId);
+       if (!conversa.title && pergunta.trim()) {
+  const titulo = pergunta
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/[.!?]+$/, "");
+
+  const tituloFinal =
+    titulo.length > 60
+      ? `${titulo.slice(0, 57).trim()}…`
+      : titulo;
+
+  const { error: erroTitulo } = await supabase
+    .from("ai_conversations")
+    .update({ title: tituloFinal })
+    .eq("id", conversationId)
+    .eq("user_id", userId);
+
+  if (erroTitulo) {
+    console.error(
+      "[assistente] erro ao salvar título:",
+      erroTitulo,
+    );
+  }
 }
 
         // Fontes coletadas pelas ferramentas durante o raciocínio do agente.
