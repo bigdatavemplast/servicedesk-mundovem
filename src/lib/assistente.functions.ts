@@ -5,7 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 export const listarConversas = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data: conversas, error } = await context.supabase
+    const { data, error } = await context.supabase
       .from("ai_conversations")
       .select("id, title, created_at, updated_at")
       .eq("user_id", context.userId)
@@ -13,57 +13,7 @@ export const listarConversas = createServerFn({ method: "GET" })
       .limit(60);
 
     if (error) throw new Error(error.message);
-
-    const lista = conversas ?? [];
-
-    if (!lista.length) return [];
-
-    const ids = lista.map((c) => c.id as string);
-
-    const { data: mensagens, error: erroMensagens } = await context.supabase
-      .from("ai_messages")
-      .select("conversation_id, content, role, created_at")
-      .in("conversation_id", ids)
-      .eq("role", "user")
-      .order("created_at", { ascending: true });
-
-    if (erroMensagens) throw new Error(erroMensagens.message);
-
-    const primeiraMensagem = new Map<string, string>();
-
-    for (const mensagem of mensagens ?? []) {
-      const id = mensagem.conversation_id as string;
-
-      if (!primeiraMensagem.has(id) && mensagem.content) {
-        primeiraMensagem.set(id, mensagem.content as string);
-      }
-    }
-
-    return lista.map((conversa) => {
-      const tituloBanco = conversa.title as string | null;
-      const mensagem = primeiraMensagem.get(conversa.id as string);
-
-      let titulo = tituloBanco;
-
-      if (!titulo && mensagem) {
-        const texto = mensagem
-          .replace(/\s+/g, " ")
-          .trim()
-          .replace(/[.!?]+$/, "");
-
-        titulo =
-          texto.length > 60
-            ? `${texto.slice(0, 57).trim()}…`
-            : texto;
-      }
-
-      return {
-        id: conversa.id as string,
-        title: titulo,
-        created_at: conversa.created_at,
-        updated_at: conversa.updated_at,
-      };
-    });
+    return data ?? [];
   });
 
 /** Cria uma nova conversa e devolve o id. */
