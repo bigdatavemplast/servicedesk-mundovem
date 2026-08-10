@@ -83,7 +83,8 @@ export function AssistenteFlutuante() {
   return (
     <>
       {aberto && (
-        <div className="fixed bottom-20 right-4 z-50 flex h-[min(70vh,560px)] w-[calc(100vw-2rem)] max-w-[400px] flex-col overflow-hidden rounded-2xl border bg-background shadow-2xl sm:right-6 sm:bottom-24">
+        <div className="fixed bottom-36 right-4 z-50 flex h-[min(70vh,560px)] w-[calc(100vw-2rem)] max-w-[400px] flex-col overflow-hidden rounded-2xl border bg-background shadow-2xl sm:bottom-40 sm:right-6">
+
           <div className="flex items-center justify-between gap-2 border-b bg-muted/40 px-3 py-2">
             <div className="flex min-w-0 items-center gap-2">
               <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground">
