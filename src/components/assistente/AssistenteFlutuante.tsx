@@ -83,7 +83,8 @@ export function AssistenteFlutuante() {
   return (
     <>
       {aberto && (
-        <div className="fixed bottom-20 right-4 z-50 flex h-[min(70vh,560px)] w-[calc(100vw-2rem)] max-w-[400px] flex-col overflow-hidden rounded-2xl border bg-background shadow-2xl sm:right-6 sm:bottom-24">
+        <div className="fixed bottom-36 right-4 z-50 flex h-[min(70vh,560px)] w-[calc(100vw-2rem)] max-w-[400px] flex-col overflow-hidden rounded-2xl border bg-background shadow-2xl sm:bottom-40 sm:right-6">
+
           <div className="flex items-center justify-between gap-2 border-b bg-muted/40 px-3 py-2">
             <div className="flex min-w-0 items-center gap-2">
               <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground">
@@ -151,8 +152,9 @@ export function AssistenteFlutuante() {
         type="button"
         onClick={() => setAberto((v) => !v)}
         aria-label={aberto ? "Fechar assistente" : "Abrir assistente"}
-        className="fixed bottom-4 right-4 z-50 grid h-12 w-12 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg transition hover:opacity-90 sm:bottom-6 sm:right-6"
+        className="fixed bottom-16 right-8 z-50 grid h-12 w-12 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg transition hover:opacity-90 sm:bottom-20 sm:right-10"
       >
+
         {aberto ? <X className="h-5 w-5" /> : <Bot className="h-5 w-5" />}
       </button>
     </>
