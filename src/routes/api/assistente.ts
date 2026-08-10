@@ -86,20 +86,7 @@ export const Route = createFileRoute("/api/assistente")({
 
        if (!conversa.title) {
   const titulo = pergunta.slice(0, 60) + (pergunta.length > 60 ? "…" : "");
-
-  console.log("[assistente] gerando título", {
-    conversationId,
-    titulo,
-  });
-
-  const { error: erroTitulo } = await supabase
-    .from("ai_conversations")
-    .update({ title: titulo })
-    .eq("id", conversationId);
-
-  if (erroTitulo) {
-    console.error("[assistente] erro ao salvar título", erroTitulo);
-  }
+  await supabase.from("ai_conversations").update({ title: titulo }).eq("id", conversationId);
 }
 
         // Fontes coletadas pelas ferramentas durante o raciocínio do agente.
