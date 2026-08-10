@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, redirect, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Ticket, PlusCircle, BookOpen, LogOut, Users, FolderTree, ShieldCheck, Bot } from "lucide-react";
+import { LayoutDashboard, Ticket, PlusCircle, BookOpen, LogOut, Users, FolderTree, ShieldCheck, Bot, MessageSquare } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { NotificationBell } from "@/components/NotificationBell";
 import { AssistenteFlutuante } from "@/components/assistente/AssistenteFlutuante";
@@ -63,6 +63,7 @@ function AppShell() {
             { to: "/admin", icon: ShieldCheck, label: "Painel admin" },
             { to: "/admin/categorias", icon: FolderTree, label: "Categorias" },
             { to: "/admin/usuarios", icon: Users, label: "Usuários" },
+            { to: "/admin/assistente", icon: MessageSquare, label: "Conversas IA" },
           ],
         }]
       : []),
