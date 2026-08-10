@@ -95,11 +95,20 @@ export const Route = createFileRoute("/api/assistente")({
       ? `${titulo.slice(0, 57).trim()}…`
       : titulo;
 
-  const { error: erroTitulo } = await supabase
+  const { data: conversaAtualizada, error: erroTitulo } =
+  await supabase
     .from("ai_conversations")
     .update({ title: tituloFinal })
     .eq("id", conversationId)
-    .eq("user_id", userId);
+    .eq("user_id", userId)
+    .select("id, title")
+    .maybeSingle();
+
+if (erroTitulo) {
+  console.error("[assistente] erro ao salvar título:", erroTitulo);
+} else {
+  console.log("[assistente] conversa atualizada:", conversaAtualizada);
+}
 
   if (erroTitulo) {
     console.error(
