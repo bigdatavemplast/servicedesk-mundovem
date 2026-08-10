@@ -84,21 +84,10 @@ export const Route = createFileRoute("/api/assistente")({
         });
         if (erroUsuario) console.error("[assistente] erro ao salvar pergunta", erroUsuario);
 
-      if (!conversa.title) {
-  const titulo = pergunta
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/[.!?]+$/, "");
-
-  const tituloFinal =
-    titulo.length > 60
-      ? `${titulo.slice(0, 57).trim()}…`
-      : titulo;
-
-  console.log("[assistente] tentando salvar título", {
-    conversationId,
-    titulo: tituloFinal,
-  });
+     if (!conversa.title) {
+  const titulo = pergunta.slice(0, 60) + (pergunta.length > 60 ? "…" : "");
+  await supabase.from("ai_conversations").update({ title: titulo }).eq("id", conversationId);
+}
 
   const { error: erroTitulo } = await supabase
     .from("ai_conversations")
