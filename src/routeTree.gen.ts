@@ -30,6 +30,7 @@ import { Route as AuthenticatedBaseConhecimentoIdRouteImport } from './routes/_a
 import { Route as AuthenticatedAssistenteConversaIdRouteImport } from './routes/_authenticated/assistente.$conversaId'
 import { Route as AuthenticatedAdminUsuariosRouteImport } from './routes/_authenticated/admin.usuarios'
 import { Route as AuthenticatedAdminCategoriasRouteImport } from './routes/_authenticated/admin.categorias'
+import { Route as AuthenticatedAdminAssistenteRouteImport } from './routes/_authenticated/admin.assistente'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as AuthenticatedBaseConhecimentoIdEditarRouteImport } from './routes/_authenticated/base-conhecimento.$id.editar'
@@ -149,6 +150,12 @@ const AuthenticatedAdminCategoriasRoute =
     path: '/admin/categorias',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminAssistenteRoute =
+  AuthenticatedAdminAssistenteRouteImport.update({
+    id: '/admin/assistente',
+    path: '/admin/assistente',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const Char91DotmcpChar93InvokeToolToolRoute =
   Char91DotmcpChar93InvokeToolToolRouteImport.update({
     id: '/.mcp/invoke-tool/$tool',
@@ -179,6 +186,7 @@ export interface FileRoutesByFullPath {
   '/api/assistente': typeof ApiAssistenteRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/admin/assistente': typeof AuthenticatedAdminAssistenteRoute
   '/admin/categorias': typeof AuthenticatedAdminCategoriasRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
   '/assistente/$conversaId': typeof AuthenticatedAssistenteConversaIdRoute
@@ -204,6 +212,7 @@ export interface FileRoutesByTo {
   '/api/assistente': typeof ApiAssistenteRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/admin/assistente': typeof AuthenticatedAdminAssistenteRoute
   '/admin/categorias': typeof AuthenticatedAdminCategoriasRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
   '/assistente/$conversaId': typeof AuthenticatedAssistenteConversaIdRoute
@@ -231,6 +240,7 @@ export interface FileRoutesById {
   '/api/assistente': typeof ApiAssistenteRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/_authenticated/admin/assistente': typeof AuthenticatedAdminAssistenteRoute
   '/_authenticated/admin/categorias': typeof AuthenticatedAdminCategoriasRoute
   '/_authenticated/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
   '/_authenticated/assistente/$conversaId': typeof AuthenticatedAssistenteConversaIdRoute
@@ -258,6 +268,7 @@ export interface FileRouteTypes {
     | '/api/assistente'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
+    | '/admin/assistente'
     | '/admin/categorias'
     | '/admin/usuarios'
     | '/assistente/$conversaId'
@@ -283,6 +294,7 @@ export interface FileRouteTypes {
     | '/api/assistente'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
+    | '/admin/assistente'
     | '/admin/categorias'
     | '/admin/usuarios'
     | '/assistente/$conversaId'
@@ -309,6 +321,7 @@ export interface FileRouteTypes {
     | '/api/assistente'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
+    | '/_authenticated/admin/assistente'
     | '/_authenticated/admin/categorias'
     | '/_authenticated/admin/usuarios'
     | '/_authenticated/assistente/$conversaId'
@@ -485,6 +498,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCategoriasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/assistente': {
+      id: '/_authenticated/admin/assistente'
+      path: '/admin/assistente'
+      fullPath: '/admin/assistente'
+      preLoaderRoute: typeof AuthenticatedAdminAssistenteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/.mcp/invoke-tool/$tool': {
       id: '/.mcp/invoke-tool/$tool'
       path: '/.mcp/invoke-tool/$tool'
@@ -527,6 +547,7 @@ const AuthenticatedBaseConhecimentoIdRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedFilaRoute: typeof AuthenticatedFilaRoute
+  AuthenticatedAdminAssistenteRoute: typeof AuthenticatedAdminAssistenteRoute
   AuthenticatedAdminCategoriasRoute: typeof AuthenticatedAdminCategoriasRoute
   AuthenticatedAdminUsuariosRoute: typeof AuthenticatedAdminUsuariosRoute
   AuthenticatedAssistenteConversaIdRoute: typeof AuthenticatedAssistenteConversaIdRoute
@@ -543,6 +564,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedFilaRoute: AuthenticatedFilaRoute,
+  AuthenticatedAdminAssistenteRoute: AuthenticatedAdminAssistenteRoute,
   AuthenticatedAdminCategoriasRoute: AuthenticatedAdminCategoriasRoute,
   AuthenticatedAdminUsuariosRoute: AuthenticatedAdminUsuariosRoute,
   AuthenticatedAssistenteConversaIdRoute:

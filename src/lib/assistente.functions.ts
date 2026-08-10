@@ -111,11 +111,16 @@ export const listarConversasAdmin = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
 
     const donoIds = [...new Set((conversas ?? []).map((c) => c.user_id as string))];
-    const { data: perfis } = donoIds.length
-      ? await context.supabase.from("profiles").select("id, nome, email").in("id", donoIds)
-      : { data: [] as Array<{ id: string; nome: string; email: string }> };
+    let perfis: Array<{ id: string; nome: string; email: string }> = [];
+    if (donoIds.length) {
+      const { data } = await context.supabase
+        .from("profiles")
+        .select("id, nome, email")
+        .in("id", donoIds);
+      perfis = data ?? [];
+    }
     const mapaDonos = new Map(
-      (perfis ?? []).map((p) => [p.id as string, { nome: p.nome as string, email: p.email as string }]),
+      perfis.map((p) => [p.id, { nome: p.nome, email: p.email }]),
     );
 
     return (conversas ?? []).map((c) => ({
