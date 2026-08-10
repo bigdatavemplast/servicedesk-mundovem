@@ -91,3 +91,38 @@ export const carregarMensagens = createServerFn({ method: "GET" })
       })),
     };
   });
+
+/** [Admin] Lista as conversas de todos os usuários, identificando o dono de cada uma. */
+export const listarConversasAdmin = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("Acesso restrito a administradores");
+
+    const { data: conversas, error } = await context.supabase
+      .from("ai_conversations")
+      .select("id, title, user_id, created_at, updated_at")
+      .order("updated_at", { ascending: false, nullsFirst: false })
+      .limit(300);
+
+    if (error) throw new Error(error.message);
+
+    const donoIds = [...new Set((conversas ?? []).map((c) => c.user_id as string))];
+    const { data: perfis } = donoIds.length
+      ? await context.supabase.from("profiles").select("id, nome, email").in("id", donoIds)
+      : { data: [] as Array<{ id: string; nome: string; email: string }> };
+    const mapaDonos = new Map(
+      (perfis ?? []).map((p) => [p.id as string, { nome: p.nome as string, email: p.email as string }]),
+    );
+
+    return (conversas ?? []).map((c) => ({
+      id: c.id as string,
+      title: (c.title as string | null) ?? null,
+      created_at: (c.created_at as string | null) ?? null,
+      updated_at: (c.updated_at as string | null) ?? null,
+      dono: mapaDonos.get(c.user_id as string) ?? null,
+    }));
+  });
