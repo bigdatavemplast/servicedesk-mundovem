@@ -21,7 +21,7 @@ function textoDaMensagem(mensagem: UIMessage | undefined): string {
     .trim();
 }
 
-export const Route = createFileRoute("/api/assistente")({
+export const Route = createFileRoute("/api/assistente/backup")({
   server: {
     handlers: {
       POST: async ({ request }) => {
