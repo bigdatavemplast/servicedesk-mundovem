@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { Link } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -85,6 +86,7 @@ export function ChatAssistente({
   mensagensIniciais: UIMessage[];
 }) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const queryClient = useQueryClient();
 
   const transport = useMemo(
     () =>
@@ -109,6 +111,10 @@ export function ChatAssistente({
     messages: mensagensIniciais,
     transport,
     onError: (erro) => toast.error(erro.message || "Erro ao falar com o assistente"),
+    onFinish: () => {
+      // Recarrega o histórico para exibir o título gerado na primeira mensagem.
+      void queryClient.invalidateQueries({ queryKey: ["assistente", "conversas"] });
+    },
   });
 
   const carregando = status === "submitted" || status === "streaming";

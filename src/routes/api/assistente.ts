@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { convertToModelMessages, stepCountIs, streamText, type UIMessage } from "ai";
 import { createLovableAiGatewayProvider, MODELO_CHAT } from "@/lib/ai-gateway.server";
+import { gerarTituloConversa, tituloEhPadrao } from "@/lib/assistente-titulo.server";
 import { montarPromptAgente, type Fonte } from "@/lib/assistente-rag.server";
 import { criarFerramentasAssistente } from "@/lib/assistente-tools.server";
 import { autenticarRequisicao } from "@/lib/supabase-request.server";
@@ -84,10 +85,12 @@ export const Route = createFileRoute("/api/assistente")({
         });
         if (erroUsuario) console.error("[assistente] erro ao salvar pergunta", erroUsuario);
 
-       if (!conversa.title) {
-  const titulo = pergunta.slice(0, 60) + (pergunta.length > 60 ? "…" : "");
-  await supabase.from("ai_conversations").update({ title: titulo }).eq("id", conversationId);
-}
+        // Gera o título inteligente em paralelo com a resposta, somente quando a
+        // conversa ainda tem o título padrão ("Nova conversa"). A gravação acontece
+        // no onFinish e nunca sobrescreve um título já personalizado.
+        const promessaTitulo = tituloEhPadrao(conversa.title)
+          ? gerarTituloConversa(pergunta, apiKey)
+          : null;
 
         // Fontes coletadas pelas ferramentas durante o raciocínio do agente.
         const fontesUsadas: Fonte[] = [];
@@ -130,6 +133,17 @@ export const Route = createFileRoute("/api/assistente")({
                 .from("ai_conversations")
                 .update({ updated_at: new Date().toISOString() })
                 .eq("id", conversationId);
+
+              // Salva o título gerado sem sobrescrever título já personalizado.
+              if (promessaTitulo) {
+                const titulo = await promessaTitulo;
+                const { error: erroTitulo } = await supabase
+                  .from("ai_conversations")
+                  .update({ title: titulo })
+                  .eq("id", conversationId)
+                  .or('title.is.null,title.in.("Nova conversa","Nova conversa IA")');
+                if (erroTitulo) console.error("[assistente] erro ao salvar título", erroTitulo);
+              }
 
               if (confianca < CONFIANCA_MINIMA) {
                 const { error: erroPergunta } = await supabase.from("perguntas_sem_resposta").insert({
