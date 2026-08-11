@@ -14,7 +14,6 @@ import { Route as McpRouteImport } from './routes/mcp'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ApiDebugTituloRouteImport } from './routes/api/debug-titulo'
 import { Route as ApiAssistenteRouteImport } from './routes/api/assistente'
 import { Route as AuthenticatedFilaRouteImport } from './routes/_authenticated/fila'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
@@ -59,11 +58,6 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiDebugTituloRoute = ApiDebugTituloRouteImport.update({
-  id: '/api/debug-titulo',
-  path: '/api/debug-titulo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAssistenteRoute = ApiAssistenteRouteImport.update({
@@ -196,7 +190,6 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/fila': typeof AuthenticatedFilaRoute
   '/api/assistente': typeof ApiAssistenteRouteWithChildren
-  '/api/debug-titulo': typeof ApiDebugTituloRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/admin/assistente': typeof AuthenticatedAdminAssistenteRoute
@@ -224,7 +217,6 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/fila': typeof AuthenticatedFilaRoute
   '/api/assistente': typeof ApiAssistenteRouteWithChildren
-  '/api/debug-titulo': typeof ApiDebugTituloRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/admin/assistente': typeof AuthenticatedAdminAssistenteRoute
@@ -254,7 +246,6 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/fila': typeof AuthenticatedFilaRoute
   '/api/assistente': typeof ApiAssistenteRouteWithChildren
-  '/api/debug-titulo': typeof ApiDebugTituloRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/_authenticated/admin/assistente': typeof AuthenticatedAdminAssistenteRoute
@@ -284,7 +275,6 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/fila'
     | '/api/assistente'
-    | '/api/debug-titulo'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/admin/assistente'
@@ -312,7 +302,6 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/fila'
     | '/api/assistente'
-    | '/api/debug-titulo'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/admin/assistente'
@@ -341,7 +330,6 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/fila'
     | '/api/assistente'
-    | '/api/debug-titulo'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/_authenticated/admin/assistente'
@@ -369,7 +357,6 @@ export interface RootRouteChildren {
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   ApiAssistenteRoute: typeof ApiAssistenteRouteWithChildren
-  ApiDebugTituloRoute: typeof ApiDebugTituloRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
 }
@@ -409,13 +396,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/debug-titulo': {
-      id: '/api/debug-titulo'
-      path: '/api/debug-titulo'
-      fullPath: '/api/debug-titulo'
-      preLoaderRoute: typeof ApiDebugTituloRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/assistente': {
@@ -646,7 +626,6 @@ const rootRouteChildren: RootRouteChildren = {
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
   ApiAssistenteRoute: ApiAssistenteRouteWithChildren,
-  ApiDebugTituloRoute: ApiDebugTituloRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
 }

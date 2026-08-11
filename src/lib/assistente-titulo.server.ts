@@ -53,9 +53,8 @@ export async function gerarTituloConversa(
         "Sem aspas, sem pontuação final, sem prefixos como 'Título:'. " +
         "Não inclua nomes de pessoas, e-mails, senhas ou dados sensíveis.",
       prompt: primeiraMensagem.slice(0, 500),
-      // Folga para modelos com raciocínio interno: com limite muito baixo a
-      // resposta visível pode vir vazia e cair no fallback.
-      maxOutputTokens: 400,
+      // Sem maxOutputTokens: o modelo do gateway rejeita o parâmetro max_tokens.
+      // O tamanho é garantido pelo prompt (3 a 8 palavras) e pelo limparTitulo.
       providerOptions: { lovable: { reasoningEffort: "none" } },
     });
     return limparTitulo(text) || fallback;
