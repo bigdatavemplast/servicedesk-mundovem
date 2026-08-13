@@ -18,6 +18,7 @@ export const criarUsuario = createServerFn({ method: "POST" })
       email: z.string().trim().email().max(255),
       senha: z.string().min(6).max(128),
       departamento: z.string().trim().max(120).optional().nullable(),
+      areaId: z.string().uuid().optional().nullable(),
       role: roleEnum,
     }).parse(d),
   )
@@ -32,11 +33,26 @@ export const criarUsuario = createServerFn({ method: "POST" })
     });
     if (error || !created.user) throw new Error(error?.message ?? "Falha ao criar usuário");
     const uid = created.user.id;
+    let departamento = data.departamento ?? null;
+    let areaId = data.areaId ?? null;
+    if (!areaId && departamento) {
+      const { data: area } = await (supabaseAdmin as any)
+        .from("areas")
+        .upsert({ nome: departamento.trim(), ativo: true }, { onConflict: "nome" })
+        .select("id,nome")
+        .single();
+      areaId = area?.id ?? null;
+    }
+    if (areaId) {
+      const { data: area } = await (supabaseAdmin as any).from("areas").select("nome").eq("id", areaId).maybeSingle();
+      if (area?.nome) departamento = area.nome;
+    }
     const { error: pErr } = await supabaseAdmin.from("profiles").upsert({
       id: uid,
       nome: data.nome,
       email: data.email,
-      departamento: data.departamento ?? null,
+      departamento,
+      area_id: areaId,
       ativo: true,
     } as never);
     if (pErr) throw new Error(pErr.message);
@@ -53,6 +69,7 @@ export const atualizarUsuario = createServerFn({ method: "POST" })
       nome: z.string().trim().min(1).max(120).optional(),
       email: z.string().trim().email().max(255).optional(),
       departamento: z.string().trim().max(120).nullable().optional(),
+      areaId: z.string().uuid().nullable().optional(),
       ativo: z.boolean().optional(),
       senha: z.string().min(6).max(128).optional(),
     }).parse(d),
@@ -73,6 +90,22 @@ export const atualizarUsuario = createServerFn({ method: "POST" })
     if (data.nome !== undefined) profUpdate.nome = data.nome;
     if (data.email !== undefined) profUpdate.email = data.email;
     if (data.departamento !== undefined) profUpdate.departamento = data.departamento;
+    if (data.areaId !== undefined) {
+      let areaId = data.areaId;
+      if (!areaId && data.departamento) {
+        const { data: area } = await (supabaseAdmin as any)
+          .from("areas")
+          .upsert({ nome: data.departamento.trim(), ativo: true }, { onConflict: "nome" })
+          .select("id,nome")
+          .single();
+        areaId = area?.id ?? null;
+      }
+      profUpdate.area_id = areaId;
+      if (areaId) {
+        const { data: area } = await (supabaseAdmin as any).from("areas").select("nome").eq("id", areaId).maybeSingle();
+        if (area?.nome) profUpdate.departamento = area.nome;
+      }
+    }
     if (data.ativo !== undefined) profUpdate.ativo = data.ativo;
     if (Object.keys(profUpdate).length) {
       const { error } = await supabaseAdmin.from("profiles").update(profUpdate as never).eq("id", data.id);

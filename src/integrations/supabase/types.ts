@@ -288,6 +288,9 @@ export type Database = {
           respondido_em: string | null
           sla_id: string | null
           sla_resolucao_violado: boolean
+          sla_pausado: boolean
+          sla_pausado_em: string | null
+          sla_tempo_restante_segundos: number | null
           sla_resposta_violado: boolean
           solicitante_id: string
           status: Database["public"]["Enums"]["status_chamado"]
@@ -315,6 +318,9 @@ export type Database = {
           respondido_em?: string | null
           sla_id?: string | null
           sla_resolucao_violado?: boolean
+          sla_pausado?: boolean
+          sla_pausado_em?: string | null
+          sla_tempo_restante_segundos?: number | null
           sla_resposta_violado?: boolean
           solicitante_id: string
           status?: Database["public"]["Enums"]["status_chamado"]
@@ -342,6 +348,9 @@ export type Database = {
           respondido_em?: string | null
           sla_id?: string | null
           sla_resolucao_violado?: boolean
+          sla_pausado?: boolean
+          sla_pausado_em?: string | null
+          sla_tempo_restante_segundos?: number | null
           sla_resposta_violado?: boolean
           solicitante_id?: string
           status?: Database["public"]["Enums"]["status_chamado"]
@@ -633,6 +642,7 @@ export type Database = {
           avatar_url: string | null
           criado_em: string
           departamento: string | null
+          area_id: string | null
           email: string
           id: string
           nome: string
@@ -645,6 +655,7 @@ export type Database = {
           avatar_url?: string | null
           criado_em?: string
           departamento?: string | null
+          area_id?: string | null
           email: string
           id: string
           nome: string

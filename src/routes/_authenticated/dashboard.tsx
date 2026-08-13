@@ -1,7 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Legend, Cell,
@@ -24,6 +24,14 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
       { name: "robots", content: "noindex, follow" },
     ],
   }),
+  beforeLoad: async () => {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) throw redirect({ to: "/auth" });
+    const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", userData.user.id);
+    if (!(roles ?? []).some((r) => r.role === "gestor" || r.role === "admin")) {
+      throw redirect({ to: "/chamados" });
+    }
+  },
   component: DashboardPage,
 });
 
@@ -42,6 +50,9 @@ type Chamado = {
   criado_em: string;
   resolvido_em: string | null;
   sla_resolucao_violado: boolean;
+  prazo_resolucao: string | null;
+  sla_pausado: boolean;
+  sla_tempo_restante_segundos: number | null;
   categoria_id: string | null;
   atendente_id: string | null;
 };
@@ -72,6 +83,12 @@ function statusStyle(s: string) {
 function DashboardPage() {
   const [dias, setDias] = useState<number>(30);
   const [filtroStatus, setFiltroStatus] = useState<"todos" | "abertos" | "andamento" | "resolvidos">("todos");
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 30000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const since = useMemo(() => {
     const d = new Date();
@@ -84,7 +101,7 @@ function DashboardPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("chamados")
-        .select("id,numero,titulo,status,prioridade,criado_em,resolvido_em,sla_resolucao_violado,categoria_id,atendente_id")
+        .select("id,numero,titulo,status,prioridade,criado_em,resolvido_em,sla_resolucao_violado,prazo_resolucao,sla_pausado,sla_tempo_restante_segundos,categoria_id,atendente_id")
         .gte("criado_em", since)
         .order("criado_em", { ascending: false });
       if (error) throw error;
@@ -106,14 +123,25 @@ function DashboardPage() {
     const abertosAgora = chamados.filter((c) => !["resolvido", "fechado", "cancelado"].includes(c.status)).length;
     const resolvidos = chamados.filter((c) => c.status === "resolvido" || c.status === "fechado");
     const criticosAbertos = chamados.filter((c) => c.prioridade === "critica" && !["resolvido", "fechado", "cancelado"].includes(c.status)).length;
-    const violados = chamados.filter((c) => c.sla_resolucao_violado).length;
+    const slaStatus = (c: Chamado) => {
+      if (c.sla_pausado) return "pausado";
+      if (!c.prazo_resolucao) return "sem_sla";
+      const sec = (new Date(c.prazo_resolucao).getTime() - now) / 1000;
+      if (sec <= 0) return "vencido";
+      if (sec <= 3600) return "vencendo";
+      return "ok";
+    };
+    const vencidos = chamados.filter((c) => slaStatus(c) === "vencido").length;
+    const vencendo = chamados.filter((c) => slaStatus(c) === "vencendo").length;
+    const pausados = chamados.filter((c) => slaStatus(c) === "pausado").length;
+    const violados = chamados.filter((c) => c.sla_resolucao_violado || slaStatus(c) === "vencido").length;
     const taxaSla = total ? Math.round(((total - violados) / total) * 100) : null;
     const durHoras = resolvidos
       .filter((c) => c.resolvido_em)
       .map((c) => (new Date(c.resolvido_em!).getTime() - new Date(c.criado_em).getTime()) / 3_600_000);
     const tMedio = durHoras.length ? +(durHoras.reduce((a, b) => a + b, 0) / durHoras.length).toFixed(1) : null;
-    return { total, abertosAgora, resolvidos: resolvidos.length, criticosAbertos, taxaSla, tMedio };
-  }, [chamados]);
+    return { total, abertosAgora, resolvidos: resolvidos.length, criticosAbertos, taxaSla, tMedio, vencidos, vencendo, pausados };
+  }, [chamados, now]);
 
   const volume = useMemo(() => {
     const map = new Map<string, { dia: string; abertos: number; resolvidos: number }>();
@@ -194,6 +222,9 @@ function DashboardPage() {
              valor={resumo.tMedio !== null ? (resumo.tMedio < 1 ? `${Math.round(resumo.tMedio * 60)}min` : `${resumo.tMedio}h`) : "—"} />
         <Kpi label="Críticos abertos" valor={resumo.criticosAbertos}
              sub={resumo.criticosAbertos ? "atenção necessária" : "nenhum"} />
+        <Kpi label="SLA vencendo" valor={resumo.vencendo} />
+        <Kpi label="SLA vencido" valor={resumo.vencidos} />
+        <Kpi label="SLA pausado" valor={resumo.pausados} />
       </div>
 
       {/* Gráficos linha 1 */}

@@ -1,6 +1,7 @@
 import { defineTool } from "@lovable.dev/mcp-js";
 import { z } from "zod";
 import { supabaseForUser } from "../supabase";
+import { emailChamadoAberto } from "@/lib/email.service";
 
 export default defineTool({
   name: "criar_chamado",
@@ -34,10 +35,35 @@ export default defineTool({
         subcategoria_id: subcategoria_id ?? null,
         numero: "", // gerado pelo trigger
       })
-      .select("id, numero, titulo, status, prioridade, aberto_em")
+      .select("id, numero, titulo, status, prioridade, aberto_em, descricao, prazo_resolucao, solicitante_id")
       .maybeSingle();
 
     if (error) return { content: [{ type: "text", text: error.message }], isError: true };
+
+    if (data) {
+      const n1 = process.env.SERVICE_DESK_N1_EMAIL;
+      if (n1) {
+        const { data: profile } = await supabase.from("profiles").select("nome,departamento,area_id").eq("id", ctx.getUserId() as string).maybeSingle();
+        let areaNome = profile?.departamento ?? "Sem área";
+        if (profile?.area_id) {
+          const { data: area } = await (supabase as any).from("areas").select("nome").eq("id", profile.area_id).maybeSingle();
+          areaNome = area?.nome ?? areaNome;
+        }
+        const origin = process.env.SERVICE_DESK_PUBLIC_URL || process.env.APP_URL || "";
+        await emailChamadoAberto({
+          para: n1,
+          numero: data.numero,
+          titulo: data.titulo,
+          solicitante: profile?.nome ?? "Colaborador",
+          area: areaNome,
+          prioridade: data.prioridade,
+          descricao: data.descricao,
+          prazoSla: data.prazo_resolucao,
+          link: `${origin}/chamados/${data.id}`,
+        });
+      }
+    }
+
     return {
       content: [
         {

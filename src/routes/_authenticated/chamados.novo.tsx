@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { AnexoDropzone } from "@/components/anexos/AnexoDropzone";
 import { enviarAnexo } from "@/lib/anexos";
+import { criarChamado } from "@/lib/chamado.functions";
 
 
 export const Route = createFileRoute("/_authenticated/chamados/novo")({
@@ -43,6 +45,7 @@ function NovoChamadoPage() {
   const [subcategoriaId, setSubcategoriaId] = useState<string>("");
   const [anexos, setAnexos] = useState<File[]>([]);
   const [progresso, setProgresso] = useState<Record<string, number>>({});
+  const criar = useServerFn(criarChamado);
 
   const { data: categorias = [] } = useQuery({
     queryKey: ["categorias"],
@@ -70,19 +73,20 @@ function NovoChamadoPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const { data: criado, error } = await supabase.from("chamados").insert({
-      titulo,
-      descricao,
-      prioridade,
-      solicitante_id: user.id,
-      categoria_id: categoriaId || null,
-      subcategoria_id: subcategoriaId || null,
-      numero: "", // trigger irá gerar
-    } as never).select("id").maybeSingle();
-
-    if (error || !criado) {
+    let criado: any;
+    try {
+      criado = await criar({
+        data: {
+          titulo,
+          descricao,
+          prioridade,
+          categoriaId: categoriaId || null,
+          subcategoriaId: subcategoriaId || null,
+        },
+      });
+    } catch (error) {
       setLoading(false);
-      return toast.error(error?.message ?? "Falha ao criar chamado");
+      return toast.error(error instanceof Error ? error.message : "Falha ao criar chamado");
     }
 
     let falhas = 0;

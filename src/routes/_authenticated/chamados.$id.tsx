@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { ArrowLeft, AlertTriangle, Clock, Loader2, Star } from "lucide-react";
 import { AnexosSecao } from "@/components/anexos/AnexosSecao";
+import { useServerFn } from "@tanstack/react-start";
+import { atualizarChamado, comentarChamado } from "@/lib/chamado.functions";
 
 
 export const Route = createFileRoute("/_authenticated/chamados/$id")({
@@ -58,6 +60,32 @@ function prioClass(p: string) {
     : p === "media" ? "bg-blue-100 text-blue-700"
     : "bg-emerald-100 text-emerald-700";
 }
+function slaInfo(chamado: any, now: number) {
+  if (chamado?.sla_pausado) {
+    const sec = Math.max(0, Number(chamado.sla_tempo_restante_segundos ?? 0));
+    return { status: "pausado", label: "Pausado", seconds: sec };
+  }
+  if (!chamado?.prazo_resolucao) return { status: "sem_sla", label: "Sem SLA", seconds: null as number | null };
+  const sec = Math.floor((new Date(chamado.prazo_resolucao).getTime() - now) / 1000);
+  if (sec <= 0) return { status: "vencido", label: "Vencido", seconds: 0 };
+  if (sec <= 3600) return { status: "vencendo", label: "Vencendo", seconds: sec };
+  return { status: "ok", label: "OK", seconds: sec };
+}
+function formatDuration(seconds: number | null) {
+  if (seconds == null) return "—";
+  const s = Math.max(0, Math.floor(seconds));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  if (h > 0) return `${h}h ${m}min`;
+  return `${m}min`;
+}
+function slaClass(status: string) {
+  if (status === "vencido") return "text-red-600";
+  if (status === "vencendo") return "text-amber-600";
+  if (status === "pausado") return "text-blue-600";
+  return "text-emerald-600";
+}
+
 function statusClass(s: string) {
   if (s === "aberto") return "bg-sky-100 text-sky-700";
   if (s === "em_andamento") return "bg-amber-100 text-amber-700";
@@ -77,6 +105,14 @@ function DetalheChamadoPage() {
   const [interno, setInterno] = useState(false);
   const [nota, setNota] = useState(0);
   const [avaliacaoComentario, setAvaliacaoComentario] = useState("");
+  const [now, setNow] = useState(Date.now());
+  const atualizarServer = useServerFn(atualizarChamado);
+  const comentarServer = useServerFn(comentarChamado);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
   
 
   const { data: roles = [] } = useQuery({
@@ -146,46 +182,43 @@ function DetalheChamadoPage() {
 
   const atualizar = useMutation({
     mutationFn: async (patch: Record<string, unknown>) => {
-      const historicoRows: any[] = [];
-      if (patch.status && chamado && patch.status !== chamado.status) {
-        historicoRows.push({ chamado_id: id, autor_id: user.id, acao: "status_alterado", de: chamado.status, para: patch.status });
-        if (patch.status === "resolvido") (patch as any).resolvido_em = new Date().toISOString();
-        if (patch.status === "fechado") (patch as any).fechado_em = new Date().toISOString();
-      }
-      if (patch.prioridade && chamado && patch.prioridade !== chamado.prioridade) {
-        historicoRows.push({ chamado_id: id, autor_id: user.id, acao: "prioridade_alterada", de: chamado.prioridade, para: patch.prioridade });
-      }
-      if ("atendente_id" in patch && chamado && patch.atendente_id !== chamado.atendente_id) {
-        historicoRows.push({ chamado_id: id, autor_id: user.id, acao: "atendente_alterado", de: chamado.atendente_id ?? "", para: (patch.atendente_id as string) ?? "" });
-      }
-      const { error } = await supabase.from("chamados").update(patch as never).eq("id", id);
-      if (error) throw error;
-      if (historicoRows.length) await supabase.from("historico_chamado").insert(historicoRows as never);
+      await atualizarServer({
+        data: {
+          chamadoId: id,
+          status: typeof patch.status === "string" ? patch.status : undefined,
+          prioridade: typeof patch.prioridade === "string" ? patch.prioridade as any : undefined,
+          atendenteId: "atendente_id" in patch ? ((patch.atendente_id as string | null) ?? null) : undefined,
+        },
+      });
     },
     onSuccess: () => {
       toast.success("Chamado atualizado");
       qc.invalidateQueries({ queryKey: ["chamado", id] });
       qc.invalidateQueries({ queryKey: ["chamado-historico", id] });
+      qc.invalidateQueries({ queryKey: ["fila"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
     },
     onError: (e: any) => toast.error(e.message),
   });
 
   const comentar = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("comentarios_chamado").insert({
-        chamado_id: id, autor_id: user.id, conteudo: comentario, interno,
-      } as never);
-      if (error) throw error;
+      await comentarServer({
+        data: { chamadoId: id, conteudo: comentario, interno },
+      });
     },
     onSuccess: () => {
-      setComentario(""); setInterno(false);
+      setComentario("");
+      setInterno(false);
+      qc.invalidateQueries({ queryKey: ["chamado", id] });
       qc.invalidateQueries({ queryKey: ["chamado-comentarios", id] });
+      qc.invalidateQueries({ queryKey: ["chamado-historico", id] });
+      qc.invalidateQueries({ queryKey: ["fila"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      toast.success("Resposta enviada");
     },
     onError: (e: any) => toast.error(e.message),
   });
-
-
-
 
   const avaliar = useMutation({
     mutationFn: async () => {
@@ -204,6 +237,7 @@ function DetalheChamadoPage() {
 
   const podeAvaliar = chamado.solicitante_id === user.id && chamado.status === "resolvido" && !chamado.avaliacao_nota;
   const jaAvaliado = chamado.avaliacao_nota != null;
+  const sla = slaInfo(chamado as any, now);
 
   return (
     <div className="space-y-4">
@@ -380,17 +414,19 @@ function DetalheChamadoPage() {
               <Info label="Resolvido em" value={fmt(chamado.resolvido_em)} />
               {chamado.prazo_resolucao && (
                 <div className="border-t pt-3">
-                  <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Prazo SLA</div>
-                  <div className={`mt-1 font-semibold ${chamado.sla_resolucao_violado ? "text-red-600" : "text-emerald-600"}`}>
-                    {fmt(chamado.prazo_resolucao)}
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">SLA de resolução</div>
+                  <div className={`mt-1 font-semibold ${slaClass(sla.status)}`}>{sla.label}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {sla.status === "vencido"
+                      ? `Vencido há ${formatDuration(Math.floor((now - new Date(chamado.prazo_resolucao).getTime()) / 1000))}`
+                      : `${formatDuration(sla.seconds)} restantes`}
                   </div>
-                  {chamado.sla_resolucao_violado ? (
-                    <div className="mt-1 flex items-center gap-1 text-xs text-red-600">
-                      <AlertTriangle className="h-3 w-3" /> Prazo estourado
-                    </div>
-                  ) : (chamado.sla as any) && (
-                    <div className="mt-1 text-xs text-muted-foreground">
-                      Meta: {(chamado.sla as any).tempo_resolucao_h}h
+                  {sla.status !== "pausado" && (
+                    <div className="mt-1 text-[11px] text-muted-foreground">Vencimento: {fmt(chamado.prazo_resolucao)}</div>
+                  )}
+                  {sla.status === "pausado" && (
+                    <div className="mt-1 flex items-center gap-1 text-xs text-blue-600">
+                      <Clock className="h-3 w-3" /> Aguardando resposta do solicitante
                     </div>
                   )}
                 </div>

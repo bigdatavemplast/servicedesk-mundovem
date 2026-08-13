@@ -1,6 +1,7 @@
 import { defineTool } from "@lovable.dev/mcp-js";
 import { z } from "zod";
 import { supabaseForUser } from "../supabase";
+import { emailInteracao } from "@/lib/email.service";
 
 export default defineTool({
   name: "comentar_chamado",
@@ -22,7 +23,7 @@ export default defineTool({
 
     const { data: chamado, error: findError } = await supabase
       .from("chamados")
-      .select("id, numero")
+      .select("id, numero, titulo, status, prioridade, solicitante_id, sla_pausado")
       .eq(isUuid ? "id" : "numero", numero)
       .maybeSingle();
 
@@ -46,6 +47,28 @@ export default defineTool({
       .maybeSingle();
 
     if (error) return { content: [{ type: "text", text: error.message }], isError: true };
+    if (!interno) {
+      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", ctx.getUserId() as string);
+      const staff = (roles ?? []).some((r: any) => ["atendente", "gestor", "admin"].includes(r.role));
+      if (staff && chamado.solicitante_id !== ctx.getUserId()) {
+        const { data: solicitante } = await supabase.from("profiles").select("nome,email").eq("id", chamado.solicitante_id).maybeSingle();
+        const { data: autor } = await supabase.from("profiles").select("nome").eq("id", ctx.getUserId() as string).maybeSingle();
+        if (solicitante?.email) {
+          const origin = process.env.SERVICE_DESK_PUBLIC_URL || process.env.APP_URL || "";
+          await emailInteracao({
+            para: solicitante.email,
+            numero: chamado.numero,
+            titulo: chamado.titulo,
+            autor: autor?.nome ?? "Atendimento",
+            mensagem: mensagem,
+            status: chamado.status,
+            slaStatus: chamado.sla_pausado ? "Pausado" : "Em contagem",
+            link: `${origin}/chamados/${chamado.id}`,
+          });
+        }
+      }
+    }
+
     return {
       content: [{ type: "text", text: `Comentário adicionado ao chamado ${chamado.numero}.` }],
       structuredContent: { comentario: data },

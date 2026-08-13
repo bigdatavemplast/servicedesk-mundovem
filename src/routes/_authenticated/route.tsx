@@ -30,6 +30,7 @@ function AppShell() {
     },
   });
   const isStaff = roles.some((r) => ["atendente", "gestor", "admin"].includes(r));
+  const canDashboard = roles.some((r) => ["gestor", "admin"].includes(r));
   const isAdmin = roles.includes("admin");
 
   async function handleSignOut() {
@@ -43,7 +44,7 @@ function AppShell() {
     {
       title: "PRINCIPAL",
       items: [
-        { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+        ...(canDashboard ? [{ to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" }] : []),
         { to: "/assistente", icon: Bot, label: "Assistente" },
         { to: "/chamados/novo", icon: PlusCircle, label: "Novo chamado" },
         { to: "/chamados", icon: Ticket, label: "Meus chamados" },

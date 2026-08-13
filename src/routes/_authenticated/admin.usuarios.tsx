@@ -72,6 +72,7 @@ function AdminUsuariosPage() {
   const [fEmail, setFEmail] = useState("");
   const [fSenha, setFSenha] = useState("");
   const [fDep, setFDep] = useState("");
+  const [fAreaId, setFAreaId] = useState("");
   const [fRole, setFRole] = useState<(typeof ROLES)[number]["v"]>("colaborador");
 
   // editar
@@ -79,16 +80,26 @@ function AdminUsuariosPage() {
   const [eNome, setENome] = useState("");
   const [eEmail, setEEmail] = useState("");
   const [eDep, setEDep] = useState("");
+  const [eAreaId, setEAreaId] = useState("");
   const [eRole, setERole] = useState<string>("colaborador");
   const [eSenha, setESenha] = useState("");
 
   const [deleting, setDeleting] = useState<any | null>(null);
 
+  const { data: areas = [] } = useQuery({
+    queryKey: ["admin-areas"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("areas").select("id,nome").eq("ativo", true).order("nome");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["admin-users"],
     queryFn: async () => {
       const [{ data: profiles }, { data: roles }] = await Promise.all([
-        supabase.from("profiles").select("id,nome,email,departamento,ativo").order("nome"),
+        supabase.from("profiles").select("id,nome,email,departamento,area_id,ativo").order("nome"),
         supabase.from("user_roles").select("user_id,role"),
       ]);
       const byUser = new Map<string, string[]>();
@@ -109,12 +120,13 @@ function AdminUsuariosPage() {
           email: fEmail.trim(),
           senha: fSenha,
           departamento: fDep.trim() || null,
+          areaId: fAreaId || null,
           role: fRole,
         },
       }),
     onSuccess: () => {
       toast.success("Usuário cadastrado");
-      setFNome(""); setFEmail(""); setFSenha(""); setFDep(""); setFRole("colaborador");
+      setFNome(""); setFEmail(""); setFSenha(""); setFDep(""); setFAreaId(""); setFRole("colaborador");
       qc.invalidateQueries({ queryKey: ["admin-users"] });
     },
     onError: (e: any) => toast.error(e.message ?? "Erro ao cadastrar"),
@@ -177,6 +189,7 @@ function AdminUsuariosPage() {
     setENome(u.nome ?? "");
     setEEmail(u.email ?? "");
     setEDep(u.departamento ?? "");
+    setEAreaId(u.area_id ?? "");
     setERole(u.roles[0] ?? "colaborador");
     setESenha("");
   }
@@ -224,6 +237,16 @@ function AdminUsuariosPage() {
               <Label>Departamento</Label>
               <Input placeholder="Ex: RH, Financeiro, TI" value={fDep} onChange={(e) => setFDep(e.target.value)} />
             </div>
+            <div className="space-y-1">
+              <Label>Área</Label>
+              <Select value={fAreaId || "__none__"} onValueChange={(v) => setFAreaId(v === "__none__" ? "" : v)}>
+                <SelectTrigger><SelectValue placeholder="Selecione a área" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Sem área</SelectItem>
+                  {areas.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
             <Button
               className="w-full"
               disabled={!fNome.trim() || !fEmail.trim() || fSenha.length < 6 || criarMut.isPending}
@@ -255,6 +278,7 @@ function AdminUsuariosPage() {
                     <tr>
                       <th className="px-4 py-2">Nome</th>
                       <th className="px-4 py-2">E-mail</th>
+                      <th className="px-4 py-2">Área</th>
                       <th className="px-4 py-2">Departamento</th>
                       <th className="px-4 py-2">Nível</th>
                       <th className="px-4 py-2">Status</th>
@@ -268,6 +292,7 @@ function AdminUsuariosPage() {
                         <tr key={u.id} className={u.ativo ? "" : "opacity-60"}>
                           <td className="px-4 py-2 font-medium">{u.nome ?? "—"}</td>
                           <td className="px-4 py-2 text-muted-foreground">{u.email}</td>
+                          <td className="px-4 py-2">{areas.find((a: any) => a.id === u.area_id)?.nome ?? "Sem área"}</td>
                           <td className="px-4 py-2">{u.departamento ?? "—"}</td>
                           <td className="px-4 py-2">
                             <span className={`inline-block rounded-md border px-2 py-0.5 text-[10px] font-semibold ${ROLE_BADGE[primary]}`}>
@@ -319,6 +344,16 @@ function AdminUsuariosPage() {
             <div className="space-y-1"><Label>Nome</Label><Input value={eNome} onChange={(e) => setENome(e.target.value)} /></div>
             <div className="space-y-1"><Label>E-mail</Label><Input type="email" value={eEmail} onChange={(e) => setEEmail(e.target.value)} /></div>
             <div className="space-y-1"><Label>Departamento</Label><Input value={eDep} onChange={(e) => setEDep(e.target.value)} /></div>
+            <div className="space-y-1">
+              <Label>Área</Label>
+              <Select value={eAreaId || "__none__"} onValueChange={(v) => setEAreaId(v === "__none__" ? "" : v)}>
+                <SelectTrigger><SelectValue placeholder="Selecione a área" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Sem área</SelectItem>
+                  {areas.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-1">
               <Label>Papel</Label>
               <Select value={eRole} onValueChange={setERole}>
