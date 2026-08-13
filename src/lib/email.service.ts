@@ -1,4 +1,3 @@
-
 function esc(value: unknown): string {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -14,36 +13,136 @@ type EmailArgs = {
   html: string;
 };
 
-export async function enviarEmailServiceDesk(args: EmailArgs): Promise<boolean> {
-  const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM_EMAIL;
+async function obterAccessTokenGmail(): Promise<string> {
+  const clientId = process.env.GMAIL_CLIENT_ID;
+  const clientSecret = process.env.GMAIL_CLIENT_SECRET;
+  const refreshToken = process.env.GMAIL_REFRESH_TOKEN;
 
-  if (!apiKey || !from || !args.to) {
-    console.warn("[ServiceDesk] E-mail não enviado: configure RESEND_API_KEY, RESEND_FROM_EMAIL e o destinatário.");
-    return false;
+  if (!clientId || !clientSecret || !refreshToken) {
+    throw new Error(
+      "[ServiceDesk] Configure GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET e GMAIL_REFRESH_TOKEN."
+    );
   }
 
-  const response = await fetch("https://api.resend.com/emails", {
+  const response = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
+      "Content-Type": "application/x-www-form-urlencoded",
     },
-    body: JSON.stringify({
-      from,
-      to: [args.to],
-      subject: args.subject,
-      html: args.html,
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: refreshToken,
+      grant_type: "refresh_token",
     }),
   });
 
   if (!response.ok) {
     const body = await response.text();
-    console.error("[ServiceDesk] Falha ao enviar e-mail:", response.status, body);
-    return false;
+
+    throw new Error(
+      `[ServiceDesk] Falha ao renovar token do Gmail: ${response.status} ${body}`
+    );
   }
 
-  return true;
+  const data = await response.json();
+
+  if (!data.access_token) {
+    throw new Error(
+      "[ServiceDesk] Google não retornou um access_token."
+    );
+  }
+
+  return data.access_token;
+}
+
+function encodeBase64Url(value: string): string {
+  return Buffer.from(value, "utf8")
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+function encodeSubject(subject: string): string {
+  return `=?UTF-8?B?${Buffer.from(subject, "utf8").toString("base64")}?=`;
+}
+
+function createRawEmail(args: EmailArgs, fromEmail: string): string {
+  const message = [
+    `From: Service Desk Mundo Vem <${fromEmail}>`,
+    `To: ${args.to}`,
+    `Subject: ${encodeSubject(args.subject)}`,
+    "MIME-Version: 1.0",
+    "Content-Type: text/html; charset=UTF-8",
+    "Content-Transfer-Encoding: 8bit",
+    "",
+    args.html,
+  ].join("\r\n");
+
+  return encodeBase64Url(message);
+}
+
+export async function enviarEmailServiceDesk(
+  args: EmailArgs
+): Promise<boolean> {
+  try {
+    const fromEmail = process.env.GMAIL_FROM_EMAIL;
+
+    if (!fromEmail || !args.to) {
+      console.warn(
+        "[ServiceDesk] E-mail não enviado: GMAIL_FROM_EMAIL ou destinatário não configurado."
+      );
+      return false;
+    }
+
+    const accessToken = await obterAccessTokenGmail();
+
+    const raw = createRawEmail(args, fromEmail);
+
+    const response = await fetch(
+      "https://gmail.googleapis.com/gmail/v1/users/me/messages/send",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          raw,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const body = await response.text();
+
+      console.error(
+        "[ServiceDesk] Falha ao enviar e-mail pelo Gmail:",
+        response.status,
+        body
+      );
+
+      return false;
+    }
+
+    const data = await response.json();
+
+    console.log("[ServiceDesk] E-mail enviado pelo Gmail:", {
+      para: args.to,
+      assunto: args.subject,
+      messageId: data?.id,
+    });
+
+    return true;
+  } catch (error: any) {
+    console.error(
+      "[ServiceDesk] Erro ao enviar e-mail pelo Gmail:",
+      error?.message ?? error
+    );
+
+    return false;
+  }
 }
 
 export function emailChamadoAberto(args: {
@@ -67,7 +166,11 @@ export function emailChamadoAberto(args: {
       <p><strong>Solicitante:</strong> ${esc(args.solicitante)}</p>
       <p><strong>Área:</strong> ${esc(args.area || "Sem área")}</p>
       <p><strong>Prioridade:</strong> ${esc(args.prioridade)}</p>
-      <p><strong>SLA:</strong> ${esc(args.prazoSla ? new Date(args.prazoSla).toLocaleString("pt-BR") : "—")}</p>
+      <p><strong>SLA:</strong> ${esc(
+        args.prazoSla
+          ? new Date(args.prazoSla).toLocaleString("pt-BR")
+          : "—"
+      )}</p>
       <hr />
       <p>${esc(args.descricao).replaceAll("\n", "<br />")}</p>
       <p><a href="${esc(args.link)}">Abrir chamado</a></p>
