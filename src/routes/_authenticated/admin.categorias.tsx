@@ -36,6 +36,7 @@ function AdminCategoriasPage() {
   const qc = useQueryClient();
   const [nomeCat, setNomeCat] = useState("");
   const [descCat, setDescCat] = useState("");
+  const [segmentoCat, setSegmentoCat] = useState("");
   const [novaSub, setNovaSub] = useState<Record<string, string>>({});
 
   const { data: categorias = [] } = useQuery({
@@ -56,10 +57,27 @@ function AdminCategoriasPage() {
 
   const criarCat = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("categorias").insert({ nome: nomeCat.trim(), descricao: descCat.trim() || null } as never);
+      const nome = nomeCat.trim();
+      const segmento = segmentoCat.trim();
+
+      if (!nome) throw new Error("Informe o nome da categoria.");
+      if (!segmento) throw new Error("Selecione o segmento da categoria.");
+
+      const { error } = await supabase.from("categorias").insert({
+        nome,
+        descricao: descCat.trim() || null,
+        segmento,
+      } as never);
+
       if (error) throw error;
     },
-    onSuccess: () => { setNomeCat(""); setDescCat(""); qc.invalidateQueries({ queryKey: ["admin-categorias"] }); toast.success("Categoria criada"); },
+    onSuccess: () => {
+      setNomeCat("");
+      setDescCat("");
+      setSegmentoCat("");
+      qc.invalidateQueries({ queryKey: ["admin-categorias"] });
+      toast.success("Categoria criada");
+    },
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -110,10 +128,22 @@ function AdminCategoriasPage() {
 
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-sm">Nova categoria</CardTitle></CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-[1fr_2fr_auto]">
+        <CardContent className="grid gap-3 md:grid-cols-[1fr_1.5fr_180px_auto]">
           <Input placeholder="Nome" value={nomeCat} onChange={(e) => setNomeCat(e.target.value)} />
           <Input placeholder="Descrição (opcional)" value={descCat} onChange={(e) => setDescCat(e.target.value)} />
-          <Button disabled={!nomeCat.trim() || criarCat.isPending} onClick={() => criarCat.mutate()}>
+          <Select value={segmentoCat} onValueChange={setSegmentoCat}>
+            <SelectTrigger aria-label="Segmento da categoria">
+              <SelectValue placeholder="Segmento *" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="TI">TI</SelectItem>
+              <SelectItem value="Projetos">Projetos</SelectItem>
+              <SelectItem value="RH">RH</SelectItem>
+              <SelectItem value="Financeiro">Financeiro</SelectItem>
+              <SelectItem value="Outros">Outros</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button disabled={!nomeCat.trim() || !segmentoCat || criarCat.isPending} onClick={() => criarCat.mutate()}>
             {criarCat.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Adicionar
           </Button>
         </CardContent>
@@ -128,6 +158,7 @@ function AdminCategoriasPage() {
                 <div>
                   <CardTitle className="text-base">{c.nome}</CardTitle>
                   {c.descricao && <p className="mt-1 text-xs text-muted-foreground">{c.descricao}</p>}
+                  {c.segmento && <Badge variant="outline" className="mt-2">{c.segmento}</Badge>}
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant={c.ativo ? "default" : "secondary"} className="cursor-pointer" onClick={() => toggleCat.mutate({ id: c.id, ativo: !c.ativo })}>

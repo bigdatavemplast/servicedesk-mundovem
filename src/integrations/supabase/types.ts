@@ -260,6 +260,7 @@ export type Database = {
           nome: string
           ordem: number
           parent_id: string | null
+          segmento: string
           segmento_id: string | null
         }
         Insert: {
@@ -271,6 +272,7 @@ export type Database = {
           nome: string
           ordem?: number
           parent_id?: string | null
+          segmento: string
           segmento_id?: string | null
         }
         Update: {
@@ -282,6 +284,7 @@ export type Database = {
           nome?: string
           ordem?: number
           parent_id?: string | null
+          segmento?: string
           segmento_id?: string | null
         }
         Relationships: [

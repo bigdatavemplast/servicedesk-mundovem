@@ -46,7 +46,6 @@ type Chamado = {
   sla_pausado: boolean;
   sla_tempo_restante_segundos: number | null;
   categoria_id: string | null;
-  segmento_id: string | null;
   atendente_id: string | null;
   solicitante_id: string;
 };
@@ -111,7 +110,7 @@ function DashboardPage() {
     queryFn: async () => {
       let q = (supabase as any)
         .from("chamados")
-        .select("id,numero,titulo,status,prioridade,criado_em,aberto_em,resolvido_em,sla_resolucao_violado,prazo_resolucao,sla_pausado,sla_tempo_restante_segundos,categoria_id,segmento_id,atendente_id,solicitante_id")
+        .select("id,numero,titulo,status,prioridade,criado_em,aberto_em,resolvido_em,sla_resolucao_violado,prazo_resolucao,sla_pausado,sla_tempo_restante_segundos,categoria_id,atendente_id,solicitante_id")
         .order("criado_em", { ascending: false });
       if (isFull) q = q.gte("criado_em", since);
       if (perfil === "atendente") q = q.or(`atendente_id.eq.${user.id},atendente_id.is.null`);
@@ -124,23 +123,30 @@ function DashboardPage() {
   const { data: categorias = [] } = useQuery({
     queryKey: ["dashboard-categorias"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("categorias").select("id,nome");
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-  const { data: segmentos = [] } = useQuery({
-    queryKey: ["dashboard-segmentos"],
-    enabled: isFull,
-    queryFn: async () => {
-      const { data, error } = await (supabase as any).from("segmentos").select("id,nome").eq("ativo", true).order("ordem");
+      const { data, error } = await supabase.from("categorias").select("id,nome,segmento").eq("ativo", true).order("ordem").order("nome");
       if (error) throw error;
       return data ?? [];
     },
   });
 
-  const catMap = useMemo(() => Object.fromEntries(categorias.map((c: any) => [c.id, c.nome])), [categorias]);
-  const filtered = useMemo(() => segmentoId === "todos" ? chamados : chamados.filter((c) => c.segmento_id === segmentoId), [chamados, segmentoId]);
+  const catMap = useMemo(
+    () => Object.fromEntries(categorias.map((c: any) => [c.id, c.nome])),
+    [categorias],
+  );
+  const catSegmentoMap = useMemo(
+    () => Object.fromEntries(categorias.map((c: any) => [c.id, c.segmento])),
+    [categorias],
+  );
+  const segmentos = useMemo(
+    () => Array.from(new Set(categorias.map((c: any) => c.segmento).filter(Boolean))).sort(),
+    [categorias],
+  );
+  const filtered = useMemo(
+    () => segmentoId === "todos"
+      ? chamados
+      : chamados.filter((c) => c.categoria_id != null && catSegmentoMap[c.categoria_id] === segmentoId),
+    [chamados, segmentoId, catSegmentoMap],
+  );
 
   const resumo = useMemo(() => {
     const assignedToMe = chamados.filter((c) => c.atendente_id === user.id);
@@ -259,7 +265,7 @@ function DashboardPage() {
             <SelectTrigger className="w-[180px]"><SelectValue placeholder="Segmento" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos os segmentos</SelectItem>
-              {segmentos.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}
+              {segmentos.map((segmento: string) => <SelectItem key={segmento} value={segmento}>{segmento}</SelectItem>)}
             </SelectContent>
           </Select>
           {PERIODOS.map((d) => <Button key={d} size="sm" variant={dias === d ? "default" : "outline"} onClick={() => setDias(d)}>{d}d</Button>)}
