@@ -47,16 +47,18 @@ function AdminIndexPage() {
   });
 
   const kpis = [
-    { label: "Usuários", value: stats?.usuarios ?? "—", icon: Users, color: "text-blue-500" },
-    { label: "Categorias", value: stats?.categorias ?? "—", icon: FolderTree, color: "text-orange-500" },
-    { label: "Subcategorias", value: stats?.subcategorias ?? "—", icon: Tag, color: "text-amber-500" },
-    { label: "Chamados", value: stats?.chamados ?? "—", icon: Ticket, color: "text-emerald-500" },
-    { label: "Artigos KB", value: stats?.artigos ?? "—", icon: BookOpen, color: "text-purple-500" },
+    { to: "/admin/usuarios", label: "Usuários", value: stats?.usuarios ?? "—", icon: Users, color: "text-blue-500" },
+    { to: "/admin/categorias", label: "Categorias", value: stats?.categorias ?? "—", icon: FolderTree, color: "text-orange-500" },
+    { to: "/admin/categorias", label: "Subcategorias", value: stats?.subcategorias ?? "—", icon: Tag, color: "text-amber-500" },
+    { to: "/fila", label: "Chamados", value: stats?.chamados ?? "—", icon: Ticket, color: "text-emerald-500" },
+    { to: "/base-conhecimento", label: "Artigos KB", value: stats?.artigos ?? "—", icon: BookOpen, color: "text-purple-500" },
   ];
 
   const tools = [
     { to: "/admin/categorias", title: "Categorias e Subcategorias", desc: "Organize os tipos de chamado disponíveis para abertura.", icon: FolderTree },
     { to: "/admin/usuarios", title: "Usuários e Permissões", desc: "Gerencie papéis (colaborador, atendente, gestor, admin) e ative/desative contas.", icon: ShieldCheck },
+    { to: "/base-conhecimento", title: "Base de conhecimento", desc: "Acesse os artigos e conteúdos utilizados pelo Service Desk.", icon: BookOpen },
+    { to: "/fila", title: "Fila de chamados", desc: "Acompanhe e acesse diretamente os chamados em atendimento.", icon: Ticket },
   ];
 
   return (
@@ -71,15 +73,17 @@ function AdminIndexPage() {
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {kpis.map((k) => (
-          <Card key={k.label}>
-            <CardContent className="flex items-center justify-between p-4">
-              <div>
-                <div className="text-xs text-muted-foreground">{k.label}</div>
-                <div className="text-2xl font-bold">{k.value}</div>
-              </div>
-              <k.icon className={`h-8 w-8 ${k.color}`} />
-            </CardContent>
-          </Card>
+          <Link key={k.label} to={k.to} className="block">
+            <Card className="h-full cursor-pointer transition-colors hover:border-primary hover:shadow-md">
+              <CardContent className="flex items-center justify-between p-4">
+                <div>
+                  <div className="text-xs text-muted-foreground">{k.label}</div>
+                  <div className="text-2xl font-bold">{k.value}</div>
+                </div>
+                <k.icon className={`h-8 w-8 ${k.color}`} />
+              </CardContent>
+            </Card>
+          </Link>
         ))}
       </div>
 

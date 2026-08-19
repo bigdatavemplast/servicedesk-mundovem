@@ -226,6 +226,30 @@ export type Database = {
           },
         ]
       }
+      segmentos: {
+        Row: {
+          id: string
+          nome: string
+          ativo: boolean
+          ordem: number
+          criado_em: string
+        }
+        Insert: {
+          id?: string
+          nome: string
+          ativo?: boolean
+          ordem?: number
+          criado_em?: string
+        }
+        Update: {
+          id?: string
+          nome?: string
+          ativo?: boolean
+          ordem?: number
+          criado_em?: string
+        }
+        Relationships: []
+      }
       categorias: {
         Row: {
           ativo: boolean
@@ -236,6 +260,7 @@ export type Database = {
           nome: string
           ordem: number
           parent_id: string | null
+          segmento_id: string | null
         }
         Insert: {
           ativo?: boolean
@@ -246,6 +271,7 @@ export type Database = {
           nome: string
           ordem?: number
           parent_id?: string | null
+          segmento_id?: string | null
         }
         Update: {
           ativo?: boolean
@@ -256,6 +282,7 @@ export type Database = {
           nome?: string
           ordem?: number
           parent_id?: string | null
+          segmento_id?: string | null
         }
         Relationships: [
           {
@@ -263,6 +290,13 @@ export type Database = {
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "categorias_segmento_id_fkey"
+            columns: ["segmento_id"]
+            isOneToOne: false
+            referencedRelation: "segmentos"
             referencedColumns: ["id"]
           },
         ]
@@ -293,6 +327,7 @@ export type Database = {
           sla_tempo_restante_segundos: number | null
           sla_resposta_violado: boolean
           solicitante_id: string
+          segmento_id: string | null
           status: Database["public"]["Enums"]["status_chamado"]
           subcategoria_id: string | null
           tags: string[] | null
@@ -323,6 +358,7 @@ export type Database = {
           sla_tempo_restante_segundos?: number | null
           sla_resposta_violado?: boolean
           solicitante_id: string
+          segmento_id?: string | null
           status?: Database["public"]["Enums"]["status_chamado"]
           subcategoria_id?: string | null
           tags?: string[] | null
@@ -353,6 +389,7 @@ export type Database = {
           sla_tempo_restante_segundos?: number | null
           sla_resposta_violado?: boolean
           solicitante_id?: string
+          segmento_id?: string | null
           status?: Database["public"]["Enums"]["status_chamado"]
           subcategoria_id?: string | null
           tags?: string[] | null
@@ -371,6 +408,13 @@ export type Database = {
             columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chamados_segmento_id_fkey"
+            columns: ["segmento_id"]
+            isOneToOne: false
+            referencedRelation: "segmentos"
             referencedColumns: ["id"]
           },
           {

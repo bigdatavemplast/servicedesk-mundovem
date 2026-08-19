@@ -20,6 +20,16 @@ async function isStaff(supabase: any, userId: string) {
   return (data ?? []).some((r: any) => ["atendente", "gestor", "admin"].includes(r.role));
 }
 
+async function isAttendant(supabase: any, userId: string) {
+  const { data, error } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId);
+  if (error) throw new Error(error.message);
+  const roles = (data ?? []).map((r: any) => r.role);
+  return roles.includes("atendente") && !roles.includes("gestor") && !roles.includes("admin");
+}
+
 async function isAdmin(supabase: any, userId: string) {
   const { data, error } = await supabase
     .from("user_roles")
@@ -30,11 +40,10 @@ async function isAdmin(supabase: any, userId: string) {
 }
 
 async function canAccessTicket(supabase: any, userId: string, ticket: any) {
-  if (ticket.solicitante_id === userId) return true;
-  if (await isAdmin(supabase, userId)) return true;
-
   const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", userId);
   const values = (roles ?? []).map((r: any) => r.role);
+
+  if (values.includes("admin")) return true;
   if (values.includes("atendente")) return true;
 
   if (values.includes("gestor")) {
@@ -45,7 +54,7 @@ async function canAccessTicket(supabase: any, userId: string, ticket: any) {
     return !!ok;
   }
 
-  return false;
+  return ticket.solicitante_id === userId;
 }
 
 export const criarChamado = createServerFn({ method: "POST" })
@@ -130,6 +139,9 @@ export const comentarChamado = createServerFn({ method: "POST" })
     if (!(await canAccessTicket(supabase, context.userId, ticket))) {
       throw new Error("Você não tem permissão para interagir neste chamado.");
     }
+    if (data.interno && !(await isAttendant(supabase, context.userId))) {
+      throw new Error("Nota interna disponível somente para atendentes.");
+    }
 
     const { data: inserted, error } = await admin
       .from("comentarios_chamado")
@@ -198,6 +210,15 @@ export const atualizarChamado = createServerFn({ method: "POST" })
     if (ticketError || !ticket) throw new Error(ticketError?.message ?? "Chamado não encontrado");
     if (!(await canAccessTicket(supabase, context.userId, ticket))) {
       throw new Error("Você não tem permissão para alterar este chamado.");
+    }
+
+    const roles = await supabase.from("user_roles").select("role").eq("user_id", context.userId);
+    const roleValues = (roles.data ?? []).map((r: any) => r.role);
+    const isOperationalStaff = roleValues.some((r: string) => ["atendente", "gestor", "admin"].includes(r));
+    if (!isOperationalStaff && ticket.solicitante_id === context.userId) {
+      if (data.status !== undefined || data.prioridade !== undefined || data.atendenteId !== undefined) {
+        throw new Error("Colaborador não pode alterar status, prioridade ou atendente do chamado.");
+      }
     }
 
     const patch: any = {};

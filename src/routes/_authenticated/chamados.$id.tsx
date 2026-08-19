@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { ArrowLeft, AlertTriangle, Clock, Loader2, Star } from "lucide-react";
 import { AnexosSecao } from "@/components/anexos/AnexosSecao";
@@ -106,6 +107,7 @@ function DetalheChamadoPage() {
   const [nota, setNota] = useState(0);
   const [avaliacaoComentario, setAvaliacaoComentario] = useState("");
   const [now, setNow] = useState(Date.now());
+  const [confirmacao, setConfirmacao] = useState<{ campo: "status" | "prioridade" | "atendente"; valor: string | null; label: string; atual: string; atualLabel: string } | null>(null);
   const atualizarServer = useServerFn(atualizarChamado);
   const comentarServer = useServerFn(comentarChamado);
 
@@ -123,6 +125,7 @@ function DetalheChamadoPage() {
     },
   });
   const isStaff = roles.some((r) => ["atendente", "gestor", "admin"].includes(r));
+  const isAttendant = roles.includes("atendente") && !roles.includes("gestor") && !roles.includes("admin");
 
   const { data: chamado, isLoading } = useQuery({
     queryKey: ["chamado", id],
@@ -144,12 +147,12 @@ function DetalheChamadoPage() {
   });
 
   const { data: comentarios = [] } = useQuery({
-    queryKey: ["chamado-comentarios", id, isStaff],
+    queryKey: ["chamado-comentarios", id, isAttendant],
     queryFn: async () => {
       let q = supabase.from("comentarios_chamado")
         .select("id,conteudo,interno,criado_em,autor:profiles(nome)")
         .eq("chamado_id", id).order("criado_em", { ascending: true });
-      if (!isStaff) q = q.eq("interno", false);
+      if (!isAttendant) q = q.eq("interno", false);
       const { data } = await q;
       return data ?? [];
     },
@@ -308,28 +311,35 @@ function DetalheChamadoPage() {
 
           {isStaff && (
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm">Ações do atendente</CardTitle></CardHeader>
+              <CardHeader className="pb-2"><CardTitle className="text-sm">Ações do atendimento</CardTitle></CardHeader>
               <CardContent className="flex flex-wrap gap-3">
                 <div className="min-w-[180px] space-y-1">
                   <label className="text-xs text-muted-foreground">Status</label>
-                  <Select value={chamado.status} onValueChange={(v) => atualizar.mutate({ status: v })}>
+                  <Select value={chamado.status} onValueChange={(v) => {
+                    const item = STATUS.find((x) => x.v === v);
+                    if (v !== chamado.status) setConfirmacao({ campo: "status", valor: v, label: item?.l ?? v, atual: chamado.status, atualLabel: STATUS.find((x) => x.v === chamado.status)?.l ?? chamado.status });
+                  }}>
                     <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                     <SelectContent>{STATUS.map((s) => <SelectItem key={s.v} value={s.v}>{s.l}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="min-w-[160px] space-y-1">
                   <label className="text-xs text-muted-foreground">Prioridade</label>
-                  <Select value={chamado.prioridade} onValueChange={(v) => atualizar.mutate({ prioridade: v })}>
+                  <Select value={chamado.prioridade} onValueChange={(v) => {
+                    const item = PRIOS.find((x) => x.v === v);
+                    if (v !== chamado.prioridade) setConfirmacao({ campo: "prioridade", valor: v, label: item?.l ?? v, atual: chamado.prioridade, atualLabel: PRIOS.find((x) => x.v === chamado.prioridade)?.l ?? chamado.prioridade });
+                  }}>
                     <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                     <SelectContent>{PRIOS.map((s) => <SelectItem key={s.v} value={s.v}>{s.l}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="min-w-[220px] flex-1 space-y-1">
                   <label className="text-xs text-muted-foreground">Atendente</label>
-                  <Select
-                    value={chamado.atendente_id ?? "__none__"}
-                    onValueChange={(v) => atualizar.mutate({ atendente_id: v === "__none__" ? null : v })}
-                  >
+                  <Select value={chamado.atendente_id ?? "__none__"} onValueChange={(v) => {
+                    const value = v === "__none__" ? null : v;
+                    const tecnico = value ? tecnicos.find((t: any) => t.id === value) : null;
+                    if (value !== (chamado.atendente_id ?? null)) setConfirmacao({ campo: "atendente", valor: value, label: tecnico?.nome ?? "Não atribuído", atual: chamado.atendente_id ?? "", atualLabel: (chamado.atendente as any)?.nome ?? "Não atribuído" });
+                  }}>
                     <SelectTrigger className="h-9"><SelectValue placeholder="Não atribuído" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__none__">Não atribuído</SelectItem>
@@ -338,8 +348,7 @@ function DetalheChamadoPage() {
                   </Select>
                 </div>
                 {chamado.atendente_id !== user.id && (
-                  <Button variant="outline" size="sm" className="self-end"
-                    onClick={() => atualizar.mutate({ atendente_id: user.id, status: chamado.status === "aberto" ? "em_andamento" : chamado.status })}>
+                  <Button variant="outline" size="sm" className="self-end" onClick={() => setConfirmacao({ campo: "atendente", valor: user.id, label: "Você", atual: chamado.atendente_id ?? "", atualLabel: (chamado.atendente as any)?.nome ?? "Não atribuído" })}>
                     Atribuir a mim
                   </Button>
                 )}
@@ -353,7 +362,7 @@ function DetalheChamadoPage() {
               <Textarea rows={4} value={comentario} onChange={(e) => setComentario(e.target.value)}
                 placeholder={interno ? "Nota interna (não visível ao solicitante)" : "Escreva sua resposta…"} />
               <div className="flex items-center justify-between">
-                {isStaff ? (
+                {isAttendant ? (
                   <label className="flex items-center gap-2 text-xs">
                     <input type="checkbox" checked={interno} onChange={(e) => setInterno(e.target.checked)} />
                     Nota interna
@@ -435,6 +444,28 @@ function DetalheChamadoPage() {
           </Card>
         </div>
       </div>
+
+      <AlertDialog open={!!confirmacao} onOpenChange={(open) => !open && setConfirmacao(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar alteração</AlertDialogTitle>
+            <AlertDialogDescription>
+              Confirma a alteração de <strong>{confirmacao?.atualLabel}</strong> para <strong>{confirmacao?.label}</strong>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setConfirmacao(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              if (!confirmacao) return;
+              const c = confirmacao;
+              setConfirmacao(null);
+              if (c.campo === "status") atualizar.mutate({ status: c.valor });
+              if (c.campo === "prioridade") atualizar.mutate({ prioridade: c.valor });
+              if (c.campo === "atendente") atualizar.mutate({ atendente_id: c.valor });
+            }}>Confirmar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -444,6 +475,8 @@ function Info({ label, value }: { label: string; value?: string | null }) {
     <div>
       <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>
       <div className="mt-0.5">{value || "—"}</div>
+
+
     </div>
   );
 }

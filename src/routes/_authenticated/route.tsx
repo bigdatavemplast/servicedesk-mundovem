@@ -30,7 +30,7 @@ function AppShell() {
     },
   });
   const isStaff = roles.some((r) => ["atendente", "gestor", "admin"].includes(r));
-  const canDashboard = roles.some((r) => ["gestor", "admin"].includes(r));
+  const canDashboard = roles.some((r) => ["colaborador", "atendente", "gestor", "admin"].includes(r));
   const isAdmin = roles.includes("admin");
 
   async function handleSignOut() {
