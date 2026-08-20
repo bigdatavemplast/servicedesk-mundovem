@@ -1,10 +1,10 @@
-
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { emailChamadoAberto, emailInteracao, emailChamadoFechado } from "@/lib/email.service";
 
 const prioridadeEnum = z.enum(["baixa", "media", "alta", "critica"]);
+const statusEnum = z.enum(["aberto", "em_atendimento", "aguardando_solicitante", "resolvido", "fechado"]);
 
 async function getAdminClient() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -12,29 +12,20 @@ async function getAdminClient() {
 }
 
 async function isStaff(supabase: any, userId: string) {
-  const { data, error } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId);
+  const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", userId);
   if (error) throw new Error(error.message);
   return (data ?? []).some((r: any) => ["atendente", "gestor", "admin"].includes(r.role));
 }
 
 async function isAttendant(supabase: any, userId: string) {
-  const { data, error } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId);
+  const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", userId);
   if (error) throw new Error(error.message);
   const roles = (data ?? []).map((r: any) => r.role);
   return roles.includes("atendente") && !roles.includes("gestor") && !roles.includes("admin");
 }
 
 async function isAdmin(supabase: any, userId: string) {
-  const { data, error } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId);
+  const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", userId);
   if (error) throw new Error(error.message);
   return (data ?? []).some((r: any) => r.role === "admin");
 }
@@ -192,7 +183,7 @@ export const atualizarChamado = createServerFn({ method: "POST" })
   .inputValidator((d) =>
     z.object({
       chamadoId: z.string().uuid(),
-      status: z.string().optional(),
+      status: statusEnum.optional(),
       prioridade: prioridadeEnum.optional(),
       atendenteId: z.string().uuid().nullable().optional(),
     }).parse(d),
@@ -219,6 +210,21 @@ export const atualizarChamado = createServerFn({ method: "POST" })
       if (data.status !== undefined || data.prioridade !== undefined || data.atendenteId !== undefined) {
         throw new Error("Colaborador não pode alterar status, prioridade ou atendente do chamado.");
       }
+    }
+
+    // Server-side guard: only operational staff can change operational fields.
+    if (!isOperationalStaff && (data.status !== undefined || data.prioridade !== undefined || data.atendenteId !== undefined)) {
+      throw new Error("Somente usuários de atendimento podem alterar campos operacionais do chamado.");
+    }
+
+    if (data.atendenteId !== undefined && data.atendenteId !== null) {
+      const { data: targetRoles, error: targetError } = await admin
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", data.atendenteId);
+      if (targetError) throw new Error(targetError.message);
+      const targetIsStaff = (targetRoles ?? []).some((r: any) => ["atendente", "gestor", "admin"].includes(r.role));
+      if (!targetIsStaff) throw new Error("O responsável selecionado não possui perfil de atendimento.");
     }
 
     const patch: any = {};
