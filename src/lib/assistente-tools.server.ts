@@ -4,28 +4,32 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { buscarContexto, type Fonte } from "./assistente-rag.server";
 
+type AiConfig = {
+  apiKey: string;
+  baseURL: string;
+  model: string;
+  embeddingModel?: string;
+};
+
 type Ctx = {
   supabase: SupabaseClient<Database>;
   userId: string;
-  apiKey: string;
-  /** Acumula fontes citadas durante a conversa para exibir na UI. */
+  ai: AiConfig;
   registrarFontes: (fontes: Fonte[]) => void;
 };
 
 const PRIORIDADES = ["baixa", "media", "alta", "critica"] as const;
 
-/** Ferramentas que o assistente usa para conduzir a conversa de forma autônoma. */
 export function criarFerramentasAssistente(ctx: Ctx) {
   return {
     buscar_conhecimento: tool({
       description:
-        "Busca semântica na base interna (artigos da base de conhecimento, chamados resolvidos e documentos). " +
-        "Use SEMPRE antes de sugerir diagnóstico ou abrir chamado.",
+        "Busca semântica na base interna (artigos da base de conhecimento, chamados resolvidos e documentos). Use SEMPRE antes de sugerir diagnóstico ou abrir chamado.",
       inputSchema: z.object({
         consulta: z.string().describe("O problema ou dúvida do usuário, em linguagem natural"),
       }),
       execute: async ({ consulta }) => {
-        const contexto = await buscarContexto(ctx.supabase, consulta, ctx.apiKey);
+        const contexto = await buscarContexto(ctx.supabase, consulta, ctx.ai);
         ctx.registrarFontes(contexto.fontes);
         return {
           confianca: contexto.confianca,
