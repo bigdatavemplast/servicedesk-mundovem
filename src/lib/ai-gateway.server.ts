@@ -1,30 +1,55 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 
-/** Provider do Lovable AI Gateway (troca de provedor sem mexer na UI). */
-export function createLovableAiGatewayProvider(apiKey: string) {
+/**
+ * Provedor compatível com a API OpenAI.
+ *
+ * O Assistente usa esta camada para não acoplar a aplicação a um provedor
+ * específico. Configure a URL/modelo/chave no servidor, nunca no frontend.
+ */
+export function createAiProvider(config: {
+  apiKey: string;
+  baseURL: string;
+  name?: string;
+}) {
   return createOpenAICompatible({
-    name: "lovable",
-    baseURL: "https://ai.gateway.lovable.dev/v1",
-    headers: { "Lovable-API-Key": apiKey },
+    name: config.name ?? "ai-provider",
+    baseURL: config.baseURL,
+    apiKey: config.apiKey,
   });
 }
 
-/** Modelo de chat padrão do Assistente. */
+/** Compatibilidade temporária para os consumidores atuais do Assistente. */
+export function createLovableAiGatewayProvider(apiKey: string) {
+  return createAiProvider({
+    apiKey,
+    baseURL: "https://ai.gateway.lovable.dev/v1",
+    name: "lovable",
+  });
+}
+
+/** Modelo de chat atual. O provedor pode ser substituído por configuração. */
 export const MODELO_CHAT = "openai/gpt-5.6-sol";
 
-/** Modelo de embeddings (1536 dimensões, igual às colunas do banco). */
+/** Modelo de embeddings atual (1536 dimensões). */
 export const MODELO_EMBEDDING = "openai/text-embedding-3-small";
 
-/** Gera o embedding de um texto usando o Lovable AI Gateway. */
-export async function gerarEmbedding(texto: string, apiKey: string): Promise<number[]> {
-  const resposta = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
+/**
+ * Gera embedding através de um endpoint compatível com a API OpenAI.
+ * A URL e a chave ficam no servidor e podem ser trocadas sem alterar o RAG.
+ */
+export async function gerarEmbedding(
+  texto: string,
+  config: { apiKey: string; baseURL: string; modelo?: string },
+): Promise<number[]> {
+  const baseURL = config.baseURL.replace(/\/$/, "");
+  const resposta = await fetch(`${baseURL}/embeddings`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Lovable-API-Key": apiKey,
+      Authorization: `Bearer ${config.apiKey}`,
     },
     body: JSON.stringify({
-      model: MODELO_EMBEDDING,
+      model: config.modelo ?? MODELO_EMBEDDING,
       input: texto.slice(0, 8000),
     }),
   });
@@ -36,8 +61,14 @@ export async function gerarEmbedding(texto: string, apiKey: string): Promise<num
     });
   }
 
-  const json = (await resposta.json()) as { data?: Array<{ embedding: number[] }> };
+  const json = (await resposta.json()) as {
+    data?: Array<{ embedding: number[] }>;
+  };
   const embedding = json.data?.[0]?.embedding;
-  if (!embedding) throw new Error("Resposta de embedding sem vetor");
+
+  if (!embedding) {
+    throw new Error("Resposta de embedding sem vetor");
+  }
+
   return embedding;
 }
