@@ -1,24 +1,21 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 
-/**
- * Provedor compatível com a API OpenAI.
- *
- * O Assistente usa esta camada para não acoplar a aplicação a um provedor
- * específico. Configure a URL/modelo/chave no servidor, nunca no frontend.
- */
+export const AI_BASE_URL_PADRAO = "https://api.groq.com/openai/v1";
+export const MODELO_CHAT_PADRAO = "openai/gpt-oss-120b";
+
 export function createAiProvider(config: {
   apiKey: string;
-  baseURL: string;
+  baseURL?: string;
   name?: string;
 }) {
   return createOpenAICompatible({
     name: config.name ?? "ai-provider",
-    baseURL: config.baseURL,
+    baseURL: config.baseURL ?? AI_BASE_URL_PADRAO,
     apiKey: config.apiKey,
   });
 }
 
-/** Compatibilidade temporária para os consumidores atuais do Assistente. */
+/** Compatibilidade temporária para consumidores legados. */
 export function createLovableAiGatewayProvider(apiKey: string) {
   return createAiProvider({
     apiKey,
@@ -27,19 +24,15 @@ export function createLovableAiGatewayProvider(apiKey: string) {
   });
 }
 
-/** Modelo de chat atual. O provedor pode ser substituído por configuração. */
-export const MODELO_CHAT = "openai/gpt-5.6-sol";
-
-/** Modelo de embeddings atual (1536 dimensões). */
-export const MODELO_EMBEDDING = "openai/text-embedding-3-small";
+export const MODELO_CHAT = MODELO_CHAT_PADRAO;
 
 /**
- * Gera embedding através de um endpoint compatível com a API OpenAI.
- * A URL e a chave ficam no servidor e podem ser trocadas sem alterar o RAG.
+ * Gera embedding por endpoint OpenAI-compatible.
+ * O provider de embeddings permanece separado do provider de chat.
  */
 export async function gerarEmbedding(
   texto: string,
-  config: { apiKey: string; baseURL: string; modelo?: string },
+  config: { apiKey: string; baseURL: string; modelo: string },
 ): Promise<number[]> {
   const baseURL = config.baseURL.replace(/\/$/, "");
   const resposta = await fetch(`${baseURL}/embeddings`, {
@@ -49,7 +42,7 @@ export async function gerarEmbedding(
       Authorization: `Bearer ${config.apiKey}`,
     },
     body: JSON.stringify({
-      model: config.modelo ?? MODELO_EMBEDDING,
+      model: config.modelo,
       input: texto.slice(0, 8000),
     }),
   });
@@ -66,9 +59,6 @@ export async function gerarEmbedding(
   };
   const embedding = json.data?.[0]?.embedding;
 
-  if (!embedding) {
-    throw new Error("Resposta de embedding sem vetor");
-  }
-
+  if (!embedding) throw new Error("Resposta de embedding sem vetor");
   return embedding;
 }
