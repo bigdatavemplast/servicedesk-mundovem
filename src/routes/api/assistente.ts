@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { convertToModelMessages, stepCountIs, streamText, type UIMessage } from "ai";
-import { createLovableAiGatewayProvider, MODELO_CHAT } from "@/lib/ai-gateway.server";
+import { createAiProvider, MODELO_CHAT } from "@/lib/ai-gateway.server";
 import { gerarTituloConversa, tituloEhPadrao } from "@/lib/assistente-titulo.server";
 import { montarPromptAgente, type Fonte } from "@/lib/assistente-rag.server";
 import { criarFerramentasAssistente } from "@/lib/assistente-tools.server";
@@ -13,7 +13,6 @@ type CorpoRequisicao = {
 
 const CONFIANCA_MINIMA = 0.62;
 
-
 function textoDaMensagem(mensagem: UIMessage | undefined): string {
   if (!mensagem) return "";
   return mensagem.parts
@@ -22,16 +21,25 @@ function textoDaMensagem(mensagem: UIMessage | undefined): string {
     .trim();
 }
 
+function configAi() {
+  const apiKey = process.env["AI_API_KEY"];
+  const baseURL = process.env["AI_BASE_URL"];
+  const model = process.env["AI_MODEL"] || MODELO_CHAT;
+
+  if (!apiKey || !baseURL) return null;
+  return { apiKey, baseURL, model };
+}
+
 export const Route = createFileRoute("/api/assistente")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const apiKey = process.env["LOVABLE_API_KEY"];
-        if (!apiKey) {
-          return new Response(JSON.stringify({ error: "IA não configurada no servidor." }), {
-            status: 500,
-            headers: { "Content-Type": "application/json" },
-          });
+        const ai = configAi();
+        if (!ai) {
+          return new Response(
+            JSON.stringify({ error: "IA não configurada no servidor. Defina AI_API_KEY e AI_BASE_URL." }),
+            { status: 503, headers: { "Content-Type": "application/json" } },
+          );
         }
 
         const sessao = await autenticarRequisicao(request);
@@ -53,7 +61,6 @@ export const Route = createFileRoute("/api/assistente")({
           });
         }
 
-        // A conversa precisa pertencer ao usuário (RLS confirma).
         const { data: conversa } = await supabase
           .from("ai_conversations")
           .select("id, title, user_id")
@@ -76,7 +83,6 @@ export const Route = createFileRoute("/api/assistente")({
           .eq("id", userId)
           .maybeSingle();
 
-        // Persiste a pergunta do colaborador
         const { error: erroUsuario } = await supabase.from("ai_messages").insert({
           conversation_id: conversationId,
           user_id: userId,
@@ -85,20 +91,16 @@ export const Route = createFileRoute("/api/assistente")({
         });
         if (erroUsuario) console.error("[assistente] erro ao salvar pergunta", erroUsuario);
 
-        // Gera o título inteligente em paralelo com a resposta, somente quando a
-        // conversa ainda tem o título padrão ("Nova conversa"). A gravação acontece
-        // no onFinish e nunca sobrescreve um título já personalizado.
         const promessaTitulo = tituloEhPadrao(conversa.title)
-          ? gerarTituloConversa(pergunta, apiKey)
+          ? gerarTituloConversa(pergunta, ai)
           : null;
 
-        // Fontes coletadas pelas ferramentas durante o raciocínio do agente.
         const fontesUsadas: Fonte[] = [];
         let confianca = 0;
         const ferramentas = criarFerramentasAssistente({
           supabase,
           userId,
-          apiKey,
+          ai,
           registrarFontes: (fontes) => {
             for (const f of fontes) {
               if (!fontesUsadas.some((x) => x.ref_id === f.ref_id)) fontesUsadas.push(f);
@@ -107,17 +109,20 @@ export const Route = createFileRoute("/api/assistente")({
           },
         });
 
-        const gateway = createLovableAiGatewayProvider(apiKey);
+        const gateway = createAiProvider({
+          apiKey: ai.apiKey,
+          baseURL: ai.baseURL,
+          name: "ai-provider",
+        });
 
         let resultado;
         try {
           resultado = streamText({
-            model: gateway(MODELO_CHAT),
+            model: gateway(ai.model),
             system: montarPromptAgente(perfil?.nome ?? null),
             messages: await convertToModelMessages(mensagens),
             tools: ferramentas,
-            stopWhen: stepCountIs(50),
-            providerOptions: { lovable: { reasoningEffort: "none" } },
+            stopWhen: stepCountIs(10),
             onFinish: async ({ text }) => {
               const { error } = await supabase.from("ai_messages").insert({
                 conversation_id: conversationId,
@@ -134,7 +139,6 @@ export const Route = createFileRoute("/api/assistente")({
                 .update({ updated_at: new Date().toISOString() })
                 .eq("id", conversationId);
 
-              // Salva o título gerado sem sobrescrever título já personalizado.
               if (promessaTitulo) {
                 const titulo = await promessaTitulo;
                 const { error: erroTitulo } = await supabase
@@ -158,7 +162,7 @@ export const Route = createFileRoute("/api/assistente")({
             },
           });
         } catch (erro) {
-          console.error("[assistente] falha no gateway", erro);
+          console.error("[assistente] falha no provider de IA", erro);
           return new Response(JSON.stringify({ error: "Não foi possível falar com a IA agora." }), {
             status: 502,
             headers: { "Content-Type": "application/json" },
@@ -173,11 +177,10 @@ export const Route = createFileRoute("/api/assistente")({
             console.error("[assistente] erro de streaming", erro);
             const mensagem = erro instanceof Error ? erro.message : String(erro);
             if (mensagem.includes("429")) return "Muitas solicitações agora. Tente em instantes.";
-            if (mensagem.includes("402")) return "Os créditos de IA do workspace acabaram.";
+            if (mensagem.includes("402")) return "O provedor de IA informou falta de créditos.";
             return "Ocorreu um erro ao gerar a resposta.";
           },
         });
-
       },
     },
   },
