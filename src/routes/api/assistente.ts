@@ -1,6 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { convertToModelMessages, stepCountIs, streamText, type UIMessage } from "ai";
-import { createAiProvider, MODELO_CHAT } from "@/lib/ai-gateway.server";
+import {
+  AI_BASE_URL_PADRAO,
+  createAiProvider,
+  MODELO_CHAT,
+} from "@/lib/ai-gateway.server";
 import { gerarTituloConversa, tituloEhPadrao } from "@/lib/assistente-titulo.server";
 import { montarPromptAgente, type Fonte } from "@/lib/assistente-rag.server";
 import { criarFerramentasAssistente } from "@/lib/assistente-tools.server";
@@ -23,10 +27,10 @@ function textoDaMensagem(mensagem: UIMessage | undefined): string {
 
 function configAi() {
   const apiKey = process.env["AI_API_KEY"];
-  const baseURL = process.env["AI_BASE_URL"];
+  const baseURL = process.env["AI_BASE_URL"] || AI_BASE_URL_PADRAO;
   const model = process.env["AI_MODEL"] || MODELO_CHAT;
 
-  if (!apiKey || !baseURL) return null;
+  if (!apiKey) return null;
   return { apiKey, baseURL, model };
 }
 
@@ -37,7 +41,7 @@ export const Route = createFileRoute("/api/assistente")({
         const ai = configAi();
         if (!ai) {
           return new Response(
-            JSON.stringify({ error: "IA não configurada no servidor. Defina AI_API_KEY e AI_BASE_URL." }),
+            JSON.stringify({ error: "IA não configurada no servidor. Defina AI_API_KEY." }),
             { status: 503, headers: { "Content-Type": "application/json" } },
           );
         }
@@ -112,7 +116,7 @@ export const Route = createFileRoute("/api/assistente")({
         const gateway = createAiProvider({
           apiKey: ai.apiKey,
           baseURL: ai.baseURL,
-          name: "ai-provider",
+          name: "groq",
         });
 
         let resultado;
