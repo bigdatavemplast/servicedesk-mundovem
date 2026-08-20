@@ -26,7 +26,7 @@ export function criarFerramentasAssistente(ctx: Ctx) {
       description:
         "Busca semântica na base interna (artigos da base de conhecimento, chamados resolvidos e documentos). Use SEMPRE antes de sugerir diagnóstico ou abrir chamado.",
       inputSchema: z.object({
-        consulta: z.string().describe("O problema ou dúvida do usuário, em linguagem natural"),
+        consulta: z.string().min(1).describe("O problema ou dúvida do usuário, em linguagem natural"),
       }),
       execute: async ({ consulta }) => {
         const contexto = await buscarContexto(ctx.supabase, consulta, ctx.ai);
@@ -45,14 +45,23 @@ export function criarFerramentasAssistente(ctx: Ctx) {
         "Lista categorias e subcategorias ativas para classificar um chamado. Use antes de criar_chamado.",
       inputSchema: z.object({}),
       execute: async () => {
-        const [{ data: categorias }, { data: subcategorias }] = await Promise.all([
-          ctx.supabase.from("categorias").select("id, nome").eq("ativo", true).order("ordem"),
-          ctx.supabase
-            .from("subcategorias")
-            .select("id, nome, categoria_id")
-            .eq("ativo", true)
-            .order("ordem"),
-        ]);
+        const [{ data: categorias, error: erroCategorias }, { data: subcategorias, error: erroSubcategorias }] =
+          await Promise.all([
+            ctx.supabase.from("categorias").select("id, nome").eq("ativo", true).order("ordem"),
+            ctx.supabase
+              .from("subcategorias")
+              .select("id, nome, categoria_id")
+              .eq("ativo", true)
+              .order("ordem"),
+          ]);
+
+        if (erroCategorias || erroSubcategorias) {
+          return {
+            erro: erroCategorias?.message ?? erroSubcategorias?.message ?? "Não foi possível listar as categorias.",
+            categorias: [],
+          };
+        }
+
         return {
           categorias: (categorias ?? []).map((c) => ({
             id: c.id,
@@ -66,9 +75,10 @@ export function criarFerramentasAssistente(ctx: Ctx) {
     }),
 
     listar_meus_chamados: tool({
-      description: "Lista os chamados do usuário atual, opcionalmente filtrando por status.",
+      description:
+        "Lista os chamados do usuário atual. Se não houver filtro de status, deixe status ausente ou use null.",
       inputSchema: z.object({
-        status: z.string().nullable().describe("Status exato ou null para todos"),
+        status: z.string().nullable().optional().describe("Status exato; omita ou use null para todos"),
       }),
       execute: async ({ status }) => {
         let q = ctx.supabase
@@ -86,7 +96,7 @@ export function criarFerramentasAssistente(ctx: Ctx) {
 
     consultar_chamado: tool({
       description: "Consulta um chamado específico pelo número (ex.: SD-00042).",
-      inputSchema: z.object({ numero: z.string() }),
+      inputSchema: z.object({ numero: z.string().min(1) }),
       execute: async ({ numero }) => {
         const { data, error } = await ctx.supabase
           .from("chamados")
@@ -105,11 +115,11 @@ export function criarFerramentasAssistente(ctx: Ctx) {
       description:
         "Abre um chamado no Service Desk. Só chame DEPOIS de o usuário confirmar explicitamente o resumo.",
       inputSchema: z.object({
-        titulo: z.string(),
-        descricao: z.string(),
+        titulo: z.string().min(1),
+        descricao: z.string().min(1),
         prioridade: z.enum(PRIORIDADES),
-        categoria_id: z.string().nullable(),
-        subcategoria_id: z.string().nullable(),
+        categoria_id: z.string().nullable().optional(),
+        subcategoria_id: z.string().nullable().optional(),
       }),
       execute: async ({ titulo, descricao, prioridade, categoria_id, subcategoria_id }) => {
         const { data, error } = await ctx.supabase
