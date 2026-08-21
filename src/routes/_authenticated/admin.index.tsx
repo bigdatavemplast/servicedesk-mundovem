@@ -2,7 +2,7 @@ import { createFileRoute, redirect, Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FolderTree, ShieldCheck, Users, Ticket, BookOpen, Tag } from "lucide-react";
+import { FolderTree, ShieldCheck, Users, Ticket, BookOpen, Tag, UsersRound } from "lucide-react";
 import { hasPermission } from "@/lib/permissions";
 import type { Role } from "@/lib/permissions";
 
@@ -35,6 +35,7 @@ function AdminIndexPage() {
     { to: "/admin/usuarios", label: "Usuários", value: stats?.usuarios ?? "—", icon: Users, color: "text-blue-500" },
     { to: "/admin/categorias", label: "Categorias", value: stats?.categorias ?? "—", icon: FolderTree, color: "text-orange-500" },
     { to: "/admin/categorias", label: "Subcategorias", value: stats?.subcategorias ?? "—", icon: Tag, color: "text-amber-500" },
+    { to: "/admin/grupos", label: "Grupos de atendimento", value: "→", icon: UsersRound, color: "text-cyan-500" },
     { to: "/fila", label: "Chamados", value: stats?.chamados ?? "—", icon: Ticket, color: "text-emerald-500" },
     { to: "/base-conhecimento", label: "Artigos KB", value: stats?.artigos ?? "—", icon: BookOpen, color: "text-purple-500" },
   ];
@@ -42,13 +43,14 @@ function AdminIndexPage() {
   const tools = [
     { to: "/admin/categorias", title: "Categorias e Subcategorias", desc: "Organize os tipos de chamado disponíveis para abertura.", icon: FolderTree },
     { to: "/admin/usuarios", title: "Usuários e Permissões", desc: "Gerencie papéis e contas.", icon: ShieldCheck },
+    { to: "/admin/grupos", title: "Grupos de Atendimento", desc: "Organize filas por segmento e associe os atendentes responsáveis.", icon: UsersRound },
     { to: "/base-conhecimento", title: "Base de conhecimento", desc: "Acesse os artigos e conteúdos utilizados pelo Service Desk.", icon: BookOpen },
     { to: "/fila", title: "Fila de chamados", desc: "Acompanhe os chamados em atendimento.", icon: Ticket },
   ];
 
   return <div className="space-y-6">
     <div className="flex items-center gap-2"><ShieldCheck className="h-6 w-6 text-primary" /><div><h1 className="text-2xl font-bold">Painel administrativo</h1><p className="text-sm text-muted-foreground">Configurações e gestão da plataforma</p></div></div>
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">{kpis.map((k) => <Link key={k.label} to={k.to} className="block"><Card className="h-full cursor-pointer transition-colors hover:border-primary hover:shadow-md"><CardContent className="flex items-center justify-between p-4"><div><div className="text-xs text-muted-foreground">{k.label}</div><div className="text-2xl font-bold">{k.value}</div></div><k.icon className={`h-8 w-8 ${k.color}`} /></CardContent></Card></Link>)}</div>
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">{kpis.map((k) => <Link key={k.label} to={k.to} className="block"><Card className="h-full cursor-pointer transition-colors hover:border-primary hover:shadow-md"><CardContent className="flex items-center justify-between p-4"><div><div className="text-xs text-muted-foreground">{k.label}</div><div className="text-2xl font-bold">{k.value}</div></div><k.icon className={`h-8 w-8 ${k.color}`} /></CardContent></Card></Link>)}</div>
     <div className="grid gap-4 md:grid-cols-2">{tools.map((t) => <Link key={t.to} to={t.to} className="block"><Card className="h-full transition-colors hover:border-primary hover:shadow-md"><CardHeader className="flex flex-row items-center gap-3 pb-2"><div className="grid h-10 w-10 place-items-center rounded-md bg-primary/10 text-primary"><t.icon className="h-5 w-5" /></div><CardTitle className="text-base">{t.title}</CardTitle></CardHeader><CardContent><p className="text-sm text-muted-foreground">{t.desc}</p></CardContent></Card></Link>)}</div>
   </div>;
 }
