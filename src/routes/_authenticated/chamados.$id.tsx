@@ -418,6 +418,7 @@ function DetalheChamadoPage() {
               <Info label="Solicitante" value={(chamado.solicitante as any)?.nome} />
               <Info label="Departamento" value={(chamado.solicitante as any)?.departamento} />
               <Info label="Atendente" value={(chamado.atendente as any)?.nome ?? "Sem atendente atribuído"} />
+              <Info label="Tipo de Chamado" value={(chamado.tipo as any)?.nome} />
               <Info label="Categoria" value={(chamado.categoria as any)?.nome} />
               <Info label="Subcategoria" value={(chamado.subcategoria as any)?.nome} />
               <Info label="Aberto em" value={fmt(chamado.aberto_em)} />
