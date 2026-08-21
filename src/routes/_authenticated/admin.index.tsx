@@ -2,7 +2,7 @@ import { createFileRoute, redirect, Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FolderTree, ShieldCheck, Users, Ticket, BookOpen, Tag, UsersRound } from "lucide-react";
+import { FolderTree, ShieldCheck, Users, Ticket, BookOpen, Tag, UsersRound, Layers3 } from "lucide-react";
 import { hasPermission } from "@/lib/permissions";
 import type { Role } from "@/lib/permissions";
 
@@ -35,14 +35,15 @@ function AdminIndexPage() {
     { to: "/admin/usuarios", label: "Usuários", value: stats?.usuarios ?? "—", icon: Users, color: "text-blue-500" },
     { to: "/admin/categorias", label: "Categorias", value: stats?.categorias ?? "—", icon: FolderTree, color: "text-orange-500" },
     { to: "/admin/categorias", label: "Subcategorias", value: stats?.subcategorias ?? "—", icon: Tag, color: "text-amber-500" },
+    { to: "/admin/segmentos", label: "Segmentos", value: "→", icon: Layers3, color: "text-indigo-500" },
     { to: "/admin/grupos", label: "Grupos de atendimento", value: "→", icon: UsersRound, color: "text-cyan-500" },
     { to: "/fila", label: "Chamados", value: stats?.chamados ?? "—", icon: Ticket, color: "text-emerald-500" },
-    { to: "/base-conhecimento", label: "Artigos KB", value: stats?.artigos ?? "—", icon: BookOpen, color: "text-purple-500" },
   ];
 
   const tools = [
     { to: "/admin/categorias", title: "Categorias e Subcategorias", desc: "Organize os tipos de chamado disponíveis para abertura.", icon: FolderTree },
     { to: "/admin/usuarios", title: "Usuários e Permissões", desc: "Gerencie papéis e contas.", icon: ShieldCheck },
+    { to: "/admin/segmentos", title: "Segmentos", desc: "Defina as áreas responsáveis pelo atendimento.", icon: Layers3 },
     { to: "/admin/grupos", title: "Grupos de Atendimento", desc: "Organize filas por segmento e associe os atendentes responsáveis.", icon: UsersRound },
     { to: "/base-conhecimento", title: "Base de conhecimento", desc: "Acesse os artigos e conteúdos utilizados pelo Service Desk.", icon: BookOpen },
     { to: "/fila", title: "Fila de chamados", desc: "Acompanhe os chamados em atendimento.", icon: Ticket },
