@@ -1,141 +1,58 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { toast } from "sonner";
-import { Plus, Pencil, Power, FolderTree } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { hasPermission, type Role } from "@/lib/permissions";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { Plus, Trash2, Loader2, FolderTree } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/categorias")({
-  head: () => ({ meta: [{ title: "Categorias | Mundo Vem Service Desk" }] }),
+  head: () => ({ meta: [{ title: "Categorias e SLAs | Mundo Vem Service Desk" }, { name: "description", content: "Configure categorias, subcategorias e prazos de SLA usados na classificação dos chamados." }, { property: "og:title", content: "Categorias e SLAs | Mundo Vem Service Desk" }, { property: "og:description", content: "Configure categorias, subcategorias e prazos de SLA usados na classificação dos chamados." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }, { name: "twitter:title", content: "Categorias e SLAs | Mundo Vem Service Desk" }, { name: "twitter:description", content: "Configure categorias, subcategorias e prazos de SLA usados na classificação dos chamados." }, { name: "robots", content: "noindex, follow" }] }),
   beforeLoad: async ({ context }) => {
     const { data } = await supabase.from("user_roles").select("role").eq("user_id", context.user.id);
-    const roles = (data ?? []).map((r) => r.role as Role);
-    if (!roles.some((role) => hasPermission(role, "service_desk.manage"))) throw redirect({ to: "/dashboard" });
+    if (!(data ?? []).some((r) => r.role === "admin")) throw redirect({ to: "/dashboard" });
   },
-  component: CategoriasPage,
+  component: AdminCategoriasPage,
 });
 
-type Categoria = { id: string; nome: string; descricao: string | null; segmento: string; segmento_id: string | null; ativo: boolean; ordem: number; parent_id: string | null };
-type Segmento = { id: string; nome: string; ativo: boolean };
-type Subcategoria = { id: string; categoria_id: string; nome: string; descricao: string | null; ativo: boolean; ordem: number };
-
-function CategoriasPage() {
+function AdminCategoriasPage() {
   const qc = useQueryClient();
-  const [editing, setEditing] = useState<Categoria | null>(null);
-  const [open, setOpen] = useState(false);
-  const [nome, setNome] = useState("");
-  const [descricao, setDescricao] = useState("");
+  const [nomeCat, setNomeCat] = useState("");
+  const [descCat, setDescCat] = useState("");
   const [segmentoId, setSegmentoId] = useState("");
-  const [selectedCategoria, setSelectedCategoria] = useState<Categoria | null>(null);
-  const [subOpen, setSubOpen] = useState(false);
-  const [editingSub, setEditingSub] = useState<Subcategoria | null>(null);
-  const [subNome, setSubNome] = useState("");
-  const [subDescricao, setSubDescricao] = useState("");
+  const [novaSub, setNovaSub] = useState<Record<string, string>>({});
 
-  const { data: segmentos = [] } = useQuery({
-    queryKey: ["admin-categorias-segmentos"],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any).from("segmentos").select("id,nome,ativo").eq("ativo", true).order("ordem").order("nome");
-      if (error) throw error;
-      return (data ?? []) as Segmento[];
-    },
-  });
+  const { data: segmentos = [] } = useQuery({ queryKey: ["admin-segmentos"], queryFn: async () => { const { data, error } = await supabase.from("segmentos").select("id, nome").eq("ativo", true).order("ordem").order("nome"); if (error) throw error; return data ?? []; } });
+  const { data: categorias = [] } = useQuery({ queryKey: ["admin-categorias"], queryFn: async () => { const { data, error } = await supabase.from("categorias").select("*").order("ordem").order("nome"); if (error) throw error; return data ?? []; } });
+  const { data: subcategorias = [] } = useQuery({ queryKey: ["admin-subcategorias"], queryFn: async () => { const { data, error } = await supabase.from("subcategorias").select("*").order("ordem").order("nome"); if (error) throw error; return data ?? []; } });
 
-  const { data: categorias = [], isLoading, isError, error } = useQuery({
-    queryKey: ["admin-categorias"],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any).from("categorias").select("id,nome,descricao,segmento,segmento_id,ativo,ordem,parent_id").is("parent_id", null).order("ordem").order("nome");
-      if (error) throw error;
-      return (data ?? []) as Categoria[];
-    },
-  });
-
-  const { data: subcategorias = [] } = useQuery({
-    queryKey: ["admin-subcategorias"],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any).from("subcategorias").select("id,categoria_id,nome,descricao,ativo,ordem").order("ordem").order("nome");
-      if (error) throw error;
-      return (data ?? []) as Subcategoria[];
-    },
-  });
-
-  const save = useMutation({
+  const criarCat = useMutation({
     mutationFn: async () => {
-      const cleanName = nome.trim();
-      if (!cleanName) throw new Error("Informe o nome da categoria.");
-      if (!segmentoId) throw new Error("Selecione o segmento.");
-      const seg = segmentos.find((s) => s.id === segmentoId);
-      if (!seg) throw new Error("Segmento inválido.");
-      const payload = { nome: cleanName, descricao: descricao.trim() || null, segmento_id: segmentoId, segmento: seg.nome };
-      const result = editing
-        ? await (supabase as any).from("categorias").update(payload).eq("id", editing.id)
-        : await (supabase as any).from("categorias").insert({ ...payload, ativo: true, ordem: categorias.length ? Math.max(...categorias.map((c) => c.ordem ?? 0)) + 1 : 1, parent_id: null });
-      if (result.error) throw result.error;
-    },
-    onSuccess: () => { toast.success(editing ? "Categoria atualizada" : "Categoria criada"); close(); qc.invalidateQueries({ queryKey: ["admin-categorias"] }); },
-    onError: (e: any) => toast.error(e.message ?? "Não foi possível salvar a categoria"),
-  });
-
-  const toggle = useMutation({
-    mutationFn: async (c: Categoria) => {
-      const { error } = await (supabase as any).from("categorias").update({ ativo: !c.ativo }).eq("id", c.id);
+      const nome = nomeCat.trim();
+      const segmento = segmentos.find((s) => s.id === segmentoId);
+      if (!nome) throw new Error("Informe o nome da categoria.");
+      if (!segmento) throw new Error("Selecione o segmento da categoria.");
+      const { error } = await supabase.from("categorias").insert({ nome, descricao: descCat.trim() || null, segmento: segmento.nome, segmento_id: segmento.id });
       if (error) throw error;
     },
-    onSuccess: () => { toast.success("Status da categoria atualizado"); qc.invalidateQueries({ queryKey: ["admin-categorias"] }); },
-    onError: (e: any) => toast.error(e.message ?? "Não foi possível alterar a categoria"),
+    onSuccess: () => { setNomeCat(""); setDescCat(""); setSegmentoId(""); qc.invalidateQueries({ queryKey: ["admin-categorias"] }); toast.success("Categoria criada"); },
+    onError: (e: any) => toast.error(e.message),
   });
 
-  const saveSub = useMutation({
-    mutationFn: async () => {
-      if (!selectedCategoria) throw new Error("Selecione uma categoria.");
-      const cleanName = subNome.trim();
-      if (!cleanName) throw new Error("Informe o nome da subcategoria.");
-      const payload = { nome: cleanName, descricao: subDescricao.trim() || null };
-      const current = subcategorias.filter((s) => s.categoria_id === selectedCategoria.id);
-      const result = editingSub
-        ? await (supabase as any).from("subcategorias").update(payload).eq("id", editingSub.id)
-        : await (supabase as any).from("subcategorias").insert({ ...payload, categoria_id: selectedCategoria.id, ativo: true, ordem: current.length ? Math.max(...current.map((s) => s.ordem ?? 0)) + 1 : 1 });
-      if (result.error) throw result.error;
-    },
-    onSuccess: () => { toast.success(editingSub ? "Subcategoria atualizada" : "Subcategoria criada"); closeSub(); qc.invalidateQueries({ queryKey: ["admin-subcategorias"] }); },
-    onError: (e: any) => toast.error(e.message ?? "Não foi possível salvar a subcategoria"),
-  });
+  const toggleCat = useMutation({ mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => { const { error } = await supabase.from("categorias").update({ ativo }).eq("id", id); if (error) throw error; }, onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-categorias"] }), onError: (e: any) => toast.error(e.message) });
+  const excluirCat = useMutation({ mutationFn: async (id: string) => { const { error } = await supabase.from("categorias").delete().eq("id", id); if (error) throw error; }, onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin-categorias"] }); qc.invalidateQueries({ queryKey: ["admin-subcategorias"] }); toast.success("Excluída"); }, onError: (e: any) => toast.error(e.message) });
+  const criarSub = useMutation({ mutationFn: async (catId: string) => { const nome = (novaSub[catId] ?? "").trim(); if (!nome) return; const { error } = await supabase.from("subcategorias").insert({ categoria_id: catId, nome }); if (error) throw error; }, onSuccess: (_d, catId) => { setNovaSub((s) => ({ ...s, [catId]: "" })); qc.invalidateQueries({ queryKey: ["admin-subcategorias"] }); }, onError: (e: any) => toast.error(e.message) });
+  const excluirSub = useMutation({ mutationFn: async (id: string) => { const { error } = await supabase.from("subcategorias").delete().eq("id", id); if (error) throw error; }, onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-subcategorias"] }), onError: (e: any) => toast.error(e.message) });
 
-  const toggleSub = useMutation({
-    mutationFn: async (s: Subcategoria) => {
-      const novoStatus = !s.ativo;
-      const { error } = await (supabase as any).from("subcategorias").update({ ativo: novoStatus }).eq("id", s.id);
-      if (error) throw error;
-      return novoStatus;
-    },
-    onSuccess: (ativo) => { toast.success(ativo ? "Subcategoria reativada" : "Subcategoria desativada"); qc.invalidateQueries({ queryKey: ["admin-subcategorias"] }); },
-    onError: (e: any) => toast.error(e.message ?? "Não foi possível alterar o status da subcategoria"),
-  });
-
-  function create() { setEditing(null); setNome(""); setDescricao(""); setSegmentoId(""); setOpen(true); }
-  function edit(c: Categoria) { setEditing(c); setNome(c.nome); setDescricao(c.descricao ?? ""); setSegmentoId(c.segmento_id ?? ""); setOpen(true); }
-  function close() { setOpen(false); setEditing(null); setNome(""); setDescricao(""); setSegmentoId(""); }
-  function createSub(c: Categoria) { setSelectedCategoria(c); setEditingSub(null); setSubNome(""); setSubDescricao(""); setSubOpen(true); }
-  function editSub(c: Categoria, s: Subcategoria) { setSelectedCategoria(c); setEditingSub(s); setSubNome(s.nome); setSubDescricao(s.descricao ?? ""); setSubOpen(true); }
-  function closeSub() { setSubOpen(false); setEditingSub(null); setSubNome(""); setSubDescricao(""); setSelectedCategoria(null); }
-
-  return <div className="space-y-6">
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <div className="flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-md bg-primary/10 text-primary"><FolderTree className="h-5 w-5" /></div><div><h1 className="text-2xl font-bold">Categorias</h1><p className="text-sm text-muted-foreground">Organize categorias por segmento e suas subcategorias.</p></div></div>
-      <Button onClick={create}><Plus className="mr-2 h-4 w-4" />Nova categoria</Button>
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2"><FolderTree className="h-5 w-5 text-primary" /><div><h1 className="text-2xl font-bold">Categorias e Subcategorias</h1><p className="text-sm text-muted-foreground">O segmento é definido na categoria. Assim, um Projeto de TI continua sendo classificado como Projeto.</p></div></div>
+      <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Nova categoria</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-[1fr_1.5fr_180px_auto]"><Input placeholder="Nome" value={nomeCat} onChange={(e) => setNomeCat(e.target.value)} /><Input placeholder="Descrição (opcional)" value={descCat} onChange={(e) => setDescCat(e.target.value)} /><Select value={segmentoId} onValueChange={setSegmentoId}><SelectTrigger aria-label="Segmento da categoria"><SelectValue placeholder="Segmento *" /></SelectTrigger><SelectContent>{segmentos.map((s) => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}</SelectContent></Select><Button disabled={!nomeCat.trim() || !segmentoId || criarCat.isPending} onClick={() => criarCat.mutate()}>{criarCat.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Adicionar</Button></CardContent></Card>
+      <div className="grid gap-4 md:grid-cols-2">{categorias.map((c: any) => { const subs = subcategorias.filter((s: any) => s.categoria_id === c.id); return <Card key={c.id} className={c.ativo ? "" : "opacity-60"}><CardHeader className="flex flex-row items-start justify-between gap-2 pb-2"><div><CardTitle className="text-base">{c.nome}</CardTitle>{c.descricao && <p className="mt-1 text-xs text-muted-foreground">{c.descricao}</p>}{c.segmento && <Badge variant="outline" className="mt-2">{c.segmento}</Badge>}</div><div className="flex items-center gap-2"><Badge variant={c.ativo ? "default" : "secondary"} className="cursor-pointer" onClick={() => toggleCat.mutate({ id: c.id, ativo: !c.ativo })}>{c.ativo ? "Ativa" : "Inativa"}</Badge><Button size="icon" variant="ghost" onClick={() => { if (confirm("Excluir categoria?")) excluirCat.mutate(c.id); }}><Trash2 className="h-4 w-4 text-red-500" /></Button></div></CardHeader><CardContent className="space-y-2"><div className="space-y-1">{subs.length === 0 && <p className="text-xs text-muted-foreground">Nenhuma subcategoria.</p>}{subs.map((s: any) => <div key={s.id} className="flex items-center justify-between rounded-md border px-2 py-1 text-sm"><span>{s.nome}</span><Button size="icon" variant="ghost" onClick={() => excluirSub.mutate(s.id)}><Trash2 className="h-3 w-3 text-red-500" /></Button></div>)}</div><div className="flex gap-2"><Input placeholder="Nova subcategoria" className="h-8" value={novaSub[c.id] ?? ""} onChange={(e) => setNovaSub((s) => ({ ...s, [c.id]: e.target.value }))} onKeyDown={(e) => { if (e.key === "Enter") criarSub.mutate(c.id); }} /><Button size="sm" onClick={() => criarSub.mutate(c.id)}>+</Button></div></CardContent></Card> })}</div>
     </div>
-    <Card><CardHeader><CardTitle className="text-base">Categorias cadastradas</CardTitle></CardHeader><CardContent>
-      {isLoading ? <div className="py-8 text-center text-sm text-muted-foreground">Carregando…</div> : isError ? <div className="rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">Não foi possível carregar as categorias: {error instanceof Error ? error.message : "erro desconhecido"}</div> : categorias.length === 0 ? <div className="py-8 text-center text-sm text-muted-foreground">Nenhuma categoria cadastrada.</div> : <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{categorias.map((c) => { const subs = subcategorias.filter((s) => s.categoria_id === c.id); return <Card key={c.id} className={!c.ativo ? "opacity-60" : ""}><CardHeader className="pb-3"><div className="flex items-start justify-between gap-2"><div><CardTitle className="text-base">{c.nome}</CardTitle><div className="mt-1 text-xs text-muted-foreground">Segmento: {c.segmento}</div></div><Badge variant={c.ativo ? "default" : "secondary"}>{c.ativo ? "Ativa" : "Inativa"}</Badge></div></CardHeader><CardContent className="space-y-3"><div className="text-sm text-muted-foreground">Subcategorias: <span className="font-semibold text-foreground">{subs.length}</span></div><div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={() => edit(c)}><Pencil className="mr-2 h-4 w-4" />Editar</Button><Button variant="outline" size="sm" onClick={() => createSub(c)}><Plus className="mr-2 h-4 w-4" />Subcategoria</Button><Button variant="ghost" size="icon" title={c.ativo ? "Desativar" : "Ativar"} onClick={() => toggle.mutate(c)}><Power className="h-4 w-4" /></Button></div>{subs.length > 0 && <div className="space-y-2 border-t pt-3">{subs.map((s) => <div key={s.id} className={`flex items-center justify-between gap-2 rounded-md border p-2 ${!s.ativo ? "opacity-60" : ""}`}><div><div className="text-sm font-medium">{s.nome}</div>{s.descricao && <div className="text-xs text-muted-foreground">{s.descricao}</div>}</div><div className="flex items-center gap-1"><Badge variant={s.ativo ? "default" : "secondary"}>{s.ativo ? "Ativa" : "Inativa"}</Badge><Button variant="ghost" size="icon" onClick={() => editSub(c, s)}><Pencil className="h-4 w-4" /></Button><Button variant="outline" size="sm" onClick={() => toggleSub.mutate(s)} disabled={toggleSub.isPending}>{s.ativo ? "Desativar" : "Reativar"}</Button></div></div>)}</div>}</CardContent></Card>; })}</div>}
-    </CardContent></Card>
-    <Dialog open={open} onOpenChange={(v) => !v && close()}><DialogContent><DialogHeader><DialogTitle>{editing ? "Editar categoria" : "Nova categoria"}</DialogTitle><DialogDescription>Associe a categoria a um segmento ativo.</DialogDescription></DialogHeader><div className="space-y-4 py-2"><div className="space-y-1"><Label>Nome</Label><Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Hardware" /></div><div className="space-y-1"><Label>Descrição</Label><Input value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Descrição opcional" /></div><div className="space-y-1"><Label>Segmento</Label><Select value={segmentoId} onValueChange={(v) => setSegmentoId(v)}><SelectTrigger><SelectValue placeholder="Selecione o segmento" /></SelectTrigger><SelectContent>{segmentos.map((s) => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}</SelectContent></Select></div></div><DialogFooter><Button variant="outline" onClick={close}>Cancelar</Button><Button disabled={save.isPending} onClick={() => save.mutate()}>{save.isPending ? "Salvando…" : "Salvar"}</Button></DialogFooter></DialogContent></Dialog>
-    <Dialog open={subOpen} onOpenChange={(v) => !v && closeSub()}><DialogContent><DialogHeader><DialogTitle>{editingSub ? "Editar subcategoria" : "Nova subcategoria"}</DialogTitle><DialogDescription>Subcategoria de: {selectedCategoria?.nome}</DialogDescription></DialogHeader><div className="space-y-4 py-2"><div className="space-y-4 py-2"><div className="space-y-1"><Label>Nome</Label><Input value={subNome} onChange={(e) => setSubNome(e.target.value)} placeholder="Ex.: Notebook" /></div><div className="space-y-1"><Label>Descrição</Label><Input value={subDescricao} onChange={(e) => setSubDescricao(e.target.value)} placeholder="Descrição opcional" /></div></div><DialogFooter><Button variant="outline" onClick={closeSub}>Cancelar</Button><Button disabled={saveSub.isPending} onClick={() => saveSub.mutate()}>{saveSub.isPending ? "Salvando…" : "Salvar"}</Button></DialogFooter></DialogContent></Dialog>
-  </div>;
+  );
 }
