@@ -83,6 +83,7 @@ function FilaPage() {
         .select(`
           id,numero,titulo,status,prioridade,aberto_em,prazo_resolucao,
           sla_pausado,sla_tempo_restante_segundos,sla_resolucao_violado,
+          tipo:tipos_chamado(id,nome),
           categoria:categorias(nome),
           solicitante:profiles!chamados_solicitante_profile_fkey(nome,departamento,area_id),
           atendente:profiles!chamados_atendente_profile_fkey(nome)
@@ -120,7 +121,7 @@ function FilaPage() {
 
       <Card>
         <CardContent className="p-0 overflow-x-auto">
-          <table className="w-full min-w-[1100px] text-sm">
+          <table className="w-full min-w-[1200px] text-sm">
             <thead className="border-b bg-muted/40 text-xs uppercase text-muted-foreground">
               <tr className="text-left">
                 <th className="px-4 py-2">#</th>
@@ -128,6 +129,7 @@ function FilaPage() {
                 <th className="px-4 py-2">Solicitante</th>
                 <th className="px-4 py-2">Área / Departamento</th>
                 <th className="px-4 py-2">Atendente</th>
+                <th className="px-4 py-2">Tipo</th>
                 <th className="px-4 py-2">Categoria</th>
                 <th className="px-4 py-2">Prioridade</th>
                 <th className="px-4 py-2">Status</th>
@@ -136,9 +138,9 @@ function FilaPage() {
               </tr>
             </thead>
             <tbody>
-              {isLoading && <tr><td colSpan={10} className="py-8 text-center text-muted-foreground">Carregando…</td></tr>}
+              {isLoading && <tr><td colSpan={11} className="py-8 text-center text-muted-foreground">Carregando…</td></tr>}
               {!isLoading && chamados.length === 0 && (
-                <tr><td colSpan={10} className="py-8 text-center text-muted-foreground">Nenhum chamado encontrado.</td></tr>
+                <tr><td colSpan={11} className="py-8 text-center text-muted-foreground">Nenhum chamado encontrado.</td></tr>
               )}
               {chamados.map((c: any) => {
                 const sla = slaInfo(c, now);
@@ -150,6 +152,7 @@ function FilaPage() {
                     <td className="px-4 py-2">{c.solicitante?.nome ?? "—"}</td>
                     <td className="px-4 py-2 text-muted-foreground">{c.solicitante?.departamento ?? "—"}</td>
                     <td className="px-4 py-2">{c.atendente?.nome ?? "Sem atendente"}</td>
+                    <td className="px-4 py-2 text-muted-foreground">{c.tipo?.nome ?? "—"}</td>
                     <td className="px-4 py-2 text-muted-foreground">{c.categoria?.nome ?? "—"}</td>
                     <td className="px-4 py-2"><span className={`rounded-full px-2 py-0.5 text-xs ${prioStyle(c.prioridade)}`}>{c.prioridade}</span></td>
                     <td className="px-4 py-2"><span className={`rounded-full px-2 py-0.5 text-xs ${statusStyle(c.status)}`}>{c.status}</span></td>
