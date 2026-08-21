@@ -135,6 +135,7 @@ function DetalheChamadoPage() {
         .select(`*,
           solicitante:profiles!chamados_solicitante_profile_fkey(id,nome,email,departamento),
           atendente:profiles!chamados_atendente_profile_fkey(id,nome,email),
+          tipo:tipos_chamado(id,nome),
           categoria:categorias(id,nome),
           subcategoria:subcategorias(id,nome),
           sla:slas(prioridade,tempo_resposta_h,tempo_resolucao_h)
