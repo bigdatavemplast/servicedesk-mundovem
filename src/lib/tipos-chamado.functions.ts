@@ -20,6 +20,29 @@ function assertCanManage(role: Role) {
   }
 }
 
+async function requireManager() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Usuário não autenticado.");
+
+  const { data, error } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", user.id);
+
+  if (error) throw new Error(`Não foi possível verificar as permissões: ${error.message}`);
+
+  const allowed = (data ?? []).some(({ role }) => {
+    try {
+      assertCanManage(role as Role);
+      return true;
+    } catch {
+      return false;
+    }
+  });
+
+  if (!allowed) throw new Error("Você não tem permissão para gerenciar tipos de chamado.");
+}
+
 export const listarTiposChamado = createServerFn({ method: "GET" }).handler(async (): Promise<TipoChamado[]> => {
   const { data, error } = await supabase
     .from("tipos_chamado")
@@ -34,6 +57,7 @@ export const listarTiposChamado = createServerFn({ method: "GET" }).handler(asyn
 export const criarTipoChamado = createServerFn({ method: "POST" })
   .inputValidator(tipoSchema)
   .handler(async ({ data }): Promise<TipoChamado> => {
+    await requireManager();
     const { data: created, error } = await supabase
       .from("tipos_chamado")
       .insert(data as TipoChamadoInsert)
@@ -47,6 +71,7 @@ export const criarTipoChamado = createServerFn({ method: "POST" })
 export const atualizarTipoChamado = createServerFn({ method: "POST" })
   .inputValidator(idSchema.merge(tipoSchema.partial()))
   .handler(async ({ data }): Promise<TipoChamado> => {
+    await requireManager();
     const { id, ...changes } = data;
     const { data: updated, error } = await supabase
       .from("tipos_chamado")
@@ -62,6 +87,7 @@ export const atualizarTipoChamado = createServerFn({ method: "POST" })
 export const alterarAtivoTipoChamado = createServerFn({ method: "POST" })
   .inputValidator(idSchema.extend({ ativo: z.boolean() }))
   .handler(async ({ data }): Promise<TipoChamado> => {
+    await requireManager();
     const { data: updated, error } = await supabase
       .from("tipos_chamado")
       .update({ ativo: data.ativo })
@@ -76,6 +102,7 @@ export const alterarAtivoTipoChamado = createServerFn({ method: "POST" })
 export const excluirTipoChamado = createServerFn({ method: "POST" })
   .inputValidator(idSchema)
   .handler(async ({ data }): Promise<void> => {
+    await requireManager();
     const { count, error: countError } = await supabase
       .from("chamados")
       .select("id", { count: "exact", head: true })
