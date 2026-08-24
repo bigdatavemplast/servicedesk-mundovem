@@ -29,59 +29,16 @@ export const avaliarChamado = createServerFn({ method: "POST" })
   }).parse(d))
   .handler(async ({ data, context }) => {
     const supabase = context.supabase as any;
-    const admin = await getAdminClient(supabase);
-    const { data: ticket, error: ticketError } = await admin
-      .from("chamados")
-      .select("id,numero,titulo,status,solicitante_id,fechado_em,avaliacao_nota")
-      .eq("id", data.chamadoId)
-      .maybeSingle();
-
-    if (ticketError || !ticket) throw new Error(ticketError?.message ?? "Chamado não encontrado.");
-    if (ticket.solicitante_id !== context.userId) throw new Error("Somente o solicitante pode avaliar o chamado.");
-    if (ticket.status !== "resolvido") throw new Error("O chamado precisa estar resolvido para ser avaliado.");
-    if (ticket.avaliacao_nota != null) throw new Error("Este chamado já foi avaliado.");
-
-    const fechadoEm = new Date().toISOString();
-    const { data: atualizado, error } = await admin
-      .from("chamados")
-      .update({
-        avaliacao_nota: data.nota,
-        avaliacao_comentario: data.comentario?.trim() || null,
-        status: "fechado",
-        fechado_em: fechadoEm,
-        sla_pausado: false,
-      } as never)
-      .eq("id", data.chamadoId)
-      .eq("status", "resolvido")
-      .select("id,status,avaliacao_nota,avaliacao_comentario,fechado_em,sla_pausado")
-      .maybeSingle();
+    const { data: resultado, error } = await supabase.rpc("avaliar_chamado", {
+      _chamado_id: data.chamadoId,
+      _nota: data.nota,
+      _comentario: data.comentario?.trim() || null,
+    });
 
     if (error) throw new Error(error.message);
-    if (!atualizado) throw new Error("Não foi possível fechar o chamado. O registro não foi atualizado."); 
-    if (atualizado.status !== "fechado" || atualizado.avaliacao_nota !== data.nota) {
-      throw new Error("O banco não confirmou o fechamento e a avaliação do chamado.");
+    if (!resultado?.ok || resultado.status !== "fechado") {
+      throw new Error("O banco não confirmou o fechamento do chamado.");
     }
 
-    const { error: historicoError } = await admin.from("historico_chamado").insert({
-      chamado_id: data.chamadoId,
-      autor_id: context.userId,
-      acao: "avaliacao_registrada",
-      de: "resolvido",
-      para: "fechado",
-    } as never);
-    if (historicoError) throw new Error(historicoError.message);
-
-    const { data: solicitante } = await admin.from("profiles").select("email").eq("id", ticket.solicitante_id).maybeSingle();
-    if (solicitante?.email) {
-      const { data: autor } = await admin.from("profiles").select("nome").eq("id", context.userId).maybeSingle();
-      await emailChamadoFechado({
-        para: solicitante.email,
-        numero: ticket.numero,
-        titulo: ticket.titulo,
-        autor: autor?.nome ?? "Solicitante",
-        link: `${process.env.SERVICE_DESK_PUBLIC_URL || process.env.APP_URL || ""}/chamados/${ticket.id}`,
-      });
-    }
-
-    return { ok: true, status: "fechado", fechadoEm };
+    return resultado;
   });
