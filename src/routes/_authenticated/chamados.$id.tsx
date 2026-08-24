@@ -92,6 +92,7 @@ function statusClass(s: string) {
   if (s.startsWith("aguardando")) return "bg-orange-100 text-orange-700";
   if (s === "resolvido") return "bg-emerald-100 text-emerald-700";
   if (s === "fechado") return "bg-violet-100 text-violet-700";
+  if (s === "reaberto") return "bg-sky-100 text-sky-700";
   return "bg-muted text-muted-foreground";
 }
 
@@ -263,6 +264,12 @@ function DetalheChamadoPage() {
 
   const podeAvaliar = chamado.solicitante_id === user.id && chamado.status === "resolvido" && !chamado.avaliacao_nota;
   const jaAvaliado = chamado.avaliacao_nota != null;
+  const fechadoEmMs = chamado.fechado_em ? new Date(chamado.fechado_em).getTime() : 0;
+  const prazoReaberturaMs = fechadoEmMs + 48 * 60 * 60 * 1000;
+  const podeReabrir = chamado.solicitante_id === user.id
+    && chamado.status === "fechado"
+    && fechadoEmMs > 0
+    && now <= prazoReaberturaMs;
   const sla = slaInfo(chamado as any, now);
 
   return (
@@ -287,6 +294,33 @@ function DetalheChamadoPage() {
           </span>
         </div>
       </div>
+
+      {podeReabrir && (
+        <Card className="border-sky-200 bg-sky-50/50">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
+            <div>
+              <div className="text-sm font-semibold">Precisa de mais atendimento?</div>
+              <div className="text-xs text-muted-foreground">
+                Você pode reabrir este chamado até {fmt(new Date(prazoReaberturaMs).toISOString())}.
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              disabled={atualizar.isPending}
+              onClick={() => setConfirmacao({
+                campo: "status",
+                valor: "reaberto",
+                label: "Reaberto",
+                atual: "fechado",
+                atualLabel: "Fechado",
+              })}
+            >
+              {atualizar.isPending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
+              Reabrir chamado
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
         <div className="space-y-4">
