@@ -13,36 +13,126 @@ type EmailArgs = {
   html: string;
 };
 
-export async function enviarEmailServiceDesk(args: EmailArgs): Promise<boolean> {
-  const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM_EMAIL;
+async function getMicrosoftGraphToken(): Promise<string | null> {
+  const tenantId = process.env.MICROSOFT_TENANT_ID;
+  const clientId = process.env.MICROSOFT_CLIENT_ID;
+  const clientSecret = process.env.MICROSOFT_CLIENT_SECRET;
 
-  if (!apiKey || !from || !args.to) {
-    console.warn("[ServiceDesk] E-mail não enviado: configure RESEND_API_KEY, RESEND_FROM_EMAIL e o destinatário.");
+  if (!tenantId || !clientId || !clientSecret) {
+    console.warn(
+      "[ServiceDesk] E-mail não enviado: configure MICROSOFT_TENANT_ID, MICROSOFT_CLIENT_ID e MICROSOFT_CLIENT_SECRET.",
+    );
+    return null;
+  }
+
+  try {
+    const response = await fetch(
+      `https://login.microsoftonline.com/${encodeURIComponent(tenantId)}/oauth2/v2.0/token`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          client_id: clientId,
+          client_secret: clientSecret,
+          scope: "https://graph.microsoft.com/.default",
+          grant_type: "client_credentials",
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const body = await response.text();
+      console.error(
+        "[ServiceDesk] Falha ao obter token Microsoft Graph:",
+        response.status,
+        body,
+      );
+      return null;
+    }
+
+    const data = (await response.json()) as {
+      access_token?: string;
+    };
+
+    return data.access_token ?? null;
+  } catch (error) {
+    console.error(
+      "[ServiceDesk] Erro ao autenticar no Microsoft Graph:",
+      error,
+    );
+    return null;
+  }
+}
+
+export async function enviarEmailServiceDesk(
+  args: EmailArgs,
+): Promise<boolean> {
+  if (!args.to) {
     return false;
   }
 
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from,
-      to: [args.to],
-      subject: args.subject,
-      html: args.html,
-    }),
-  });
-
-  if (!response.ok) {
-    const body = await response.text();
-    console.error("[ServiceDesk] Falha ao enviar e-mail:", response.status, body);
+  const from = process.env.MICROSOFT_MAIL_FROM;
+  if (!from) {
+    console.warn(
+      "[ServiceDesk] E-mail não enviado: configure MICROSOFT_MAIL_FROM.",
+    );
     return false;
   }
 
-  return true;
+  const accessToken = await getMicrosoftGraphToken();
+  if (!accessToken) {
+    return false;
+  }
+
+  try {
+    const response = await fetch(
+      `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(from)}/sendMail`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: {
+            subject: args.subject,
+            body: {
+              contentType: "HTML",
+              content: args.html,
+            },
+            toRecipients: [
+              {
+                emailAddress: {
+                  address: args.to,
+                },
+              },
+            ],
+          },
+          saveToSentItems: true,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const body = await response.text();
+      console.error(
+        "[ServiceDesk] Falha ao enviar e-mail pelo Microsoft Graph:",
+        response.status,
+        body,
+      );
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error(
+      "[ServiceDesk] Erro ao enviar e-mail pelo Microsoft Graph:",
+      error,
+    );
+    return false;
+  }
 }
 
 export function emailChamadoAberto(args: {
