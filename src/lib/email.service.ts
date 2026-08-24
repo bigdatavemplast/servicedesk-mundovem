@@ -102,13 +102,34 @@ export function emailInteracao(args: {
   });
 }
 
-export function emailChamadoFechado(args: {
+export function emailChamadoResolvido(args: {
   para: string;
   numero: string;
   titulo: string;
   autor: string;
   link: string;
 }) {
+  return enviarEmailServiceDesk({
+    to: args.para,
+    subject: `[Service Desk] Chamado ${args.numero} resolvido`,
+    html: `
+      <h2>Chamado resolvido</h2>
+      <p><strong>Chamado:</strong> ${esc(args.numero)}</p>
+      <p><strong>Assunto:</strong> ${esc(args.titulo)}</p>
+      <p><strong>Resolvido por:</strong> ${esc(args.autor)}</p>
+      <p>O chamado foi marcado como resolvido no Service Desk.</p>
+      <p><a href="${esc(args.link)}">Acessar chamado</a></p>
+    `,
+  });
+}
+
+export function emailChamadoFechado(args: {
+  para: string;
+  numero: string;
+  titulo: string;
+  autor: string;
+  link: string;
+})
   return enviarEmailServiceDesk({
     to: args.para,
     subject: `[Service Desk] Chamado ${args.numero} fechado`,
