@@ -101,9 +101,9 @@ async function criarNotificacao(
     } as never);
 
   if (error) {
-    console.error("[ServiceDesk] Falha ao criar notificação:", error.message);
-    return false;
-  }
+  console.error("[ServiceDesk] Falha ao criar notificação:", error);
+  throw new Error(`Falha ao criar notificação: ${error.message}`);
+}
 
   return true;
 }
