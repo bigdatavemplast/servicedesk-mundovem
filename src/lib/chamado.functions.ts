@@ -42,7 +42,7 @@ export const avaliarChamado = createServerFn({ method: "POST" })
     if (ticket.avaliacao_nota != null) throw new Error("Este chamado já foi avaliado.");
 
     const fechadoEm = new Date().toISOString();
-    const { error } = await admin
+    const { data: atualizado, error } = await admin
       .from("chamados")
       .update({
         avaliacao_nota: data.nota,
@@ -52,9 +52,15 @@ export const avaliarChamado = createServerFn({ method: "POST" })
         sla_pausado: false,
       } as never)
       .eq("id", data.chamadoId)
-      .eq("status", "resolvido");
+      .eq("status", "resolvido")
+      .select("id,status,avaliacao_nota,avaliacao_comentario,fechado_em,sla_pausado")
+      .maybeSingle();
 
     if (error) throw new Error(error.message);
+    if (!atualizado) throw new Error("Não foi possível fechar o chamado. O registro não foi atualizado."); 
+    if (atualizado.status !== "fechado" || atualizado.avaliacao_nota !== data.nota) {
+      throw new Error("O banco não confirmou o fechamento e a avaliação do chamado.");
+    }
 
     const { error: historicoError } = await admin.from("historico_chamado").insert({
       chamado_id: data.chamadoId,
