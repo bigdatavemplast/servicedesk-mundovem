@@ -68,14 +68,25 @@ export const criarChamadoComCatalogo = createServerFn({ method: "POST" })
     const { data: grupos, error: gruposError } = await admin.from("grupos_atendimento").select("id,nome,ordem,prefixo").eq("segmento_id", data.segmentoId).eq("ativo", true).order("ordem").order("nome");
     if (gruposError) throw new Error(gruposError.message); if (!grupos?.length) throw new Error("O segmento selecionado não possui uma fila ativa."); if (grupos.length !== 1) throw new Error("O segmento selecionado possui mais de uma fila ativa.");
     const grupoAtendimentoId = grupos[0].id;
-    const { data: regrasSla, error: regraSlaError } = await admin.rpc("selecionar_regra_sla", { p_tipo_fluxo: fluxo, p_segmento_id: data.segmentoId, p_categoria_id: data.categoriaId, p_prioridade: prioridadeCalculada, p_impacto: impacto, p_urgencia: urgencia });
-    if (regraSlaError) throw new Error(`Não foi possível determinar o SLA: ${regraSlaError.message}`);
-    const regraSla = Array.isArray(regrasSla) ? regrasSla[0] : regrasSla;
-    if (!regraSla && fluxo !== "projeto") throw new Error(`Não existe uma regra de SLA configurada para o fluxo ${fluxo}.`);
-    const { data: criado, error } = await admin.from("chamados").insert({ titulo: data.titulo, descricao: data.descricao, prioridade: prioridadeCalculada, impacto, urgencia, tipo_fluxo: fluxo, sla_regra_id: regraSla?.id ?? null, sla_tempo_resposta_segundos: regraSla?.tempo_resposta_segundos ?? null, sla_tempo_resolucao_segundos: regraSla?.tempo_resolucao_segundos ?? null, sla_tempo_pausado_segundos: 0, tipo_chamado_id: data.tipoChamadoId, segmento_id: data.segmentoId, grupo_atendimento_id: grupoAtendimentoId, solicitante_id: context.userId, categoria_id: data.categoriaId, subcategoria_id: data.subcategoriaId, numero: "" } as never).select("id,numero,titulo,descricao,prioridade,impacto,urgencia,tipo_fluxo,sla_regra_id,sla_tempo_resposta_segundos,sla_tempo_resolucao_segundos,prazo_resolucao,tipo_chamado_id,segmento_id,categoria_id,subcategoria_id,grupo_atendimento_id").single();
+
+    // Projetos não usam SLA operacional. O prazo do projeto será tratado
+    // posteriormente por deadline/milestone, separado do motor de Service Desk.
+    const regraSla = null;
+    let regrasSla: any = null;
+    if (fluxo !== "projeto") {
+      const { data: regras, error: regraSlaError } = await admin.rpc("selecionar_regra_sla", { p_tipo_fluxo: fluxo, p_segmento_id: data.segmentoId, p_categoria_id: data.categoriaId, p_prioridade: prioridadeCalculada, p_impacto: impacto, p_urgencia: urgencia });
+      if (regraSlaError) throw new Error(`Não foi possível determinar o SLA: ${regraSlaError.message}`);
+      regrasSla = regras;
+    }
+    const regraAplicada = Array.isArray(regrasSla) ? regrasSla[0] : regrasSla;
+    if (!regraAplicada && fluxo !== "projeto") throw new Error(`Não existe uma regra de SLA configurada para o fluxo ${fluxo}.`);
+    const { data: criado, error } = await admin.from("chamados").insert({ titulo: data.titulo, descricao: data.descricao, prioridade: prioridadeCalculada, impacto, urgencia, tipo_fluxo: fluxo, sla_regra_id: regraAplicada?.id ?? null, sla_tempo_resposta_segundos: regraAplicada?.tempo_resposta_segundos ?? null, sla_tempo_resolucao_segundos: regraAplicada?.tempo_resolucao_segundos ?? null, sla_tempo_pausado_segundos: 0, tipo_chamado_id: data.tipoChamadoId, segmento_id: data.segmentoId, grupo_atendimento_id: grupoAtendimentoId, solicitante_id: context.userId, categoria_id: data.categoriaId, subcategoria_id: data.subcategoriaId, numero: "" } as never).select("id,numero,titulo,descricao,prioridade,impacto,urgencia,tipo_fluxo,sla_regra_id,sla_tempo_resposta_segundos,sla_tempo_resolucao_segundos,prazo_resolucao,tipo_chamado_id,segmento_id,categoria_id,subcategoria_id,grupo_atendimento_id").single();
     if (error || !criado) throw new Error(error?.message ?? "Falha ao criar chamado");
-    const { error: eventoError } = await admin.rpc("registrar_evento_sla", { p_chamado_id: criado.id, p_sla_regra_id: regraSla?.id ?? null, p_tipo: "iniciado", p_motivo: regraSla ? `SLA aplicado: ${regraSla.nome}` : "Projeto sem SLA operacional", p_usuario_id: context.userId });
-    if (eventoError) throw new Error(`Chamado criado, mas não foi possível registrar o evento de SLA: ${eventoError.message}`);
+
+    if (fluxo !== "projeto") {
+      const { error: eventoError } = await admin.rpc("registrar_evento_sla", { p_chamado_id: criado.id, p_sla_regra_id: regraAplicada?.id ?? null, p_tipo: "iniciado", p_motivo: `SLA aplicado: ${regraAplicada.nome}`, p_usuario_id: context.userId });
+      if (eventoError) throw new Error(`Chamado criado, mas não foi possível registrar o evento de SLA: ${eventoError.message}`);
+    }
     const { data: profile } = await admin.from("profiles").select("nome,email,departamento,area_id").eq("id", context.userId).maybeSingle();
     const { data: area } = profile?.area_id ? await (admin as any).from("areas").select("nome").eq("id", profile.area_id).maybeSingle() : { data: null as any };
     const n1 = process.env.SERVICE_DESK_N1_EMAIL;
