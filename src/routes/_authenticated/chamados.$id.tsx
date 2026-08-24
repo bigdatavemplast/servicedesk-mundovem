@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { ArrowLeft, AlertTriangle, Clock, Loader2, Star } from "lucide-react";
 import { AnexosSecao } from "@/components/anexos/AnexosSecao";
 import { useServerFn } from "@tanstack/react-start";
-import { atualizarChamado, comentarChamado } from "@/lib/chamado.functions";
+import { atualizarChamado, comentarChamado, avaliarChamado } from "@/lib/chamado.functions";
 
 export const Route = createFileRoute("/_authenticated/chamados/$id")({
   head: ({ params }) => {
@@ -109,6 +109,7 @@ function DetalheChamadoPage() {
   const [confirmacao, setConfirmacao] = useState<{ campo: "status" | "prioridade" | "atendente" | "tipo"; valor: string | null; label: string; atual: string; atualLabel: string } | null>(null);
   const atualizarServer = useServerFn(atualizarChamado);
   const comentarServer = useServerFn(comentarChamado);
+  const avaliarServer = useServerFn(avaliarChamado);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
@@ -241,12 +242,19 @@ function DetalheChamadoPage() {
   const avaliar = useMutation({
     mutationFn: async () => {
       if (nota < 1) throw new Error("Escolha uma nota");
-      const { error } = await supabase.from("chamados")
-        .update({ avaliacao_nota: nota, avaliacao_comentario: avaliacaoComentario || null, status: "fechado", fechado_em: new Date().toISOString() } as never)
-        .eq("id", id);
-      if (error) throw error;
+      await avaliarServer({
+        data: {
+          chamadoId: id,
+          nota,
+          comentario: avaliacaoComentario || null,
+        },
+      });
     },
-    onSuccess: () => { toast.success("Avaliação registrada"); qc.invalidateQueries({ queryKey: ["chamado", id] }); },
+    onSuccess: () => { toast.success("Avaliação registrada"); qc.invalidateQueries({ queryKey: ["chamado", id] });
+      qc.invalidateQueries({ queryKey: ["chamado-historico", id] });
+      qc.invalidateQueries({ queryKey: ["fila"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+    },
     onError: (e: any) => toast.error(e.message),
   });
 
