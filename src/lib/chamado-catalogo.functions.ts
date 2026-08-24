@@ -80,6 +80,22 @@ export const criarChamadoComCatalogo = createServerFn({ method: "POST" })
       }
     }
 
+    // A fila pertence ao segmento. Quando existe uma única fila ativa para o segmento,
+    // o encaminhamento é determinístico e pode ser feito já na abertura.
+    // Quando existem várias filas, deixamos a fila em aberto para a etapa de
+    // atribuição automática, evitando escolher uma fila arbitrariamente.
+    const { data: grupos, error: gruposError } = await admin
+      .from("grupos_atendimento")
+      .select("id,nome,ordem")
+      .eq("segmento_id", data.segmentoId)
+      .eq("ativo", true)
+      .order("ordem")
+      .order("nome");
+
+    if (gruposError) throw new Error(gruposError.message);
+
+    const grupoAtendimentoId = grupos?.length === 1 ? grupos[0].id : null;
+
     const { data: criado, error } = await admin
       .from("chamados")
       .insert({
@@ -88,12 +104,13 @@ export const criarChamadoComCatalogo = createServerFn({ method: "POST" })
         prioridade: data.prioridade,
         tipo_chamado_id: data.tipoChamadoId,
         segmento_id: data.segmentoId,
+        grupo_atendimento_id: grupoAtendimentoId,
         solicitante_id: context.userId,
         categoria_id: data.categoriaId,
         subcategoria_id: data.subcategoriaId,
         numero: "",
       } as never)
-      .select("id,numero,titulo,descricao,prioridade,prazo_resolucao,tipo_chamado_id,segmento_id,categoria_id,subcategoria_id")
+      .select("id,numero,titulo,descricao,prioridade,prazo_resolucao,tipo_chamado_id,segmento_id,categoria_id,subcategoria_id,grupo_atendimento_id")
       .single();
 
     if (error || !criado) throw new Error(error?.message ?? "Falha ao criar chamado");
