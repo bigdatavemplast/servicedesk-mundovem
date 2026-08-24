@@ -4,9 +4,6 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { hasAnyRolePermission } from "@/lib/permissions";
 import type { Role } from "@/types/roles";
 
-const nivelEnum = z.enum(["N1", "N2", "N3"]);
-const complexidadeEnum = z.enum(["baixa", "media", "alta"]);
-
 type SupabaseLike = any;
 
 async function getAdminClient(fallback: SupabaseLike) {
@@ -16,11 +13,7 @@ async function getAdminClient(fallback: SupabaseLike) {
 }
 
 async function getRoles(supabase: SupabaseLike, userId: string): Promise<Role[]> {
-  const { data, error } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId);
-
+  const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", userId);
   if (error) throw new Error(error.message);
   return (data ?? []).map((row: { role: Role }) => row.role);
 }
@@ -30,59 +23,10 @@ async function canTriage(supabase: SupabaseLike, userId: string) {
   return roles.includes("admin") || hasAnyRolePermission(roles, "ticket.assign");
 }
 
-async function validateAttendantLevel(
-  admin: SupabaseLike,
-  ticket: any,
-  atendenteId: string,
-) {
-  if (await admin.from("user_roles").select("role").eq("user_id", atendenteId).then((r: any) =>
-    (r.data ?? []).some((row: { role: Role }) => row.role === "admin")
-  )) {
-    return;
-  }
-
-  if (!ticket.grupo_atendimento_id) {
-    throw new Error("O chamado ainda não possui grupo de atendimento.");
-  }
-
-  const { data, error } = await admin
-    .from("grupo_atendentes")
-    .select("nivel_atendimento")
-    .eq("grupo_id", ticket.grupo_atendimento_id)
-    .eq("usuario_id", atendenteId)
-    .eq("ativo", true)
-    .maybeSingle();
-
-  if (error) throw new Error(error.message);
-  if (!data) {
-    throw new Error("O atendente selecionado não pertence ao grupo ativo deste chamado.");
-  }
-
-  const required = ticket.nivel_atendimento ?? "N1";
-  const available = data.nivel_atendimento ?? "N1";
-  const requiredNumber = Number(required.slice(1));
-  const availableNumber = Number(available.slice(1));
-
-  if (availableNumber < requiredNumber) {
-    throw new Error(`O atendente selecionado é ${available} e o chamado requer ${required}.`);
-  }
-}
-
-/**
- * Registra a decisão de triagem sem obrigar uma atribuição definitiva.
- * A classificação (categoria/subcategoria/tipo) continua separada da triagem.
- */
+/** Registra somente quem fez a triagem e quando. A classificação permanece no catálogo/ITIL. */
 export const registrarTriagem = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) =>
-    z
-      .object({
-        chamadoId: z.string().uuid(),
-        nivelAtendimento: nivelEnum,
-        complexidade: complexidadeEnum,
-      })
-      .parse(d),
-  )
+  .inputValidator((d) => z.object({ chamadoId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const supabase = context.supabase as SupabaseLike;
     const admin = await getAdminClient(supabase);
@@ -93,47 +37,27 @@ export const registrarTriagem = createServerFn({ method: "POST" })
 
     const { data: ticket, error: ticketError } = await admin
       .from("chamados")
-      .select("id,numero,status,grupo_atendimento_id,nivel_atendimento,complexidade,triagem_por,triagem_em")
+      .select("id,numero,status,triagem_por,triagem_em")
       .eq("id", data.chamadoId)
       .maybeSingle();
 
-    if (ticketError || !ticket) {
-      throw new Error(ticketError?.message ?? "Chamado não encontrado.");
-    }
+    if (ticketError || !ticket) throw new Error(ticketError?.message ?? "Chamado não encontrado.");
 
     const { data: updated, error } = await admin
       .from("chamados")
-      .update({
-        nivel_atendimento: data.nivelAtendimento,
-        complexidade: data.complexidade,
-        triagem_por: context.userId,
-        triagem_em: new Date().toISOString(),
-        status: "em_triagem",
-      } as never)
+      .update({ triagem_por: context.userId, triagem_em: new Date().toISOString(), status: "em_triagem" } as never)
       .eq("id", data.chamadoId)
       .select("*")
       .single();
 
-    if (error || !updated) {
-      throw new Error(error?.message ?? "Falha ao registrar a triagem.");
-    }
-
+    if (error || !updated) throw new Error(error?.message ?? "Falha ao registrar a triagem.");
     return { ok: true, chamado: updated };
   });
 
-/**
- * Encaminha um chamado triado para um atendente compatível com o nível requerido.
- */
+/** Encaminha após a triagem; o banco valida grupo e mantém o nível técnico no vínculo do atendente. */
 export const encaminharChamado = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) =>
-    z
-      .object({
-        chamadoId: z.string().uuid(),
-        atendenteId: z.string().uuid(),
-      })
-      .parse(d),
-  )
+  .inputValidator((d) => z.object({ chamadoId: z.string().uuid(), atendenteId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const supabase = context.supabase as SupabaseLike;
     const admin = await getAdminClient(supabase);
@@ -144,33 +68,20 @@ export const encaminharChamado = createServerFn({ method: "POST" })
 
     const { data: ticket, error: ticketError } = await admin
       .from("chamados")
-      .select("id,numero,status,grupo_atendimento_id,nivel_atendimento,complexidade,atendente_id")
+      .select("id,numero,status,grupo_atendimento_id,atendente_id,triagem_por")
       .eq("id", data.chamadoId)
       .maybeSingle();
 
-    if (ticketError || !ticket) {
-      throw new Error(ticketError?.message ?? "Chamado não encontrado.");
-    }
-
-    if (!ticket.nivel_atendimento) {
-      throw new Error("Faça a triagem do chamado antes de encaminhá-lo.");
-    }
-
-    await validateAttendantLevel(admin, ticket, data.atendenteId);
+    if (ticketError || !ticket) throw new Error(ticketError?.message ?? "Chamado não encontrado.");
+    if (!ticket.triagem_por) throw new Error("Faça a triagem do chamado antes de encaminhá-lo.");
 
     const { data: updated, error } = await admin
       .from("chamados")
-      .update({
-        atendente_id: data.atendenteId,
-        status: "em_andamento",
-      } as never)
+      .update({ atendente_id: data.atendenteId, status: "em_andamento" } as never)
       .eq("id", data.chamadoId)
       .select("*")
       .single();
 
-    if (error || !updated) {
-      throw new Error(error?.message ?? "Falha ao encaminhar o chamado.");
-    }
-
+    if (error || !updated) throw new Error(error?.message ?? "Falha ao encaminhar o chamado.");
     return { ok: true, chamado: updated };
   });
