@@ -129,7 +129,7 @@ export function emailChamadoFechado(args: {
   titulo: string;
   autor: string;
   link: string;
-})
+}) {
   return enviarEmailServiceDesk({
     to: args.para,
     subject: `[Service Desk] Chamado ${args.numero} fechado`,
