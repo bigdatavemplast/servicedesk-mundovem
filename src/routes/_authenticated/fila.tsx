@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -28,6 +28,9 @@ const PRIOS = [
   { v: "critica", l: "Crítica" }, { v: "alta", l: "Alta" },
   { v: "media", l: "Média" }, { v: "baixa", l: "Baixa" },
 ];
+
+type Role = "colaborador" | "atendente" | "gestor" | "admin";
+type Segmento = { id: string; nome: string; ativo: boolean };
 
 function statusStyle(s: string) {
   if (s === "aberto") return "bg-sky-100 text-sky-700";
@@ -69,6 +72,7 @@ function FilaPage() {
   const navigate = useNavigate();
   const [status, setStatus] = useState("");
   const [prioridade, setPrioridade] = useState("__all__");
+  const [segmentoSelecionado, setSegmentoSelecionado] = useState("todos");
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -76,13 +80,61 @@ function FilaPage() {
     return () => window.clearInterval(timer);
   }, []);
 
-  const { data: chamados = [], isLoading } = useQuery({
-    queryKey: ["fila", status, prioridade],
+  const { data: contexto, isLoading: loadingContexto } = useQuery({
+    queryKey: ["fila-contexto"],
+    queryFn: async () => {
+      const [{ data: roles, error: rolesError }, { data: profile, error: profileError }] = await Promise.all([
+        supabase.from("user_roles").select("role").eq("user_id", (await supabase.auth.getUser()).data.user?.id ?? ""),
+        supabase.from("profiles").select("departamento").eq("id", (await supabase.auth.getUser()).data.user?.id ?? "").maybeSingle(),
+      ]);
+      if (rolesError) throw rolesError;
+      if (profileError) throw profileError;
+      const userId = (await supabase.auth.getUser()).data.user?.id;
+      const roleList = ((roles ?? []).map((r: any) => r.role) as Role[]);
+      const role: Role = roleList.includes("admin") ? "admin" : roleList.includes("gestor") ? "gestor" : roleList.includes("atendente") ? "atendente" : "colaborador";
+      let grupoIds: string[] = [];
+      if (role === "atendente") {
+        const { data: memberships, error } = await supabase.from("grupo_atendentes").select("grupo_id").eq("usuario_id", userId ?? "").eq("ativo", true);
+        if (error) throw error;
+        grupoIds = (memberships ?? []).map((m: any) => m.grupo_id);
+      }
+      return { userId, role, departamento: profile?.departamento ?? null, grupoIds };
+    },
+  });
+
+  const { data: segmentos = [], isLoading: loadingSegmentos } = useQuery({
+    queryKey: ["fila-segmentos-operacional", contexto?.role, contexto?.grupoIds],
+    enabled: !!contexto,
+    queryFn: async () => {
+      let q = supabase.from("segmentos").select("id,nome,ativo").eq("ativo", true).order("nome");
+      if (contexto?.role === "atendente") {
+        if (!contexto.grupoIds.length) return [] as Segmento[];
+        const { data: grupos, error } = await supabase.from("grupos_atendimento").select("segmento_id").in("id", contexto.grupoIds).eq("ativo", true);
+        if (error) throw error;
+        const ids = [...new Set((grupos ?? []).map((g: any) => g.segmento_id).filter(Boolean))];
+        if (!ids.length) return [] as Segmento[];
+        q = q.in("id", ids);
+      }
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data ?? []) as Segmento[];
+    },
+  });
+
+  const segmentoIdsPermitidos = useMemo(() => new Set(segmentos.map((s) => s.id)), [segmentos]);
+
+  useEffect(() => {
+    if (segmentoSelecionado !== "todos" && !segmentoIdsPermitidos.has(segmentoSelecionado)) setSegmentoSelecionado("todos");
+  }, [segmentoSelecionado, segmentoIdsPermitidos]);
+
+  const { data: chamados = [], isLoading: loadingChamados } = useQuery({
+    queryKey: ["fila", status, prioridade, segmentoSelecionado, contexto?.role, contexto?.departamento, [...segmentoIdsPermitidos]],
+    enabled: !!contexto && !loadingSegmentos,
     queryFn: async () => {
       let q = supabase.from("chamados")
         .select(`
           id,numero,titulo,status,prioridade,aberto_em,prazo_resolucao,
-          sla_pausado,sla_tempo_restante_segundos,sla_resolucao_violado,
+          sla_pausado,sla_tempo_restante_segundos,sla_resolucao_violado,segmento_id,
           tipo:tipos_chamado(id,nome),
           categoria:categorias(nome),
           solicitante:profiles!chamados_solicitante_profile_fkey(nome,departamento,area_id),
@@ -91,11 +143,22 @@ function FilaPage() {
         .order("aberto_em", { ascending: false }).limit(200);
       if (status) q = q.eq("status", status as any);
       if (prioridade !== "__all__") q = q.eq("prioridade", prioridade as any);
+      if (segmentoSelecionado !== "todos") q = q.eq("segmento_id", segmentoSelecionado);
+      else if (contexto?.role === "atendente") {
+        const ids = [...segmentoIdsPermitidos];
+        if (!ids.length) return [];
+        q = q.in("segmento_id", ids);
+      }
+      // Gestor pode navegar por todas as filas, mas somente chamados de seu departamento.
+      // Colaborador pode navegar por todas as filas, mas sua visão operacional permanece limitada pelos chamados permitidos pela RLS.
+      if (contexto?.role === "gestor" && contexto.departamento) q = q.eq("solicitante.departamento", contexto.departamento);
       const { data, error } = await q;
       if (error) throw error;
       return data ?? [];
     },
   });
+
+  const selectedName = segmentoSelecionado === "todos" ? "Todos os segmentos" : segmentos.find((s) => s.id === segmentoSelecionado)?.nome ?? "Segmento";
 
   return (
     <div className="space-y-4">
@@ -104,11 +167,30 @@ function FilaPage() {
         <p className="text-sm text-muted-foreground">Chamados disponíveis conforme a permissão do usuário.</p>
       </div>
 
+      <Card>
+        <CardContent className="p-4">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div><h2 className="text-sm font-semibold">Filas por segmento</h2><p className="text-xs text-muted-foreground">Selecione a fila que deseja acompanhar.</p></div>
+            <span className="text-xs text-muted-foreground">{selectedName}</span>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+            <button type="button" onClick={() => setSegmentoSelecionado("todos")} className={`rounded-lg border p-3 text-left transition hover:bg-muted/50 ${segmentoSelecionado === "todos" ? "border-primary bg-primary/5 ring-1 ring-primary" : ""}`}>
+              <div className="text-sm font-semibold">Todos</div><div className="mt-1 text-xs text-muted-foreground">Todas as filas permitidas</div>
+            </button>
+            {segmentos.map((s) => (
+              <button key={s.id} type="button" onClick={() => setSegmentoSelecionado(s.id)} className={`rounded-lg border p-3 text-left transition hover:bg-muted/50 ${segmentoSelecionado === s.id ? "border-primary bg-primary/5 ring-1 ring-primary" : ""}`}>
+                <div className="text-sm font-semibold">{s.nome}</div><div className="mt-1 text-xs text-muted-foreground">Fila {s.nome}</div>
+              </button>
+            ))}
+          </div>
+          {loadingSegmentos && <div className="pt-3 text-xs text-muted-foreground">Carregando segmentos…</div>}
+        </CardContent>
+      </Card>
+
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex flex-wrap gap-1">
           {STATUS.map((o) => (
-            <Button key={o.v || "all"} size="sm" variant={status === o.v ? "default" : "outline"}
-              className="h-8" onClick={() => setStatus(o.v)}>{o.l}</Button>
+            <Button key={o.v || "all"} size="sm" variant={status === o.v ? "default" : "outline"} className="h-8" onClick={() => setStatus(o.v)}>{o.l}</Button>
           ))}
         </div>
         <div className="ml-auto w-48">
@@ -124,46 +206,18 @@ function FilaPage() {
           <table className="w-full min-w-[1200px] text-sm">
             <thead className="border-b bg-muted/40 text-xs uppercase text-muted-foreground">
               <tr className="text-left">
-                <th className="px-4 py-2">#</th>
-                <th className="px-4 py-2">Título</th>
-                <th className="px-4 py-2">Solicitante</th>
-                <th className="px-4 py-2">Área / Departamento</th>
-                <th className="px-4 py-2">Atendente</th>
-                <th className="px-4 py-2">Tipo</th>
-                <th className="px-4 py-2">Categoria</th>
-                <th className="px-4 py-2">Prioridade</th>
-                <th className="px-4 py-2">Status</th>
-                <th className="px-4 py-2">Aberto em</th>
-                <th className="px-4 py-2">SLA</th>
+                <th className="px-4 py-2">#</th><th className="px-4 py-2">Título</th><th className="px-4 py-2">Solicitante</th><th className="px-4 py-2">Área / Departamento</th><th className="px-4 py-2">Atendente</th><th className="px-4 py-2">Tipo</th><th className="px-4 py-2">Categoria</th><th className="px-4 py-2">Prioridade</th><th className="px-4 py-2">Status</th><th className="px-4 py-2">Aberto em</th><th className="px-4 py-2">SLA</th>
               </tr>
             </thead>
             <tbody>
-              {isLoading && <tr><td colSpan={11} className="py-8 text-center text-muted-foreground">Carregando…</td></tr>}
-              {!isLoading && chamados.length === 0 && (
-                <tr><td colSpan={11} className="py-8 text-center text-muted-foreground">Nenhum chamado encontrado.</td></tr>
-              )}
+              {(loadingContexto || loadingChamados) && <tr><td colSpan={11} className="py-8 text-center text-muted-foreground">Carregando…</td></tr>}
+              {!loadingContexto && !loadingChamados && chamados.length === 0 && <tr><td colSpan={11} className="py-8 text-center text-muted-foreground">Nenhum chamado encontrado.</td></tr>}
               {chamados.map((c: any) => {
                 const sla = slaInfo(c, now);
-                return (
-                  <tr key={c.id} onClick={() => navigate({ to: "/chamados/$id", params: { id: c.id } })}
-                    className="cursor-pointer border-b last:border-0 hover:bg-muted/40">
-                    <td className="px-4 py-2 font-mono text-xs text-muted-foreground">{c.numero}</td>
-                    <td className="px-4 py-2 font-medium">{c.titulo}</td>
-                    <td className="px-4 py-2">{c.solicitante?.nome ?? "—"}</td>
-                    <td className="px-4 py-2 text-muted-foreground">{c.solicitante?.departamento ?? "—"}</td>
-                    <td className="px-4 py-2">{c.atendente?.nome ?? "Sem atendente"}</td>
-                    <td className="px-4 py-2 text-muted-foreground">{c.tipo?.nome ?? "—"}</td>
-                    <td className="px-4 py-2 text-muted-foreground">{c.categoria?.nome ?? "—"}</td>
-                    <td className="px-4 py-2"><span className={`rounded-full px-2 py-0.5 text-xs ${prioStyle(c.prioridade)}`}>{c.prioridade}</span></td>
-                    <td className="px-4 py-2"><span className={`rounded-full px-2 py-0.5 text-xs ${statusStyle(c.status)}`}>{c.status}</span></td>
-                    <td className="px-4 py-2 text-xs text-muted-foreground">{new Date(c.aberto_em).toLocaleString("pt-BR")}</td>
-                    <td className="px-4 py-2 text-xs">
-                      <span className={slaClass(sla.status)}>
-                        {sla.status === "vencido" ? "Vencido" : sla.status === "vencendo" ? "Vencendo" : sla.status === "pausado" ? `Pausado · ${duration(sla.seconds)}` : `OK · ${duration(sla.seconds)}`}
-                      </span>
-                    </td>
-                  </tr>
-                );
+                const segmentoNome = segmentos.find((s) => s.id === c.segmento_id)?.nome;
+                return <tr key={c.id} onClick={() => navigate({ to: "/chamados/$id", params: { id: c.id } })} className="cursor-pointer border-b last:border-0 hover:bg-muted/40">
+                  <td className="px-4 py-2 font-mono text-xs text-muted-foreground">{c.numero}</td><td className="px-4 py-2 font-medium">{c.titulo}</td><td className="px-4 py-2">{c.solicitante?.nome ?? "—"}</td><td className="px-4 py-2 text-muted-foreground">{c.solicitante?.departamento ?? "—"}</td><td className="px-4 py-2">{c.atendente?.nome ?? "Sem atendente"}</td><td className="px-4 py-2 text-muted-foreground">{c.tipo?.nome ?? "—"}</td><td className="px-4 py-2 text-muted-foreground">{c.categoria?.nome ?? "—"}</td><td className="px-4 py-2"><span className={`rounded-full px-2 py-0.5 text-xs ${prioStyle(c.prioridade)}`}>{c.prioridade}</span></td><td className="px-4 py-2"><span className={`rounded-full px-2 py-0.5 text-xs ${statusStyle(c.status)}`}>{c.status}</span></td><td className="px-4 py-2 text-xs text-muted-foreground">{new Date(c.aberto_em).toLocaleString("pt-BR")}</td><td className="px-4 py-2 text-xs"><span className={slaClass(sla.status)}>{sla.status === "vencido" ? "Vencido" : sla.status === "vencendo" ? "Vencendo" : sla.status === "pausado" ? `Pausado · ${duration(sla.seconds)}` : `OK · ${duration(sla.seconds)}`}</span></td>
+                </tr>;
               })}
             </tbody>
           </table>
