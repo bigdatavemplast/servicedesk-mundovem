@@ -15,124 +15,50 @@ import { AnexoDropzone } from "@/components/anexos/AnexoDropzone";
 import { enviarAnexo } from "@/lib/anexos";
 import { criarChamadoComCatalogo } from "@/lib/chamado-catalogo.functions";
 
-export const Route = createFileRoute("/_authenticated/chamados/novo")({
-  head: () => ({
-    meta: [
-      { title: "Abrir novo chamado | Mundo Vem Service Desk" },
-      { name: "description", content: "Registre um novo chamado escolhendo tipo, segmento, categoria, subcategoria e prioridade." },
-      { name: "robots", content: "noindex, follow" },
-    ],
-  }),
-  component: NovoChamadoPage,
-});
+export const Route = createFileRoute("/_authenticated/chamados/novo")({ component: NovoChamadoPage });
+
+function normalizarTipo(nome: string) { return nome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase(); }
+function ehIncidente(nome: string) { const tipo = normalizarTipo(nome); return tipo.includes("incidente") || tipo.includes("falha") || tipo.includes("erro"); }
+function calcularPrioridade(impacto: "empresa" | "departamento" | "usuario", urgencia: "critica" | "alta" | "media" | "baixa") {
+  const i = { empresa: 3, departamento: 2, usuario: 1 }[impacto]; const u = { critica: 4, alta: 3, media: 2, baixa: 1 }[urgencia];
+  if (i === 3 && u >= 3) return "critica"; if (i === 2 && u === 4) return "critica";
+  if ((i === 3 && u === 2) || (i === 2 && u === 3) || (i === 1 && u === 4)) return "alta";
+  if ((i === 3 && u === 1) || (i === 2 && u === 2) || (i === 1 && u === 3)) return "media"; return "baixa";
+}
 
 function NovoChamadoPage() {
-  const { user } = Route.useRouteContext();
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [titulo, setTitulo] = useState("");
-  const [descricao, setDescricao] = useState("");
+  const { user } = Route.useRouteContext(); const navigate = useNavigate(); const [loading, setLoading] = useState(false);
+  const [titulo, setTitulo] = useState(""); const [descricao, setDescricao] = useState("");
   const [prioridade, setPrioridade] = useState<"baixa"|"media"|"alta"|"critica">("media");
-  const [tipoChamadoId, setTipoChamadoId] = useState("");
-  const [segmentoId, setSegmentoId] = useState("");
-  const [categoriaId, setCategoriaId] = useState("");
-  const [subcategoriaId, setSubcategoriaId] = useState("");
-  const [anexos, setAnexos] = useState<File[]>([]);
-  const [progresso, setProgresso] = useState<Record<string, number>>({});
+  const [impacto, setImpacto] = useState<"empresa"|"departamento"|"usuario" | "">("");
+  const [urgencia, setUrgencia] = useState<"critica"|"alta"|"media"|"baixa" | "">("");
+  const [tipoChamadoId, setTipoChamadoId] = useState(""); const [segmentoId, setSegmentoId] = useState("");
+  const [categoriaId, setCategoriaId] = useState(""); const [subcategoriaId, setSubcategoriaId] = useState("");
+  const [anexos, setAnexos] = useState<File[]>([]); const [progresso, setProgresso] = useState<Record<string, number>>({});
   const criar = useServerFn(criarChamadoComCatalogo);
-
-  const { data: tiposChamado = [] } = useQuery({
-    queryKey: ["tipos-chamado-ativos"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("tipos_chamado").select("id, nome").eq("ativo", true).order("ordem").order("nome");
-      if (error) throw new Error(error.message);
-      return data ?? [];
-    },
-  });
-
-  const { data: segmentos = [] } = useQuery({
-    queryKey: ["segmentos-ativos-catalogo"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("segmentos").select("id, nome").eq("ativo", true).order("ordem").order("nome");
-      if (error) throw new Error(error.message);
-      return data ?? [];
-    },
-  });
-
-  const { data: categorias = [] } = useQuery({
-    queryKey: ["categorias-ativas-catalogo", segmentoId],
-    queryFn: async () => {
-      if (!segmentoId) return [];
-      const { data, error } = await supabase.from("categorias").select("id, nome, segmento_id").eq("ativo", true).eq("segmento_id", segmentoId).order("ordem").order("nome");
-      if (error) throw new Error(error.message);
-      return data ?? [];
-    },
-    enabled: !!segmentoId,
-  });
-
-  const { data: subcategorias = [] } = useQuery({
-    queryKey: ["subcategorias-ativas-catalogo", categoriaId],
-    queryFn: async () => {
-      if (!categoriaId) return [];
-      const { data, error } = await supabase.from("subcategorias").select("id, nome, categoria_id").eq("categoria_id", categoriaId).eq("ativo", true).order("ordem").order("nome");
-      if (error) throw new Error(error.message);
-      return data ?? [];
-    },
-    enabled: !!categoriaId,
-  });
-
+  const { data: tiposChamado = [] } = useQuery({ queryKey: ["tipos-chamado-ativos"], queryFn: async () => { const { data, error } = await supabase.from("tipos_chamado").select("id, nome").eq("ativo", true).order("ordem").order("nome"); if (error) throw new Error(error.message); return data ?? []; } });
+  const tipoSelecionado = tiposChamado.find((tipo) => tipo.id === tipoChamadoId); const incidente = !!tipoSelecionado && ehIncidente(tipoSelecionado.nome);
+  const prioridadeCalculada = incidente && impacto && urgencia ? calcularPrioridade(impacto, urgencia) : null;
+  const { data: segmentos = [] } = useQuery({ queryKey: ["segmentos-ativos-catalogo"], queryFn: async () => { const { data, error } = await supabase.from("segmentos").select("id, nome").eq("ativo", true).order("ordem").order("nome"); if (error) throw new Error(error.message); return data ?? []; } });
+  const { data: categorias = [] } = useQuery({ queryKey: ["categorias-ativas-catalogo", segmentoId], queryFn: async () => { if (!segmentoId) return []; const { data, error } = await supabase.from("categorias").select("id, nome, segmento_id").eq("ativo", true).eq("segmento_id", segmentoId).order("ordem").order("nome"); if (error) throw new Error(error.message); return data ?? []; }, enabled: !!segmentoId });
+  const { data: subcategorias = [] } = useQuery({ queryKey: ["subcategorias-ativas-catalogo", categoriaId], queryFn: async () => { if (!categoriaId) return []; const { data, error } = await supabase.from("subcategorias").select("id, nome, categoria_id").eq("categoria_id", categoriaId).eq("ativo", true).order("ordem").order("nome"); if (error) throw new Error(error.message); return data ?? []; }, enabled: !!categoriaId });
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!tipoChamadoId) return toast.error("Selecione o tipo de chamado.");
-    if (!segmentoId) return toast.error("Selecione o segmento.");
-    if (!categoriaId) return toast.error("Selecione a categoria.");
-    setLoading(true);
-    let criado: any;
-    try {
-      criado = await criar({ data: { titulo, descricao, prioridade, tipoChamadoId, segmentoId, categoriaId, subcategoriaId: subcategoriaId || null } });
-    } catch (error) {
-      setLoading(false);
-      return toast.error(error instanceof Error ? error.message : "Falha ao criar chamado");
-    }
-
-    let falhas = 0;
-    for (const file of anexos) {
-      try {
-        await enviarAnexo({ chamadoId: criado.id, autorId: user.id, file, onProgress: (pct) => setProgresso((p) => ({ ...p, [file.name]: pct })) });
-      } catch (err) {
-        falhas += 1;
-        toast.error(err instanceof Error ? err.message : `Falha ao anexar ${file.name}`);
-      }
-    }
-
-    setLoading(false);
-    if (falhas === 0) toast.success("Chamado criado com sucesso!");
-    else toast.warning("Chamado criado, mas alguns anexos falharam.");
-    navigate({ to: "/chamados" });
+    e.preventDefault(); if (!tipoChamadoId) return toast.error("Selecione o tipo de chamado."); if (!segmentoId) return toast.error("Selecione o segmento."); if (!categoriaId) return toast.error("Selecione a categoria.");
+    if (incidente && !impacto) return toast.error("Selecione o impacto do incidente."); if (incidente && !urgencia) return toast.error("Selecione a urgência do incidente."); setLoading(true); let criado: any;
+    try { criado = await criar({ data: { titulo, descricao, prioridade: prioridadeCalculada ?? prioridade, impacto: impacto || undefined, urgencia: urgencia || undefined, tipoChamadoId, segmentoId, categoriaId, subcategoriaId: subcategoriaId || null } }); }
+    catch (error) { setLoading(false); return toast.error(error instanceof Error ? error.message : "Falha ao criar chamado"); }
+    let falhas = 0; for (const file of anexos) { try { await enviarAnexo({ chamadoId: criado.id, autorId: user.id, file, onProgress: (pct) => setProgresso((p) => ({ ...p, [file.name]: pct })) }); } catch (err) { falhas += 1; toast.error(err instanceof Error ? err.message : `Falha ao anexar ${file.name}`); } }
+    setLoading(false); if (falhas === 0) toast.success("Chamado criado com sucesso!"); else toast.warning("Chamado criado, mas alguns anexos falharam."); navigate({ to: "/chamados" });
   }
-
-  return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      <div><h1 className="text-2xl font-bold">Novo chamado</h1><p className="text-sm text-muted-foreground">Descreva o problema ou solicitação com o máximo de detalhes.</p></div>
-      <Card><CardHeader><CardTitle>Detalhes do chamado</CardTitle></CardHeader><CardContent>
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          <div className="space-y-2"><Label htmlFor="titulo">Título</Label><Input id="titulo" required maxLength={250} value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ex.: Notebook não liga" /></div>
-
-          <div className="space-y-2"><Label>Tipo de Chamado</Label><Select value={tipoChamadoId} onValueChange={setTipoChamadoId}><SelectTrigger><SelectValue placeholder="Selecione o tipo" /></SelectTrigger><SelectContent>{tiposChamado.map((tipo) => <SelectItem key={tipo.id} value={tipo.id}>{tipo.nome}</SelectItem>)}</SelectContent></Select></div>
-
-          <div className="space-y-2"><Label>Segmento</Label><Select value={segmentoId} onValueChange={(v) => { setSegmentoId(v); setCategoriaId(""); setSubcategoriaId(""); }}><SelectTrigger><SelectValue placeholder="Selecione o segmento" /></SelectTrigger><SelectContent>{segmentos.map((s) => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}</SelectContent></Select></div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2"><Label>Categoria</Label><Select value={categoriaId} onValueChange={(v) => { setCategoriaId(v); setSubcategoriaId(""); }} disabled={!segmentoId}><SelectTrigger><SelectValue placeholder={segmentoId ? "Selecione" : "Escolha segmento"} /></SelectTrigger><SelectContent>{categorias.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent></Select></div>
-            <div className="space-y-2"><Label>Subcategoria</Label><Select value={subcategoriaId} onValueChange={setSubcategoriaId} disabled={!categoriaId}><SelectTrigger><SelectValue placeholder={categoriaId ? "Selecione (opcional)" : "Escolha categoria"} /></SelectTrigger><SelectContent>{subcategorias.map((s) => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}</SelectContent></Select></div>
-          </div>
-
-          <div className="space-y-2"><Label>Prioridade</Label><Select value={prioridade} onValueChange={(v) => setPrioridade(v as typeof prioridade)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="baixa">Baixa</SelectItem><SelectItem value="media">Média</SelectItem><SelectItem value="alta">Alta</SelectItem><SelectItem value="critica">Crítica</SelectItem></SelectContent></Select></div>
-          <div className="space-y-2"><Label htmlFor="descricao">Descrição</Label><Textarea id="descricao" required rows={6} value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Descreva o ocorrido, passos executados, mensagens de erro, etc." /></div>
-          <div className="space-y-2"><Label>Anexos (opcional)</Label><AnexoDropzone onArquivos={(novos) => setAnexos((atual) => [...atual, ...novos])} pendentes={anexos} progresso={progresso} onRemover={(i) => setAnexos((atual) => atual.filter((_, idx) => idx !== i))} disabled={loading} /></div>
-          <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => navigate({ to: "/chamados" })}>Cancelar</Button><Button type="submit" disabled={loading}>{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Abrir chamado</Button></div>
-        </form>
-      </CardContent></Card>
-    </div>
-  );
+  return (<div className="mx-auto max-w-2xl space-y-6"><div><h1 className="text-2xl font-bold">Novo chamado</h1><p className="text-sm text-muted-foreground">Descreva o problema ou solicitação com o máximo de detalhes.</p></div><Card><CardHeader><CardTitle>Detalhes do chamado</CardTitle></CardHeader><CardContent><form className="space-y-4" onSubmit={handleSubmit}>
+    <div className="space-y-2"><Label htmlFor="titulo">Título</Label><Input id="titulo" required maxLength={250} value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ex.: Notebook não liga" /></div>
+    <div className="space-y-2"><Label>Tipo de Chamado</Label><Select value={tipoChamadoId} onValueChange={(v) => { setTipoChamadoId(v); setImpacto(""); setUrgencia(""); setPrioridade("media"); }}><SelectTrigger><SelectValue placeholder="Selecione o tipo" /></SelectTrigger><SelectContent>{tiposChamado.map((tipo) => <SelectItem key={tipo.id} value={tipo.id}>{tipo.nome}</SelectItem>)}</SelectContent></Select></div>
+    <div className="space-y-2"><Label>Segmento</Label><Select value={segmentoId} onValueChange={(v) => { setSegmentoId(v); setCategoriaId(""); setSubcategoriaId(""); }}><SelectTrigger><SelectValue placeholder="Selecione o segmento" /></SelectTrigger><SelectContent>{segmentos.map((s) => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}</SelectContent></Select></div>
+    <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-2"><Label>Categoria</Label><Select value={categoriaId} onValueChange={(v) => { setCategoriaId(v); setSubcategoriaId(""); }} disabled={!segmentoId}><SelectTrigger><SelectValue placeholder={segmentoId ? "Selecione" : "Escolha segmento"} /></SelectTrigger><SelectContent>{categorias.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent></Select></div><div className="space-y-2"><Label>Subcategoria</Label><Select value={subcategoriaId} onValueChange={setSubcategoriaId} disabled={!categoriaId}><SelectTrigger><SelectValue placeholder={categoriaId ? "Selecione (opcional)" : "Escolha categoria"} /></SelectTrigger><SelectContent>{subcategorias.map((s) => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}</SelectContent></Select></div></div>
+    {incidente ? <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-2"><Label>Impacto</Label><Select value={impacto} onValueChange={(v) => setImpacto(v as typeof impacto)}><SelectTrigger><SelectValue placeholder="Selecione o impacto" /></SelectTrigger><SelectContent><SelectItem value="empresa">Toda a empresa</SelectItem><SelectItem value="departamento">Um departamento</SelectItem><SelectItem value="usuario">Apenas um usuário</SelectItem></SelectContent></Select></div><div className="space-y-2"><Label>Urgência</Label><Select value={urgencia} onValueChange={(v) => setUrgencia(v as typeof urgencia)}><SelectTrigger><SelectValue placeholder="Selecione a urgência" /></SelectTrigger><SelectContent><SelectItem value="critica">Crítica / imediata</SelectItem><SelectItem value="alta">Alta</SelectItem><SelectItem value="media">Média</SelectItem><SelectItem value="baixa">Baixa</SelectItem></SelectContent></Select></div></div> : <div className="space-y-2"><Label>Prioridade</Label><Select value={prioridade} onValueChange={(v) => setPrioridade(v as typeof prioridade)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="baixa">Baixa</SelectItem><SelectItem value="media">Média</SelectItem><SelectItem value="alta">Alta</SelectItem><SelectItem value="critica">Crítica</SelectItem></SelectContent></Select></div>}
+    {incidente && prioridadeCalculada && <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm"><span className="font-medium">Prioridade calculada:</span> {prioridadeCalculada === "critica" ? "P1 – Crítica" : prioridadeCalculada === "alta" ? "P2 – Alta" : prioridadeCalculada === "media" ? "P3 – Média" : "P4 – Baixa"}</div>}
+    <div className="space-y-2"><Label htmlFor="descricao">Descrição</Label><Textarea id="descricao" required rows={6} value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Descreva o ocorrido, passos executados, mensagens de erro, etc." /></div>
+    <div className="space-y-2"><Label>Anexos (opcional)</Label><AnexoDropzone onArquivos={(novos) => setAnexos((atual) => [...atual, ...novos])} pendentes={anexos} progresso={progresso} onRemover={(i) => setAnexos((atual) => atual.filter((_, idx) => idx !== i))} disabled={loading} /></div>
+    <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => navigate({ to: "/chamados" })}>Cancelar</Button><Button type="submit" disabled={loading}>{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Abrir chamado</Button></div>
+  </form></CardContent></Card></div>);
 }
