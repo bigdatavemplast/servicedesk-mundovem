@@ -13,13 +13,13 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { AnexoDropzone } from "@/components/anexos/AnexoDropzone";
 import { enviarAnexo } from "@/lib/anexos";
-import { criarChamado } from "@/lib/chamado.functions";
+import { criarChamadoComCatalogo } from "@/lib/chamado-catalogo.functions";
 
 export const Route = createFileRoute("/_authenticated/chamados/novo")({
   head: () => ({
     meta: [
       { title: "Abrir novo chamado | Mundo Vem Service Desk" },
-      { name: "description", content: "Registre um novo chamado escolhendo tipo, categoria, subcategoria e prioridade." },
+      { name: "description", content: "Registre um novo chamado escolhendo tipo, segmento, categoria, subcategoria e prioridade." },
       { name: "robots", content: "noindex, follow" },
     ],
   }),
@@ -34,11 +34,12 @@ function NovoChamadoPage() {
   const [descricao, setDescricao] = useState("");
   const [prioridade, setPrioridade] = useState<"baixa"|"media"|"alta"|"critica">("media");
   const [tipoChamadoId, setTipoChamadoId] = useState("");
+  const [segmentoId, setSegmentoId] = useState("");
   const [categoriaId, setCategoriaId] = useState("");
   const [subcategoriaId, setSubcategoriaId] = useState("");
   const [anexos, setAnexos] = useState<File[]>([]);
   const [progresso, setProgresso] = useState<Record<string, number>>({});
-  const criar = useServerFn(criarChamado);
+  const criar = useServerFn(criarChamadoComCatalogo);
 
   const { data: tiposChamado = [] } = useQuery({
     queryKey: ["tipos-chamado-ativos"],
@@ -49,19 +50,32 @@ function NovoChamadoPage() {
     },
   });
 
-  const { data: categorias = [] } = useQuery({
-    queryKey: ["categorias"],
+  const { data: segmentos = [] } = useQuery({
+    queryKey: ["segmentos-ativos-catalogo"],
     queryFn: async () => {
-      const { data } = await supabase.from("categorias").select("id, nome").eq("ativo", true).order("ordem");
+      const { data, error } = await supabase.from("segmentos").select("id, nome").eq("ativo", true).order("ordem").order("nome");
+      if (error) throw new Error(error.message);
       return data ?? [];
     },
   });
 
+  const { data: categorias = [] } = useQuery({
+    queryKey: ["categorias-ativas-catalogo", segmentoId],
+    queryFn: async () => {
+      if (!segmentoId) return [];
+      const { data, error } = await supabase.from("categorias").select("id, nome, segmento_id").eq("ativo", true).eq("segmento_id", segmentoId).order("ordem").order("nome");
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    },
+    enabled: !!segmentoId,
+  });
+
   const { data: subcategorias = [] } = useQuery({
-    queryKey: ["subcategorias", categoriaId],
+    queryKey: ["subcategorias-ativas-catalogo", categoriaId],
     queryFn: async () => {
       if (!categoriaId) return [];
-      const { data } = await supabase.from("subcategorias").select("id, nome").eq("categoria_id", categoriaId).eq("ativo", true).order("ordem");
+      const { data, error } = await supabase.from("subcategorias").select("id, nome, categoria_id").eq("categoria_id", categoriaId).eq("ativo", true).order("ordem").order("nome");
+      if (error) throw new Error(error.message);
       return data ?? [];
     },
     enabled: !!categoriaId,
@@ -70,10 +84,12 @@ function NovoChamadoPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!tipoChamadoId) return toast.error("Selecione o tipo de chamado.");
+    if (!segmentoId) return toast.error("Selecione o segmento.");
+    if (!categoriaId) return toast.error("Selecione a categoria.");
     setLoading(true);
     let criado: any;
     try {
-      criado = await criar({ data: { titulo, descricao, prioridade, tipoChamadoId, categoriaId: categoriaId || null, subcategoriaId: subcategoriaId || null } });
+      criado = await criar({ data: { titulo, descricao, prioridade, tipoChamadoId, segmentoId, categoriaId, subcategoriaId: subcategoriaId || null } });
     } catch (error) {
       setLoading(false);
       return toast.error(error instanceof Error ? error.message : "Falha ao criar chamado");
@@ -104,9 +120,11 @@ function NovoChamadoPage() {
 
           <div className="space-y-2"><Label>Tipo de Chamado</Label><Select value={tipoChamadoId} onValueChange={setTipoChamadoId}><SelectTrigger><SelectValue placeholder="Selecione o tipo" /></SelectTrigger><SelectContent>{tiposChamado.map((tipo) => <SelectItem key={tipo.id} value={tipo.id}>{tipo.nome}</SelectItem>)}</SelectContent></Select></div>
 
+          <div className="space-y-2"><Label>Segmento</Label><Select value={segmentoId} onValueChange={(v) => { setSegmentoId(v); setCategoriaId(""); setSubcategoriaId(""); }}><SelectTrigger><SelectValue placeholder="Selecione o segmento" /></SelectTrigger><SelectContent>{segmentos.map((s) => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}</SelectContent></Select></div>
+
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2"><Label>Categoria</Label><Select value={categoriaId} onValueChange={(v) => { setCategoriaId(v); setSubcategoriaId(""); }}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{categorias.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent></Select></div>
-            <div className="space-y-2"><Label>Subcategoria</Label><Select value={subcategoriaId} onValueChange={setSubcategoriaId} disabled={!categoriaId}><SelectTrigger><SelectValue placeholder={categoriaId ? "Selecione" : "Escolha categoria"} /></SelectTrigger><SelectContent>{subcategorias.map((s) => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}</SelectContent></Select></div>
+            <div className="space-y-2"><Label>Categoria</Label><Select value={categoriaId} onValueChange={(v) => { setCategoriaId(v); setSubcategoriaId(""); }} disabled={!segmentoId}><SelectTrigger><SelectValue placeholder={segmentoId ? "Selecione" : "Escolha segmento"} /></SelectTrigger><SelectContent>{categorias.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent></Select></div>
+            <div className="space-y-2"><Label>Subcategoria</Label><Select value={subcategoriaId} onValueChange={setSubcategoriaId} disabled={!categoriaId}><SelectTrigger><SelectValue placeholder={categoriaId ? "Selecione (opcional)" : "Escolha categoria"} /></SelectTrigger><SelectContent>{subcategorias.map((s) => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}</SelectContent></Select></div>
           </div>
 
           <div className="space-y-2"><Label>Prioridade</Label><Select value={prioridade} onValueChange={(v) => setPrioridade(v as typeof prioridade)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="baixa">Baixa</SelectItem><SelectItem value="media">Média</SelectItem><SelectItem value="alta">Alta</SelectItem><SelectItem value="critica">Crítica</SelectItem></SelectContent></Select></div>
