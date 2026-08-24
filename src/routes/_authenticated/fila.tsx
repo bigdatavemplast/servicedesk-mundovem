@@ -25,7 +25,7 @@ const PRIOS = [
 type Role = "colaborador" | "atendente" | "gestor" | "admin";
 type Segmento = { id: string; nome: string; ativo: boolean };
 type Horario = { calendario_id: string; dia_semana: number; hora_inicio: string; hora_fim: string };
-type Regra = { id: string; calendario_id: string | null };
+type Regra = { id: string; calendario_id: string | null; usa_sla_resolucao: boolean };
 
 function statusStyle(s: string) {
   if (s === "aberto") return "bg-sky-100 text-sky-700";
@@ -85,11 +85,16 @@ function businessSecondsBetween(startMs: number, endMs: number, horarios: Horari
   return total;
 }
 function slaInfo(c: any, now: number, regras: Map<string, Regra>, horarios: Horario[]) {
-  if (c.tipo?.nome && /projeto/i.test(c.tipo.nome)) return { status: "sem_sla", seconds: null };
+  const regra = c.sla_regra_id ? regras.get(c.sla_regra_id) : undefined;
+
+  // A própria regra é a fonte de verdade. Projeto, Triagem ou qualquer outro
+  // fluxo sem SLA operacional deve permanecer sem SLA, mesmo que o nome do tipo
+  // contenha a palavra "Projeto".
+  if (!regra || !regra.usa_sla_resolucao) return { status: "sem_sla", seconds: null };
+
   if (c.sla_pausado) return { status: "pausado", seconds: Math.max(0, Number(c.sla_tempo_restante_segundos ?? 0)) };
   if (!c.prazo_resolucao) return { status: "sem_sla", seconds: null };
-  const regra = c.sla_regra_id ? regras.get(c.sla_regra_id) : undefined;
-  const calendarioHorarios = regra?.calendario_id ? horarios.filter(h => h.calendario_id === regra.calendario_id) : [];
+  const calendarioHorarios = regra.calendario_id ? horarios.filter(h => h.calendario_id === regra.calendario_id) : [];
   const seconds = businessSecondsBetween(now, new Date(c.prazo_resolucao).getTime(), calendarioHorarios);
   if (seconds <= 0) return { status: "vencido", seconds: 0 };
   if (seconds <= 3600) return { status: "vencendo", seconds };
@@ -166,7 +171,7 @@ function FilaPage() {
   const regraIds = useMemo(() => [...new Set(chamados.map((c: any) => c.sla_regra_id).filter(Boolean))], [chamados]);
   const { data: regras = [] } = useQuery({
     queryKey: ["fila-sla-regras", regraIds], enabled: regraIds.length > 0,
-    queryFn: async () => { const { data, error } = await supabase.from("sla_regras").select("id,calendario_id").in("id", regraIds); if (error) throw error; return (data ?? []) as Regra[]; },
+    queryFn: async () => { const { data, error } = await supabase.from("sla_regras").select("id,calendario_id,usa_sla_resolucao").in("id", regraIds); if (error) throw error; return (data ?? []) as Regra[]; },
   });
   const calendarioIds = useMemo(() => [...new Set(regras.map(r => r.calendario_id).filter(Boolean))] as string[], [regras]);
   const { data: horarios = [] } = useQuery({
