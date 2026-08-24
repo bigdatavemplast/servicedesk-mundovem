@@ -1,15 +1,7 @@
 -- ============================================================
 -- Service Desk Vemplast - Fase 2: Escalonamento
---
--- Escalonamento é separado do cálculo do SLA:
--- - SLA continua sendo a fonte de prazo;
--- - esta camada identifica níveis de atenção/escalonamento;
--- - não altera prioridade, atendente ou fila automaticamente;
--- - notificações e atribuição automática serão tratadas nas
---   próximas etapas da Fase 2.
 -- ============================================================
 
--- 1) Regras configuráveis de escalonamento.
 CREATE TABLE IF NOT EXISTS public.escalonamento_regras (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   nome VARCHAR(120) NOT NULL,
@@ -24,11 +16,15 @@ CREATE TABLE IF NOT EXISTS public.escalonamento_regras (
   ordem INTEGER NOT NULL DEFAULT 0,
   criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  CONSTRAINT escalonamento_regras_minutos_chk CHECK (minutos_relativos_sla >= -525600 AND minutos_relativos_sla <= 525600)
+  CONSTRAINT escalonamento_regras_minutos_chk CHECK (
+    minutos_relativos_sla >= -525600 AND minutos_relativos_sla <= 525600
+  )
 );
 
 CREATE INDEX IF NOT EXISTS idx_escalonamento_regras_busca
-  ON public.escalonamento_regras(ativo, nivel, tipo_fluxo, prioridade, segmento_id, grupo_atendimento_id);
+  ON public.escalonamento_regras(
+    ativo, nivel, tipo_fluxo, prioridade, segmento_id, grupo_atendimento_id
+  );
 
 GRANT SELECT ON public.escalonamento_regras TO authenticated;
 GRANT ALL ON public.escalonamento_regras TO service_role;
@@ -47,7 +43,6 @@ FOR ALL TO authenticated
 USING (public.has_role(auth.uid(), 'admin'))
 WITH CHECK (public.has_role(auth.uid(), 'admin'));
 
--- 2) Estado do último nível aplicado ao chamado.
 ALTER TABLE public.chamados
   ADD COLUMN IF NOT EXISTS escalonamento_nivel SMALLINT NOT NULL DEFAULT 0,
   ADD COLUMN IF NOT EXISTS escalonado_em TIMESTAMPTZ;
@@ -55,13 +50,14 @@ ALTER TABLE public.chamados
 CREATE INDEX IF NOT EXISTS idx_chamados_escalonamento
   ON public.chamados(escalonamento_nivel, escalonado_em);
 
--- 3) Histórico idempotente dos escalonamentos.
 CREATE TABLE IF NOT EXISTS public.escalonamentos_chamado (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   chamado_id UUID NOT NULL REFERENCES public.chamados(id) ON DELETE CASCADE,
   regra_id UUID NOT NULL REFERENCES public.escalonamento_regras(id) ON DELETE RESTRICT,
   nivel SMALLINT NOT NULL CHECK (nivel >= 1),
-  motivo VARCHAR(30) NOT NULL CHECK (motivo IN ('vencendo', 'vencido', 'pos_vencimento')),
+  motivo VARCHAR(30) NOT NULL CHECK (
+    motivo IN ('vencendo', 'vencido', 'pos_vencimento')
+  ),
   executado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (chamado_id, regra_id)
 );
@@ -80,24 +76,24 @@ FOR SELECT TO authenticated
 USING (
   EXISTS (
     SELECT 1
-    FROM public.chamados c
+    FROM public.chamados AS c
     WHERE c.id = escalonamentos_chamado.chamado_id
       AND (
         c.solicitante_id = auth.uid()
-        OR public.has_any_role(auth.uid(), ARRAY['atendente','gestor','admin']::public.app_role[])
+        OR public.has_any_role(
+          auth.uid(),
+          ARRAY['atendente','gestor','admin']::public.app_role[]
+        )
       )
   )
 );
 
--- 4) Motor de avaliação.
---
+-- Motor de avaliação.
 -- minutos_relativos_sla:
---   60  = dispara até 60 minutos antes do vencimento (vencendo)
---    0  = dispara no vencimento (vencido)
---  -60  = dispara 60 minutos após o vencimento (pós-vencimento)
---
--- A função somente registra o escalonamento e atualiza o maior nível.
--- Não faz reatribuição nem envia notificações nesta etapa.
+--   60  = até 60 minutos antes do vencimento
+--    0  = no vencimento
+--  -60  = 60 minutos após o vencimento
+-- O motor somente registra o nível. Não reatribui e não notifica.
 CREATE OR REPLACE FUNCTION public.processar_escalonamentos_sla()
 RETURNS TABLE (
   chamado_id UUID,
@@ -110,39 +106,51 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+#variable_conflict use_column
 DECLARE
   v_regra RECORD;
   v_chamado RECORD;
   v_agora TIMESTAMPTZ := NOW();
-  v_limite TIMESTAMPTZ;
   v_motivo VARCHAR(30);
   v_id UUID;
   v_executado TIMESTAMPTZ;
 BEGIN
   FOR v_regra IN
     SELECT r.*
-    FROM public.escalonamento_regras r
+    FROM public.escalonamento_regras AS r
     WHERE r.ativo = TRUE
     ORDER BY r.nivel, r.ordem, r.criado_em
   LOOP
     FOR v_chamado IN
-      SELECT c.id, c.prazo_resolucao, c.sla_pausado, c.status,
-             c.tipo_fluxo, c.prioridade, c.segmento_id, c.grupo_atendimento_id,
-             c.escalonamento_nivel
-      FROM public.chamados c
+      SELECT
+        c.id,
+        c.prazo_resolucao,
+        c.sla_pausado,
+        c.status,
+        c.tipo_fluxo,
+        c.prioridade,
+        c.segmento_id,
+        c.grupo_atendimento_id,
+        c.escalonamento_nivel
+      FROM public.chamados AS c
       WHERE c.prazo_resolucao IS NOT NULL
         AND COALESCE(c.sla_pausado, FALSE) = FALSE
         AND c.status NOT IN ('resolvido', 'fechado', 'cancelado')
         AND (v_regra.tipo_fluxo IS NULL OR c.tipo_fluxo = v_regra.tipo_fluxo)
         AND (v_regra.prioridade IS NULL OR c.prioridade = v_regra.prioridade)
         AND (v_regra.segmento_id IS NULL OR c.segmento_id = v_regra.segmento_id)
-        AND (v_regra.grupo_atendimento_id IS NULL OR c.grupo_atendimento_id = v_regra.grupo_atendimento_id)
         AND (
-          c.prazo_resolucao - make_interval(mins => v_regra.minutos_relativos_sla)
+          v_regra.grupo_atendimento_id IS NULL
+          OR c.grupo_atendimento_id = v_regra.grupo_atendimento_id
+        )
+        AND (
+          c.prazo_resolucao
+          - make_interval(mins => v_regra.minutos_relativos_sla)
         ) <= v_agora
         AND v_regra.nivel > COALESCE(c.escalonamento_nivel, 0)
     LOOP
-      IF v_regra.minutos_relativos_sla > 0 AND v_agora < v_chamado.prazo_resolucao THEN
+      IF v_regra.minutos_relativos_sla > 0
+         AND v_agora < v_chamado.prazo_resolucao THEN
         v_motivo := 'vencendo';
       ELSIF v_agora <= v_chamado.prazo_resolucao THEN
         v_motivo := 'vencido';
@@ -150,20 +158,33 @@ BEGIN
         v_motivo := 'pos_vencimento';
       END IF;
 
-      INSERT INTO public.escalonamentos_chamado (
-        chamado_id, regra_id, nivel, motivo
+      v_id := NULL;
+      v_executado := NULL;
+
+      INSERT INTO public.escalonamentos_chamado AS ec (
+        chamado_id,
+        regra_id,
+        nivel,
+        motivo
       )
       VALUES (
-        v_chamado.id, v_regra.id, v_regra.nivel, v_motivo
+        v_chamado.id,
+        v_regra.id,
+        v_regra.nivel,
+        v_motivo
       )
       ON CONFLICT (chamado_id, regra_id) DO NOTHING
-      RETURNING id, executado_em INTO v_id, v_executado;
+      RETURNING ec.id, ec.executado_em INTO v_id, v_executado;
 
       IF v_id IS NOT NULL THEN
-        UPDATE public.chamados
-        SET escalonamento_nivel = GREATEST(COALESCE(escalonamento_nivel, 0), v_regra.nivel),
-            escalonado_em = COALESCE(escalonado_em, v_executado)
-        WHERE id = v_chamado.id;
+        UPDATE public.chamados AS c
+        SET
+          escalonamento_nivel = GREATEST(
+            COALESCE(c.escalonamento_nivel, 0),
+            v_regra.nivel
+          ),
+          escalonado_em = COALESCE(c.escalonado_em, v_executado)
+        WHERE c.id = v_chamado.id;
 
         chamado_id := v_chamado.id;
         regra_id := v_regra.id;
@@ -181,9 +202,6 @@ REVOKE ALL ON FUNCTION public.processar_escalonamentos_sla() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.processar_escalonamentos_sla() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.processar_escalonamentos_sla() TO service_role;
 
--- 5) Regras iniciais da operação.
--- Mantemos somente níveis de atenção; a ação efetiva (notificação/reatribuição)
--- será conectada nas próximas etapas, evitando acoplamento prematuro.
 INSERT INTO public.escalonamento_regras
   (nome, nivel, minutos_relativos_sla, descricao, ordem)
 SELECT
@@ -193,7 +211,8 @@ SELECT
   'Marca o chamado para escalonamento quando faltar 1 hora para o SLA de resolução.',
   1
 WHERE NOT EXISTS (
-  SELECT 1 FROM public.escalonamento_regras
+  SELECT 1
+  FROM public.escalonamento_regras
   WHERE nome = 'Alerta de SLA vencendo'
 );
 
@@ -206,7 +225,8 @@ SELECT
   'Marca o chamado para escalonamento no momento em que o SLA de resolução vence.',
   2
 WHERE NOT EXISTS (
-  SELECT 1 FROM public.escalonamento_regras
+  SELECT 1
+  FROM public.escalonamento_regras
   WHERE nome = 'SLA vencido'
 );
 
@@ -219,6 +239,7 @@ SELECT
   'Eleva o nível quando o chamado permanece vencido por pelo menos 1 hora.',
   3
 WHERE NOT EXISTS (
-  SELECT 1 FROM public.escalonamento_regras
+  SELECT 1
+  FROM public.escalonamento_regras
   WHERE nome = 'SLA vencido há 1 hora'
 );
