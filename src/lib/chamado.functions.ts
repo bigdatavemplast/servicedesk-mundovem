@@ -5,6 +5,7 @@ import {
   emailChamadoAberto,
   emailInteracao,
   emailChamadoFechado,
+  emailChamadoResolvido,
 } from "@/lib/email.service";
 import { hasAnyRolePermission } from "@/lib/permissions";
 import type { Role } from "@/types/roles";
