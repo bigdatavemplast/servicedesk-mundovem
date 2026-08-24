@@ -33,6 +33,7 @@ function AdminIndexPage() {
 
   const kpis = [
     { to: "/admin/usuarios", label: "Usuários", value: stats?.usuarios ?? "—", icon: Users, color: "text-blue-500" },
+    { to: "/admin/catalogo", label: "Catálogo", value: "→", icon: ListChecks, color: "text-violet-500" },
     { to: "/admin/categorias", label: "Categorias", value: stats?.categorias ?? "—", icon: FolderTree, color: "text-orange-500" },
     { to: "/admin/categorias", label: "Subcategorias", value: stats?.subcategorias ?? "—", icon: Tag, color: "text-amber-500" },
     { to: "/admin/tipos-chamado", label: "Tipos de chamado", value: "→", icon: ListChecks, color: "text-violet-500" },
@@ -42,6 +43,7 @@ function AdminIndexPage() {
   ];
 
   const tools = [
+    { to: "/admin/catalogo", title: "Catálogo", desc: "Visualize a estrutura operacional de segmentos, categorias, subcategorias e tipos de chamado.", icon: ListChecks },
     { to: "/admin/categorias", title: "Categorias e Subcategorias", desc: "Organize categorias e subcategorias dos chamados.", icon: FolderTree },
     { to: "/admin/tipos-chamado", title: "Tipos de Chamado", desc: "Defina a natureza do atendimento, independente de segmento, categoria e subcategoria.", icon: ListChecks },
     { to: "/admin/usuarios", title: "Usuários e Permissões", desc: "Gerencie papéis e contas.", icon: ShieldCheck },
@@ -53,7 +55,7 @@ function AdminIndexPage() {
 
   return <div className="space-y-6">
     <div className="flex items-center gap-2"><ShieldCheck className="h-6 w-6 text-primary" /><div><h1 className="text-2xl font-bold">Painel administrativo</h1><p className="text-sm text-muted-foreground">Configurações e gestão da plataforma</p></div></div>
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">{kpis.map((k) => <Link key={k.label} to={k.to} className="block"><Card className="h-full cursor-pointer transition-colors hover:border-primary hover:shadow-md"><CardContent className="flex items-center justify-between p-4"><div><div className="text-xs text-muted-foreground">{k.label}</div><div className="text-2xl font-bold">{k.value}</div></div><k.icon className={`h-8 w-8 ${k.color}`} /></CardContent></Card></Link>)}</div>
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-8">{kpis.map((k) => <Link key={k.label} to={k.to} className="block"><Card className="h-full cursor-pointer transition-colors hover:border-primary hover:shadow-md"><CardContent className="flex items-center justify-between p-4"><div><div className="text-xs text-muted-foreground">{k.label}</div><div className="text-2xl font-bold">{k.value}</div></div><k.icon className={`h-8 w-8 ${k.color}`} /></CardContent></Card></Link>)}</div>
     <div className="grid gap-4 md:grid-cols-2">{tools.map((t) => <Link key={t.to} to={t.to} className="block"><Card className="h-full transition-colors hover:border-primary hover:shadow-md"><CardHeader className="flex flex-row items-center gap-3 pb-2"><div className="grid h-10 w-10 place-items-center rounded-md bg-primary/10 text-primary"><t.icon className="h-5 w-5" /></div><CardTitle className="text-base">{t.title}</CardTitle></CardHeader><CardContent><p className="text-sm text-muted-foreground">{t.desc}</p></CardContent></Card></Link>)}</div>
   </div>;
 }
