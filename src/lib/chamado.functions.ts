@@ -70,6 +70,43 @@ async function hasPermission(
   );
 }
 
+type TipoNotificacao =
+  | "chamado_aberto"
+  | "chamado_atribuido"
+  | "comentario_adicionado"
+  | "status_alterado"
+  | "sla_proximo"
+  | "sla_vencido"
+  | "chamado_resolvido";
+
+async function criarNotificacao(
+  admin: any,
+  args: {
+    destinatarioId: string;
+    tipo: TipoNotificacao;
+    titulo: string;
+    mensagem: string;
+    chamadoId?: string | null;
+  },
+) {
+  const { error } = await admin
+    .from("notificacoes")
+    .insert({
+      destinatario_id: args.destinatarioId,
+      tipo: args.tipo,
+      titulo: args.titulo,
+      mensagem: args.mensagem,
+      chamado_id: args.chamadoId ?? null,
+    } as never);
+
+  if (error) {
+    console.error("[ServiceDesk] Falha ao criar notificação:", error.message);
+    return false;
+  }
+
+  return true;
+}
+
 async function canAccessTicket(
   supabase: any,
   userId: string,
@@ -261,13 +298,25 @@ export const criarChamado = createServerFn({
             data: null as any,
           };
 
-    const n1 =
-      process.env
-        .SERVICE_DESK_N1_EMAIL;
+    const link =
+      (process.env.SERVICE_DESK_PUBLIC_URL ||
+        process.env.APP_URL ||
+        "") +
+      "/chamados/" +
+      criado.id;
 
-    if (n1) {
+    await criarNotificacao(admin, {
+      destinatarioId: context.userId,
+      tipo: "chamado_aberto",
+      titulo: "Chamado " + criado.numero + " aberto",
+      mensagem:
+        'Seu chamado "' + criado.titulo + '" foi registrado com sucesso.',
+      chamadoId: criado.id,
+    });
+
+    if (profile?.email) {
       await emailChamadoAberto({
-        para: n1,
+        para: profile.email,
         numero: criado.numero,
         titulo: criado.titulo,
         solicitante:
@@ -283,12 +332,7 @@ export const criarChamado = createServerFn({
           criado.descricao,
         prazoSla:
           criado.prazo_resolucao,
-        link: `${
-          process.env
-            .SERVICE_DESK_PUBLIC_URL ||
-          process.env.APP_URL ||
-          ""
-        }/chamados/${criado.id}`,
+        link,
       });
     }
 
@@ -334,7 +378,7 @@ export const comentarChamado =
         } = await admin
           .from("chamados")
           .select(
-            "id,numero,titulo,status,prioridade,prazo_resolucao,sla_pausado,solicitante_id",
+            "id,numero,titulo,status,prioridade,prazo_resolucao,sla_pausado,solicitante_id,atendente_id",
           )
           .eq(
             "id",
@@ -409,79 +453,64 @@ export const comentarChamado =
           );
         }
 
-        if (
-          !data.interno &&
-          (await hasPermission(
-            supabase,
-            context.userId,
-            "ticket.view.queue",
-          )) &&
-          ticket.solicitante_id !==
-            context.userId
-        ) {
-          const {
-            data: solicitante,
-          } = await admin
-            .from("profiles")
-            .select(
-              "nome,email",
-            )
-            .eq(
-              "id",
-              ticket.solicitante_id,
-            )
-            .maybeSingle();
+        if (!data.interno) {
+          const actorIsRequester =
+            ticket.solicitante_id === context.userId;
 
-          const {
-            data: autor,
-          } = await admin
-            .from("profiles")
-            .select("nome")
-            .eq(
-              "id",
-              context.userId,
-            )
-            .maybeSingle();
+          const destinatarioId = actorIsRequester
+            ? ticket.atendente_id
+            : ticket.solicitante_id;
 
-          if (
-            solicitante?.email
-          ) {
-            await emailInteracao({
-              para:
-                solicitante.email,
+          if (destinatarioId && destinatarioId !== context.userId) {
+            const [{ data: destinatario }, { data: autor }] =
+              await Promise.all([
+                admin
+                  .from("profiles")
+                  .select("nome,email")
+                  .eq("id", destinatarioId)
+                  .maybeSingle(),
+                admin
+                  .from("profiles")
+                  .select("nome")
+                  .eq("id", context.userId)
+                  .maybeSingle(),
+              ]);
 
-              numero:
-                ticket.numero,
-
-              titulo:
-                ticket.titulo,
-
-              autor:
-                autor?.nome ??
-                "Atendimento",
-
+            await criarNotificacao(admin, {
+              destinatarioId,
+              tipo: "comentario_adicionado",
+              titulo: "Nova interação no chamado " + ticket.numero,
               mensagem:
-                data.conteudo,
-
-              status:
-                ticket.status,
-
-              slaStatus:
-                ticket.sla_pausado
-                  ? "Pausado"
-                  : "Em contagem",
-
-              link: `${
-                process.env
-                  .SERVICE_DESK_PUBLIC_URL ||
-                process.env.APP_URL ||
-                ""
-              }/chamados/${ticket.id}`,
+                (autor?.nome ?? "Usuário") +
+                ' adicionou um comentário ao chamado "' +
+                ticket.titulo +
+                '.',
+              chamadoId: ticket.id,
             });
+
+            if (destinatario?.email) {
+              await emailInteracao({
+                para: destinatario.email,
+                numero: ticket.numero,
+                titulo: ticket.titulo,
+                autor:
+                  autor?.nome ??
+                  (actorIsRequester ? "Solicitante" : "Atendimento"),
+                mensagem: data.conteudo,
+                status: ticket.status,
+                slaStatus: ticket.sla_pausado ? "Pausado" : "Em contagem",
+                link:
+                  (process.env.SERVICE_DESK_PUBLIC_URL ||
+                    process.env.APP_URL ||
+                    "") +
+                  "/chamados/" +
+                  ticket.id,
+              });
+            }
           }
         }
 
-        return inserted;
+                return inserted;
       },
     );
 
@@ -1087,6 +1116,107 @@ export const atualizarChamado =
             throw new Error(
               historicoError.message,
             );
+          }
+        }
+
+        /* ======================================================
+         * NOTIFICAÇÕES DE STATUS / RESOLUÇÃO
+         * ====================================================== */
+
+        if (
+          data.status &&
+          data.status !== ticket.status &&
+          ticket.solicitante_id !== context.userId
+        ) {
+          const { data: solicitante } = await admin
+            .from("profiles")
+            .select("nome,email")
+            .eq("id", ticket.solicitante_id)
+            .maybeSingle();
+
+          const { data: autor } = await admin
+            .from("profiles")
+            .select("nome")
+            .eq("id", context.userId)
+            .maybeSingle();
+
+          const tipoNotificacao =
+            data.status === "resolvido"
+              ? "chamado_resolvido"
+              : "status_alterado";
+
+          await criarNotificacao(admin, {
+            destinatarioId: ticket.solicitante_id,
+            tipo: tipoNotificacao,
+            titulo:
+              data.status === "resolvido"
+                ? "Chamado " + ticket.numero + " resolvido"
+                : "Status do chamado " + ticket.numero + " alterado",
+            mensagem:
+              data.status === "resolvido"
+                ? 'O chamado "' + ticket.titulo + '" foi marcado como resolvido.'
+                : 'O status do chamado "' + ticket.titulo +
+                  '" foi alterado de "' + ticket.status +
+                  '" para "' + data.status + '".',
+            chamadoId: ticket.id,
+          });
+
+          if (data.status === "resolvido" && solicitante?.email) {
+            await emailChamadoResolvido({
+              para: solicitante.email,
+              numero: ticket.numero,
+              titulo: ticket.titulo,
+              autor: autor?.nome ?? "Atendimento",
+              link:
+                (process.env.SERVICE_DESK_PUBLIC_URL ||
+                  process.env.APP_URL ||
+                  "") +
+                "/chamados/" +
+                ticket.id,
+            });
+          }
+        }
+
+        /* ======================================================
+         * NOTIFICAÇÃO DE ATRIBUIÇÃO
+         * ====================================================== */
+
+        if (
+          data.atendenteId !== undefined &&
+          data.atendenteId !== ticket.atendente_id &&
+          data.atendenteId
+        ) {
+          const { data: atendente } = await admin
+            .from("profiles")
+            .select("nome,email")
+            .eq("id", data.atendenteId)
+            .maybeSingle();
+
+          await criarNotificacao(admin, {
+            destinatarioId: data.atendenteId,
+            tipo: "chamado_atribuido",
+            titulo: "Chamado " + ticket.numero + " atribuído",
+            mensagem:
+              'O chamado "' + ticket.titulo + '" foi atribuído a você.',
+            chamadoId: ticket.id,
+          });
+
+          if (atendente?.email) {
+            await emailInteracao({
+              para: atendente.email,
+              numero: ticket.numero,
+              titulo: ticket.titulo,
+              autor: "Service Desk",
+              mensagem: "Este chamado foi atribuído a você.",
+              status: updatedTicket.status,
+              slaStatus: updatedTicket.sla_pausado ? "Pausado" : "Em contagem",
+              link:
+                (process.env.SERVICE_DESK_PUBLIC_URL ||
+                  process.env.APP_URL ||
+                  "") +
+                "/chamados/" +
+                ticket.id,
+            });
           }
         }
 
