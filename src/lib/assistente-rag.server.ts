@@ -23,15 +23,25 @@ type AiConfig = {
   embeddingModel?: string;
 };
 
-/** Busca semântica unificada (Base de conhecimento > chamados resolvidos > documentos). */
 export async function buscarContexto(
   supabase: SupabaseClient<Database>,
   pergunta: string,
   ai: AiConfig,
 ): Promise<ContextoRag> {
+  // O endpoint de chat e o endpoint de embeddings são independentes.
+  // Sem um modelo de embedding explicitamente configurado, não fazemos
+  // uma chamada inválida para /embeddings do provider de chat.
+  if (!ai.embeddingModel?.trim()) {
+    return { fontes: [], bloco: "", confianca: 0 };
+  }
+
   let embedding: number[];
   try {
-    embedding = await gerarEmbedding(pergunta, ai);
+    embedding = await gerarEmbedding(pergunta, {
+      apiKey: ai.apiKey,
+      baseURL: ai.baseURL,
+      modelo: ai.embeddingModel,
+    });
   } catch (erro) {
     console.error("[assistente] embedding falhou", erro);
     return { fontes: [], bloco: "", confianca: 0 };
@@ -65,31 +75,17 @@ export async function buscarContexto(
 
   const bloco = linhas
     .map((l, i) => {
-      const rotulo =
-        l.origem === "base_conhecimento"
-          ? "Base de conhecimento"
-          : l.origem === "chamado"
-            ? "Chamado resolvido"
-            : "Documento interno";
+      const rotulo = l.origem === "base_conhecimento" ? "Base de conhecimento" : l.origem === "chamado" ? "Chamado resolvido" : "Documento interno";
       return `[${i + 1}] (${rotulo}) ${l.titulo}\n${(l.conteudo ?? "").slice(0, 2500)}`;
     })
     .join("\n\n---\n\n");
 
-  const confianca = linhas.length
-    ? Number(Math.max(...linhas.map((l) => l.similarity)).toFixed(4))
-    : 0;
-
+  const confianca = linhas.length ? Number(Math.max(...linhas.map((l) => l.similarity)).toFixed(4)) : 0;
   return { fontes, bloco, confianca };
 }
 
 export function montarSystemPrompt(contexto: ContextoRag, nomeUsuario: string | null) {
-  return [
-    montarPromptAgente(nomeUsuario),
-    "",
-    contexto.bloco ? `CONTEXTO INICIAL RECUPERADO:\n${contexto.bloco}` : "",
-  ]
-    .filter(Boolean)
-    .join("\n");
+  return [montarPromptAgente(nomeUsuario), "", contexto.bloco ? `CONTEXTO INICIAL RECUPERADO:\n${contexto.bloco}` : ""].filter(Boolean).join("\n");
 }
 
 export function montarPromptAgente(nomeUsuario: string | null) {
@@ -134,7 +130,5 @@ export function montarPromptAgente(nomeUsuario: string | null) {
     "- Não peça senhas, tokens ou dados sensíveis.",
     "- Use markdown leve e mantenha as mensagens curtas.",
     "- Nunca abra chamado para assunto fora do escopo do Service Desk.",
-  ]
-    .filter(Boolean)
-    .join("\n");
+  ].filter(Boolean).join("\n");
 }
