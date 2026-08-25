@@ -31,6 +31,16 @@ function configAi(env: unknown) {
   return { apiKey, baseURL, model };
 }
 
+function sanitizarHistorico(mensagens: UIMessage[]): UIMessage[] {
+  return mensagens.map((mensagem) => ({
+    ...mensagem,
+    parts: mensagem.parts.filter((part) => {
+      const tipo = (part as { type?: string }).type;
+      return tipo !== "reasoning";
+    }),
+  }));
+}
+
 export const Route = createFileRoute("/api/assistente")({
   server: {
     handlers: {
@@ -65,7 +75,8 @@ export const Route = createFileRoute("/api/assistente")({
 
         let resultado;
         try {
-          const modelMessages = await convertToModelMessages(mensagens, {
+          const mensagensSemReasoning = sanitizarHistorico(mensagens);
+          const modelMessages = await convertToModelMessages(mensagensSemReasoning, {
             tools: ferramentas,
             ignoreIncompleteToolCalls: true,
           });
