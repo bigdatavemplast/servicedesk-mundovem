@@ -26,7 +26,6 @@ BEGIN
        AND COALESCE(c.escalonamento_nivel, 1) = 1
      ORDER BY c.prazo_resolucao, c.criado_em
   LOOP
-    -- Procura um atendente ativo N2 dentro da mesma fila.
     SELECT ga.usuario_id
       INTO v_atendente_n2
       FROM public.grupo_atendentes ga
@@ -40,8 +39,6 @@ BEGIN
      ORDER BY ga.usuario_id
      LIMIT 1;
 
-    -- Se não houver N2 disponível, não remove o atendimento atual.
-    -- O chamado permanece elegível para nova tentativa no próximo ciclo.
     IF v_atendente_n2 IS NULL THEN
       CONTINUE;
     END IF;
@@ -79,7 +76,6 @@ REVOKE ALL ON FUNCTION public.executar_escalonamento_sla_n1_n2()
 GRANT EXECUTE ON FUNCTION public.executar_escalonamento_sla_n1_n2()
   TO service_role;
 
--- A automação fica cadastrada na mesma estrutura usada pela tela administrativa.
 INSERT INTO public.automacoes_service_desk (
   nome,
   descricao,
@@ -108,7 +104,6 @@ WHERE NOT EXISTS (
      AND parametros_acao ->> 'proximo_nivel' = '2'
 );
 
--- O evento é temporal, portanto precisa de um executor periódico.
 CREATE EXTENSION IF NOT EXISTS pg_cron WITH SCHEMA pg_catalog;
 
 DO $$
@@ -126,7 +121,7 @@ BEGIN
   PERFORM cron.schedule(
     'service-desk-escalonamento-sla-n1-n2',
     '* * * * *',
-    $$SELECT public.executar_escalonamento_sla_n1_n2();$$
+    $job$SELECT public.executar_escalonamento_sla_n1_n2();$job$
   );
 END;
 $$;
