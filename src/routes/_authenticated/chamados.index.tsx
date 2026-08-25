@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { PlusCircle, Clock3, CheckCircle2, MessageCircle, Ticket } from "lucide-react";
+import { PlusCircle, Clock3, CheckCircle2, MessageCircle, Ticket, ChevronUp } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/chamados/")({
   head: () => ({ meta: [
@@ -20,6 +21,7 @@ const prioLabel: Record<string, string> = { baixa: "Baixa", media: "Média", alt
 
 function ChamadosPage() {
   const { user } = Route.useRouteContext();
+  const [mostrarTodos, setMostrarTodos] = useState(false);
   const { data: chamados = [], isLoading } = useQuery({
     queryKey: ["meus-chamados", user.id],
     queryFn: async () => {
@@ -33,6 +35,7 @@ function ChamadosPage() {
   const abertos = chamados.filter((c) => ["aberto", "em_andamento", "aguardando_terceiro"].includes(c.status)).length;
   const aguardando = chamados.filter((c) => c.status === "aguardando_usuario").length;
   const resolvidos = chamados.filter((c) => ["resolvido", "fechado"].includes(c.status)).length;
+  const chamadosVisiveis = mostrarTodos ? chamados : chamados.slice(0, 8);
 
   return (
     <div className="space-y-6">
@@ -49,8 +52,8 @@ function ChamadosPage() {
       </div>
 
       <Card><CardContent className="p-0">
-        <div className="flex items-center justify-between border-b p-4"><div><h2 className="font-semibold">Chamados recentes</h2><p className="text-xs text-muted-foreground">Os últimos atendimentos abertos por você.</p></div><Link to="/chamados"><Button variant="ghost" size="sm">Ver todos</Button></Link></div>
-        {isLoading ? <div className="p-8 text-center text-sm text-muted-foreground">Carregando…</div> : !chamados.length ? <div className="p-8 text-center"><p className="text-sm text-muted-foreground">Você ainda não possui chamados.</p><Link to="/chamados/novo"><Button className="mt-4"><PlusCircle className="mr-2 h-4 w-4" />Abrir meu primeiro chamado</Button></Link></div> : <div className="divide-y">{chamados.slice(0, 8).map((c) => <Link key={c.id} to="/chamados/$id" params={{ id: c.id }} className="flex items-center justify-between gap-4 p-4 hover:bg-muted/40"><div className="min-w-0"><div className="flex items-center gap-2"><span className="font-mono text-xs text-muted-foreground">{c.numero}</span><Badge variant="secondary">{prioLabel[c.prioridade] ?? c.prioridade}</Badge></div><div className="truncate font-medium">{c.titulo}</div><div className="text-xs text-muted-foreground">Aberto em {new Date(c.aberto_em).toLocaleString("pt-BR")}</div></div><Badge>{statusLabel[c.status] ?? c.status}</Badge></Link>)}</div>}
+        <div className="flex items-center justify-between border-b p-4"><div><h2 className="font-semibold">Chamados recentes</h2><p className="text-xs text-muted-foreground">Os últimos atendimentos abertos por você.</p></div>{chamados.length > 8 && <Button variant="ghost" size="sm" onClick={() => setMostrarTodos((v) => !v)}>{mostrarTodos ? <><ChevronUp className="mr-2 h-4 w-4" />Mostrar recentes</> : <>Ver todos</>}</Button>}</div>
+        {isLoading ? <div className="p-8 text-center text-sm text-muted-foreground">Carregando…</div> : !chamados.length ? <div className="p-8 text-center"><p className="text-sm text-muted-foreground">Você ainda não possui chamados.</p><Link to="/chamados/novo"><Button className="mt-4"><PlusCircle className="mr-2 h-4 w-4" />Abrir meu primeiro chamado</Button></Link></div> : <div className="divide-y">{chamadosVisiveis.map((c) => <Link key={c.id} to="/chamados/$id" params={{ id: c.id }} className="flex items-center justify-between gap-4 p-4 hover:bg-muted/40"><div className="min-w-0"><div className="flex items-center gap-2"><span className="font-mono text-xs text-muted-foreground">{c.numero}</span><Badge variant="secondary">{prioLabel[c.prioridade] ?? c.prioridade}</Badge></div><div className="truncate font-medium">{c.titulo}</div><div className="text-xs text-muted-foreground">Aberto em {new Date(c.aberto_em).toLocaleString("pt-BR")}</div></div><Badge>{statusLabel[c.status] ?? c.status}</Badge></Link>)}</div>}
       </CardContent></Card>
     </div>
   );
