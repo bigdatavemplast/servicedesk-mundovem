@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { convertToModelMessages, stepCountIs, streamText, type UIMessage } from "ai";
-import { AI_BASE_URL_PADRAO, createAiProvider } from "@/lib/ai-gateway.server";
+import { AI_BASE_URL_PADRAO, MODELO_CHAT_PADRAO, createAiProvider } from "@/lib/ai-gateway.server";
 import { tituloEhPadrao } from "@/lib/assistente-titulo.server";
 import { montarPromptAgente, type Fonte } from "@/lib/assistente-rag.server";
 import { criarFerramentasAssistente } from "@/lib/assistente-tools.server";
@@ -26,7 +26,7 @@ function valorEnv(env: unknown, chave: string): string | undefined {
 function configAi(env: unknown) {
   const apiKey = valorEnv(env, "AI_API_KEY");
   const baseURL = valorEnv(env, "AI_BASE_URL") || AI_BASE_URL_PADRAO;
-  const model = valorEnv(env, "AI_MODEL");
+  const model = valorEnv(env, "AI_MODEL") || MODELO_CHAT_PADRAO;
   if (!apiKey) return null;
   return { apiKey, baseURL, model };
 }
