@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { convertToModelMessages, stepCountIs, streamText, type UIMessage } from "ai";
+import { convertToModelMessages, stepCountIs, streamText, type ModelMessage, type UIMessage } from "ai";
 import { AI_BASE_URL_PADRAO, MODELO_CHAT_PADRAO, createAiProvider } from "@/lib/ai-gateway.server";
 import { tituloEhPadrao } from "@/lib/assistente-titulo.server";
 import { montarPromptAgente, type Fonte } from "@/lib/assistente-rag.server";
@@ -27,18 +27,29 @@ function configAi(env: unknown) {
   const apiKey = valorEnv(env, "AI_API_KEY");
   const baseURL = valorEnv(env, "AI_BASE_URL") || AI_BASE_URL_PADRAO;
   const model = valorEnv(env, "AI_MODEL") || MODELO_CHAT_PADRAO;
+  const embeddingModel = valorEnv(env, "AI_EMBEDDING_MODEL");
   if (!apiKey) return null;
-  return { apiKey, baseURL, model };
+  return { apiKey, baseURL, model, embeddingModel };
 }
 
-function sanitizarHistorico(mensagens: UIMessage[]): UIMessage[] {
+function sanitizarHistoricoUI(mensagens: UIMessage[]): UIMessage[] {
   return mensagens.map((mensagem) => ({
     ...mensagem,
-    parts: mensagem.parts.filter((part) => {
-      const tipo = (part as { type?: string }).type;
-      return tipo !== "reasoning";
-    }),
+    parts: mensagem.parts.filter((part) => (part as { type?: string }).type !== "reasoning"),
   }));
+}
+
+function sanitizarModelMessages(mensagens: ModelMessage[]): ModelMessage[] {
+  return mensagens.map((mensagem) => {
+    if (mensagem.role !== "assistant" || !Array.isArray(mensagem.content)) return mensagem;
+    return {
+      ...mensagem,
+      content: mensagem.content.filter((part) => {
+        const tipo = (part as { type?: string }).type;
+        return tipo !== "reasoning";
+      }),
+    } as ModelMessage;
+  });
 }
 
 export const Route = createFileRoute("/api/assistente")({
@@ -75,17 +86,22 @@ export const Route = createFileRoute("/api/assistente")({
 
         let resultado;
         try {
-          const mensagensSemReasoning = sanitizarHistorico(mensagens);
-          const modelMessages = await convertToModelMessages(mensagensSemReasoning, {
+          const mensagensSemReasoning = sanitizarHistoricoUI(mensagens);
+          const modelMessages = sanitizarModelMessages(await convertToModelMessages(mensagensSemReasoning, {
             tools: ferramentas,
             ignoreIncompleteToolCalls: true,
-          });
+          }));
 
           resultado = streamText({
             model: gateway(ai.model),
             system: montarPromptAgente(perfil?.nome ?? null),
             messages: modelMessages,
             tools: ferramentas,
+            providerOptions: {
+              "ai-provider": {
+                reasoning_format: "hidden",
+              },
+            },
             stopWhen: stepCountIs(10),
             onFinish: async ({ text }) => {
               const { error } = await supabase.from("ai_messages").insert({ conversation_id: conversationId, user_id: userId, role: "assistant", content: text, fontes: fontesUsadas as unknown as never, confianca });
