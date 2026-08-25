@@ -2,7 +2,7 @@ import { createFileRoute, redirect, Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FolderTree, ShieldCheck, Users, Ticket, BookOpen, Tag, UsersRound, Layers3, ListChecks, Route as RouteIcon } from "lucide-react";
+import { FolderTree, ShieldCheck, Users, Ticket, BookOpen, Tag, UsersRound, Layers3, ListChecks, Route as RouteIcon, Workflow } from "lucide-react";
 import { hasPermission } from "@/lib/permissions";
 import type { Role } from "@/lib/permissions";
 
@@ -40,6 +40,7 @@ function AdminIndexPage() {
     { to: "/admin/segmentos", label: "Segmentos", value: "→", icon: Layers3, color: "text-indigo-500" },
     { to: "/admin/grupos", label: "Grupos de atendimento", value: "→", icon: UsersRound, color: "text-cyan-500" },
     { to: "/admin/regras-atribuicao", label: "Regras de atribuição", value: "→", icon: RouteIcon, color: "text-purple-500" },
+    { to: "/admin/automacoes", label: "Automações", value: "→", icon: Workflow, color: "text-pink-500" },
     { to: "/fila", label: "Chamados", value: stats?.chamados ?? "—", icon: Ticket, color: "text-emerald-500" },
   ];
 
@@ -51,13 +52,14 @@ function AdminIndexPage() {
     { to: "/admin/segmentos", title: "Segmentos", desc: "Defina as áreas responsáveis pelo atendimento.", icon: Layers3 },
     { to: "/admin/grupos", title: "Grupos de Atendimento", desc: "Organize filas por segmento e associe os atendentes responsáveis.", icon: UsersRound },
     { to: "/admin/regras-atribuicao", title: "Regras de Atribuição", desc: "Configure quem recebe automaticamente os chamados de cada combinação de fila e classificação.", icon: RouteIcon },
+    { to: "/admin/automacoes", title: "Automações", desc: "Configure regras operacionais no formato evento, condições e ação.", icon: Workflow },
     { to: "/base-conhecimento", title: "Base de conhecimento", desc: "Acesse os artigos e conteúdos utilizados pelo Service Desk.", icon: BookOpen },
     { to: "/fila", title: "Fila de chamados", desc: "Acompanhe os chamados em atendimento.", icon: Ticket },
   ];
 
   return <div className="space-y-6">
     <div className="flex items-center gap-2"><ShieldCheck className="h-6 w-6 text-primary" /><div><h1 className="text-2xl font-bold">Painel administrativo</h1><p className="text-sm text-muted-foreground">Configurações e gestão da plataforma</p></div></div>
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-9">{kpis.map((k) => <Link key={k.label} to={k.to} className="block"><Card className="h-full cursor-pointer transition-colors hover:border-primary hover:shadow-md"><CardContent className="flex items-center justify-between p-4"><div><div className="text-xs text-muted-foreground">{k.label}</div><div className="text-2xl font-bold">{k.value}</div></div><k.icon className={`h-8 w-8 ${k.color}`} /></CardContent></Card></Link>)}</div>
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-10">{kpis.map((k) => <Link key={k.label} to={k.to} className="block"><Card className="h-full cursor-pointer transition-colors hover:border-primary hover:shadow-md"><CardContent className="flex items-center justify-between p-4"><div><div className="text-xs text-muted-foreground">{k.label}</div><div className="text-2xl font-bold">{k.value}</div></div><k.icon className={`h-8 w-8 ${k.color}`} /></CardContent></Card></Link>)}</div>
     <div className="grid gap-4 md:grid-cols-2">{tools.map((t) => <Link key={t.to} to={t.to} className="block"><Card className="h-full transition-colors hover:border-primary hover:shadow-md"><CardHeader className="flex flex-row items-center gap-3 pb-2"><div className="grid h-10 w-10 place-items-center rounded-md bg-primary/10 text-primary"><t.icon className="h-5 w-5" /></div><CardTitle className="text-base">{t.title}</CardTitle></CardHeader><CardContent><p className="text-sm text-muted-foreground">{t.desc}</p></CardContent></Card></Link>)}</div>
   </div>;
 }
