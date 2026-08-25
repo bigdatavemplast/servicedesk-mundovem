@@ -1,13 +1,24 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { convertToModelMessages, stepCountIs, streamText, type ModelMessage, type UIMessage } from "ai";
+import {
+  convertToModelMessages,
+  createUIMessageStream,
+  createUIMessageStreamResponse,
+  generateId,
+  streamText,
+  stepCountIs,
+  type ModelMessage,
+  type UIMessage,
+} from "ai";
 import { AI_BASE_URL_PADRAO, MODELO_CHAT_PADRAO, createAiProvider } from "@/lib/ai-gateway.server";
 import { tituloEhPadrao } from "@/lib/assistente-titulo.server";
-import { montarPromptAgente, type Fonte } from "@/lib/assistente-rag.server";
+import { buscarContexto, montarPromptAgente, type Fonte } from "@/lib/assistente-rag.server";
 import { criarFerramentasAssistente } from "@/lib/assistente-tools.server";
 import { autenticarRequisicao } from "@/lib/supabase-request.server";
 
 type CorpoRequisicao = { messages?: UIMessage[]; conversationId?: string };
 const CONFIANCA_MINIMA = 0.62;
+
+type SessaoContexto = Awaited<ReturnType<typeof autenticarRequisicao>>;
 
 function textoDaMensagem(mensagem: UIMessage | undefined): string {
   if (!mensagem) return "";
@@ -42,10 +53,7 @@ function sanitizarHistoricoUI(mensagens: UIMessage[]): UIMessage[] {
 function sanitizarModelMessages(mensagens: ModelMessage[]): ModelMessage[] {
   return mensagens.map((mensagem) => {
     if (mensagem.role !== "assistant" || !Array.isArray(mensagem.content)) return mensagem;
-    const limpa = mensagem.content.filter((part) => {
-      const tipo = (part as { type?: string }).type;
-      return tipo !== "reasoning";
-    });
+    const limpa = mensagem.content.filter((part) => (part as { type?: string }).type !== "reasoning");
     const copia = { ...mensagem, content: limpa } as Record<string, unknown>;
     delete copia.reasoning_content;
     delete copia.reasoningContent;
@@ -53,6 +61,51 @@ function sanitizarModelMessages(mensagens: ModelMessage[]): ModelMessage[] {
     delete copia.providerOptions;
     return copia as unknown as ModelMessage;
   });
+}
+
+function ehSaudacao(texto: string): boolean {
+  return /^(oi|olá|ola|bom dia|boa tarde|boa noite|hey|olá, tudo bem|tudo bem)\s*[!.?]*$/i.test(texto.trim());
+}
+
+function querAbrirChamado(texto: string): boolean {
+  return /\b(abrir|criar|registrar|cadastrar)\b.*\b(chamado|ticket|solicita[cç][aã]o)\b/i.test(texto)
+    || /\b(chamado|ticket)\b.*\b(abrir|criar|registrar)\b/i.test(texto);
+}
+
+function querListarChamados(texto: string): boolean {
+  return /\b(meus chamados|meus tickets|chamados em aberto|chamados abertos|listar chamados|quais chamados|chamados que abri)\b/i.test(texto);
+}
+
+function numeroChamado(texto: string): string | null {
+  const match = texto.match(/\b(SD[- ]?\d{3,})\b/i);
+  return match?.[1]?.replace(/\s+/g, "-").toUpperCase() ?? null;
+}
+
+async function salvarResposta(supabase: NonNullable<SessaoContexto>["supabase"], conversationId: string, userId: string, text: string, fontes: Fonte[] = [], confianca = 0) {
+  const { error } = await supabase.from("ai_messages").insert({
+    conversation_id: conversationId,
+    user_id: userId,
+    role: "assistant",
+    content: text,
+    fontes: fontes as unknown as never,
+    confianca,
+  });
+  if (error) console.error("[assistente] erro ao salvar resposta", error);
+  await supabase.from("ai_conversations").update({ updated_at: new Date().toISOString() }).eq("id", conversationId);
+}
+
+function respostaDireta(mensagens: UIMessage[], text: string, metadata?: { fontes?: Fonte[]; confianca?: number }) {
+  const stream = createUIMessageStream({
+    originalMessages: mensagens,
+    execute: ({ writer }) => {
+      const id = generateId();
+      writer.write({ type: "text-start", id });
+      writer.write({ type: "text-delta", id, delta: text });
+      writer.write({ type: "text-end", id });
+    },
+    messageMetadata: () => metadata,
+  });
+  return createUIMessageStreamResponse({ stream });
 }
 
 export const Route = createFileRoute("/api/assistente")({
@@ -76,46 +129,124 @@ export const Route = createFileRoute("/api/assistente")({
 
         const pergunta = textoDaMensagem(mensagens[mensagens.length - 1]);
         const { data: perfil } = await supabase.from("profiles").select("nome").eq("id", userId).maybeSingle();
-        const { error: erroUsuario } = await supabase.from("ai_messages").insert({ conversation_id: conversationId, user_id: userId, role: "user", content: pergunta });
-        if (erroUsuario) console.error("[assistente] erro ao salvar pergunta", erroUsuario);
+        await supabase.from("ai_messages").insert({ conversation_id: conversationId, user_id: userId, role: "user", content: pergunta });
 
         const precisaTitulo = tituloEhPadrao(conversa.title);
         const fontesUsadas: Fonte[] = [];
         let confianca = 0;
-        const ferramentas = criarFerramentasAssistente({ supabase, userId, ai, registrarFontes: (fontes) => { for (const f of fontes) { if (!fontesUsadas.some((x) => x.ref_id === f.ref_id)) fontesUsadas.push(f); confianca = Math.max(confianca, f.similaridade); } } });
+        const registrarFontes = (fontes: Fonte[]) => {
+          for (const fonte of fontes) {
+            if (!fontesUsadas.some((f) => f.ref_id === fonte.ref_id)) fontesUsadas.push(fonte);
+            confianca = Math.max(confianca, fonte.similaridade);
+          }
+        };
+
+        // CAMADA 1: regras determinísticas. Não chama modelo de IA.
+        if (ehSaudacao(pergunta)) {
+          const text = "Boa tarde! Como posso ajudar com seu atendimento no Service Desk?";
+          await salvarResposta(supabase, conversationId, userId, text);
+          return respostaDireta(mensagens, text);
+        }
+
+        if (querAbrirChamado(pergunta)) {
+          const text = "Claro. Vamos abrir seu chamado. Qual é o problema ou solicitação que você precisa registrar?";
+          await salvarResposta(supabase, conversationId, userId, text);
+          return respostaDireta(mensagens, text);
+        }
+
+        if (querListarChamados(pergunta)) {
+          const { data, error } = await supabase
+            .from("chamados")
+            .select("numero, titulo, status, prioridade, aberto_em")
+            .eq("solicitante_id", userId)
+            .order("aberto_em", { ascending: false })
+            .limit(15);
+          const text = error
+            ? "Não consegui consultar seus chamados agora. Tente novamente em instantes."
+            : data?.length
+              ? `Seus chamados recentes:\n\n${data.map((c) => `- **${c.numero}** — ${c.titulo} — ${c.status} — prioridade ${c.prioridade}`).join("\n")}`
+              : "Você não possui chamados registrados.";
+          await salvarResposta(supabase, conversationId, userId, text);
+          return respostaDireta(mensagens, text);
+        }
+
+        const numero = numeroChamado(pergunta);
+        if (numero) {
+          const { data, error } = await supabase
+            .from("chamados")
+            .select("numero, titulo, descricao, status, prioridade, aberto_em, respondido_em, resolvido_em, prazo_resolucao")
+            .eq("numero", numero)
+            .eq("solicitante_id", userId)
+            .maybeSingle();
+          const text = error
+            ? "Não consegui consultar esse chamado agora."
+            : !data
+              ? `Não encontrei o chamado **${numero}** entre os seus chamados.`
+              : `**${data.numero}** — ${data.titulo}\n\n- Status: ${data.status}\n- Prioridade: ${data.prioridade}\n- Aberto em: ${data.aberto_em}${data.prazo_resolucao ? `\n- Prazo de resolução: ${data.prazo_resolucao}` : ""}`;
+          await salvarResposta(supabase, conversationId, userId, text);
+          return respostaDireta(mensagens, text);
+        }
+
+        // CAMADA 2/3: recuperação de conhecimento oficial e histórico. Não gera texto com LLM.
+        try {
+          const contexto = await buscarContexto(supabase, pergunta, ai);
+          registrarFontes(contexto.fontes);
+          if (contexto.confianca >= 0.62 && contexto.bloco) {
+            const rotulo = contexto.origemPrioritaria === "chamado"
+              ? "Encontrei um caso semelhante no histórico de chamados resolvidos. Ele é uma referência histórica, não uma regra oficial."
+              : "Encontrei uma orientação na base de conhecimento/documentação interna:";
+            const text = `${rotulo}\n\n${contexto.bloco}`;
+            await salvarResposta(supabase, conversationId, userId, text, fontesUsadas, confianca);
+            return respostaDireta(mensagens, text, { fontes: fontesUsadas, confianca });
+          }
+        } catch (erro) {
+          console.error("[assistente] recuperação pré-IA falhou", erro);
+        }
+
+        // CAMADA 4: somente agora a IA generativa é acionada.
+        const ferramentas = criarFerramentasAssistente({
+          supabase,
+          userId,
+          ai,
+          registrarFontes,
+        });
         const gateway = createAiProvider({ apiKey: ai.apiKey, baseURL: ai.baseURL, name: "ai-provider" });
 
-        let resultado;
         try {
           const mensagensSemReasoning = sanitizarHistoricoUI(mensagens);
           const modelMessages = sanitizarModelMessages(await convertToModelMessages(mensagensSemReasoning, { tools: ferramentas, ignoreIncompleteToolCalls: true }));
-          resultado = streamText({
+          const resultado = streamText({
             model: gateway(ai.model),
             system: montarPromptAgente(perfil?.nome ?? null),
             messages: modelMessages,
             tools: ferramentas,
             stopWhen: stepCountIs(10),
             onFinish: async ({ text }) => {
-              const { error } = await supabase.from("ai_messages").insert({ conversation_id: conversationId, user_id: userId, role: "assistant", content: text, fontes: fontesUsadas as unknown as never, confianca });
-              if (error) console.error("[assistente] erro ao salvar resposta", error);
-              await supabase.from("ai_conversations").update({ updated_at: new Date().toISOString() }).eq("id", conversationId);
+              await salvarResposta(supabase, conversationId, userId, text, fontesUsadas, confianca);
               if (precisaTitulo) {
                 const fallback = pergunta.replace(/\s+/g, " ").trim().slice(0, 60).trimEnd() || "Nova conversa";
-                const { error: erroTitulo } = await supabase.from("ai_conversations").update({ title: fallback }).eq("id", conversationId).or('title.is.null,title.in.("Nova conversa","Nova conversa IA")');
-                if (erroTitulo) console.error("[assistente] erro ao salvar título", erroTitulo);
+                await supabase.from("ai_conversations").update({ title: fallback }).eq("id", conversationId).or('title.is.null,title.in.("Nova conversa","Nova conversa IA")');
               }
               if (confianca < CONFIANCA_MINIMA) {
-                const { error: erroPergunta } = await supabase.from("perguntas_sem_resposta").insert({ pergunta, contexto: fontesUsadas.map((f) => f.titulo).join(" | ") || null, conversation_id: conversationId, user_id: userId, confianca });
-                if (erroPergunta) console.error("[assistente] erro ao registrar lacuna", erroPergunta);
+                await supabase.from("perguntas_sem_resposta").insert({ pergunta, contexto: fontesUsadas.map((f) => f.titulo).join(" | ") || null, conversation_id: conversationId, user_id: userId, confianca });
               }
+            },
+          });
+          return resultado.toUIMessageStreamResponse({
+            originalMessages: mensagens,
+            messageMetadata: ({ part }) => part.type === "finish" ? { fontes: fontesUsadas, confianca } : undefined,
+            onError: (erro) => {
+              console.error("[assistente] erro de streaming", erro);
+              const mensagem = erro instanceof Error ? erro.message : String(erro);
+              if (mensagem.includes("429")) return "Muitas solicitações agora. Tente em instantes.";
+              if (mensagem.includes("402")) return "O provedor de IA informou falta de créditos.";
+              return "Ocorreu um erro ao gerar a resposta.";
             },
           });
         } catch (erro) {
           console.error("[assistente] falha ao preparar/executar provider de IA", erro);
           return new Response(JSON.stringify({ error: "Não foi possível falar com a IA agora." }), { status: 502, headers: { "Content-Type": "application/json" } });
         }
-
-        return resultado.toUIMessageStreamResponse({ originalMessages: mensagens, messageMetadata: ({ part }) => part.type === "finish" ? { fontes: fontesUsadas, confianca } : undefined, onError: (erro) => { console.error("[assistente] erro de streaming", erro); const mensagem = erro instanceof Error ? erro.message : String(erro); if (mensagem.includes("429")) return "Muitas solicitações agora. Tente em instantes."; if (mensagem.includes("402")) return "O provedor de IA informou falta de créditos."; return "Ocorreu um erro ao gerar a resposta."; } });
       },
     },
   },
