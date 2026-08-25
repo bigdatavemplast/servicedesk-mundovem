@@ -65,10 +65,15 @@ export const Route = createFileRoute("/api/assistente")({
 
         let resultado;
         try {
+          const modelMessages = await convertToModelMessages(mensagens, {
+            tools: ferramentas,
+            ignoreIncompleteToolCalls: true,
+          });
+
           resultado = streamText({
             model: gateway(ai.model),
             system: montarPromptAgente(perfil?.nome ?? null),
-            messages: await convertToModelMessages(mensagens),
+            messages: modelMessages,
             tools: ferramentas,
             stopWhen: stepCountIs(10),
             onFinish: async ({ text }) => {
@@ -87,7 +92,7 @@ export const Route = createFileRoute("/api/assistente")({
             },
           });
         } catch (erro) {
-          console.error("[assistente] falha no provider de IA", erro);
+          console.error("[assistente] falha ao preparar/executar provider de IA", erro);
           return new Response(JSON.stringify({ error: "Não foi possível falar com a IA agora." }), { status: 502, headers: { "Content-Type": "application/json" } });
         }
 
