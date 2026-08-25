@@ -18,12 +18,14 @@ create index if not exists idx_automacoes_service_desk_evento_ativo
 
 alter table public.automacoes_service_desk enable row level security;
 
+drop policy if exists "admin pode gerenciar automacoes" on public.automacoes_service_desk;
+
 create policy "admin pode gerenciar automacoes"
   on public.automacoes_service_desk
   for all
   to authenticated
-  using (public.has_permission(auth.uid(), 'service_desk.manage'))
-  with check (public.has_permission(auth.uid(), 'service_desk.manage'));
+  using (public.has_role(auth.uid(), 'admin'::public.app_role))
+  with check (public.has_role(auth.uid(), 'admin'::public.app_role));
 
 comment on table public.automacoes_service_desk is 'Regras de automação operacional do Service Desk. Evento -> condições -> ação.';
 comment on column public.automacoes_service_desk.evento is 'Evento que dispara a automação.';
