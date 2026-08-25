@@ -42,13 +42,16 @@ function sanitizarHistoricoUI(mensagens: UIMessage[]): UIMessage[] {
 function sanitizarModelMessages(mensagens: ModelMessage[]): ModelMessage[] {
   return mensagens.map((mensagem) => {
     if (mensagem.role !== "assistant" || !Array.isArray(mensagem.content)) return mensagem;
-    return {
-      ...mensagem,
-      content: mensagem.content.filter((part) => {
-        const tipo = (part as { type?: string }).type;
-        return tipo !== "reasoning";
-      }),
-    } as ModelMessage;
+    const limpa = mensagem.content.filter((part) => {
+      const tipo = (part as { type?: string }).type;
+      return tipo !== "reasoning";
+    });
+    const copia = { ...mensagem, content: limpa } as Record<string, unknown>;
+    delete copia.reasoning_content;
+    delete copia.reasoningContent;
+    delete copia.providerMetadata;
+    delete copia.providerOptions;
+    return copia as unknown as ModelMessage;
   });
 }
 
@@ -58,9 +61,7 @@ export const Route = createFileRoute("/api/assistente")({
       POST: async ({ request }) => {
         const env = (request as Request & { env?: unknown }).env;
         const ai = configAi(env);
-        if (!ai) {
-          return new Response(JSON.stringify({ error: "IA não configurada no servidor. Defina AI_API_KEY." }), { status: 503, headers: { "Content-Type": "application/json" } });
-        }
+        if (!ai) return new Response(JSON.stringify({ error: "IA não configurada no servidor. Defina AI_API_KEY." }), { status: 503, headers: { "Content-Type": "application/json" } });
 
         const sessao = await autenticarRequisicao(request);
         if (!sessao) return new Response(JSON.stringify({ error: "Sessão expirada. Entre novamente." }), { status: 401, headers: { "Content-Type": "application/json" } });
@@ -87,21 +88,12 @@ export const Route = createFileRoute("/api/assistente")({
         let resultado;
         try {
           const mensagensSemReasoning = sanitizarHistoricoUI(mensagens);
-          const modelMessages = sanitizarModelMessages(await convertToModelMessages(mensagensSemReasoning, {
-            tools: ferramentas,
-            ignoreIncompleteToolCalls: true,
-          }));
-
+          const modelMessages = sanitizarModelMessages(await convertToModelMessages(mensagensSemReasoning, { tools: ferramentas, ignoreIncompleteToolCalls: true }));
           resultado = streamText({
             model: gateway(ai.model),
             system: montarPromptAgente(perfil?.nome ?? null),
             messages: modelMessages,
             tools: ferramentas,
-            providerOptions: {
-              "ai-provider": {
-                reasoning_format: "hidden",
-              },
-            },
             stopWhen: stepCountIs(10),
             onFinish: async ({ text }) => {
               const { error } = await supabase.from("ai_messages").insert({ conversation_id: conversationId, user_id: userId, role: "assistant", content: text, fontes: fontesUsadas as unknown as never, confianca });
