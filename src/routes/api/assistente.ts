@@ -17,12 +17,35 @@ import { autenticarRequisicao } from "@/lib/supabase-request.server";
 
 type CorpoRequisicao = { messages?: UIMessage[]; conversationId?: string };
 const CONFIANCA_MINIMA = 0.62;
+const MAX_CONTEXTO_RECUPERACAO = 6;
 
 type SessaoContexto = Awaited<ReturnType<typeof autenticarRequisicao>>;
 
 function textoDaMensagem(mensagem: UIMessage | undefined): string {
   if (!mensagem) return "";
   return mensagem.parts.map((p) => (p.type === "text" ? p.text : "")).join(" ").trim();
+}
+
+function textoDaConversa(mensagens: UIMessage[]): string {
+  return mensagens
+    .slice(-MAX_CONTEXTO_RECUPERACAO)
+    .map((mensagem) => {
+      const texto = textoDaMensagem(mensagem);
+      if (!texto) return "";
+      return `${mensagem.role === "assistant" ? "Assistente" : "Usuário"}: ${texto}`;
+    })
+    .filter(Boolean)
+    .join("\n");
+}
+
+function consultaParaRecuperacao(mensagens: UIMessage[]): string {
+  const atual = textoDaMensagem(mensagens[mensagens.length - 1]);
+  const anterior = mensagens.length > 1 ? textoDaConversa(mensagens.slice(0, -1)) : "";
+  if (!anterior) return atual;
+
+  // Mantém a pergunta atual no centro, mas fornece contexto suficiente para
+  // resolver referências como "e quem aprova?", "e nesse caso?" etc.
+  return `PERGUNTA ATUAL:\n${atual}\n\nCONTEXTO RECENTE DA CONVERSA:\n${anterior}`;
 }
 
 function valorEnv(env: unknown, chave: string): string | undefined {
@@ -128,6 +151,7 @@ export const Route = createFileRoute("/api/assistente")({
         if (!conversa) return new Response(JSON.stringify({ error: "Conversa não encontrada." }), { status: 404, headers: { "Content-Type": "application/json" } });
 
         const pergunta = textoDaMensagem(mensagens[mensagens.length - 1]);
+        const consultaRecuperacao = consultaParaRecuperacao(mensagens);
         const { data: perfil } = await supabase.from("profiles").select("nome").eq("id", userId).maybeSingle();
         await supabase.from("ai_messages").insert({ conversation_id: conversationId, user_id: userId, role: "user", content: pergunta });
 
@@ -187,9 +211,10 @@ export const Route = createFileRoute("/api/assistente")({
           return respostaDireta(mensagens, text);
         }
 
-        // CAMADA 2/3: recuperação de conhecimento oficial e histórico. Não gera texto com LLM.
+        // CAMADAS 2/3: a recuperação sempre recebe a pergunta + contexto recente,
+        // inclusive na segunda, terceira ou décima interação da mesma conversa.
         try {
-          const contexto = await buscarContexto(supabase, pergunta, ai);
+          const contexto = await buscarContexto(supabase, consultaRecuperacao, ai);
           registrarFontes(contexto.fontes);
           if (contexto.confianca >= 0.62 && contexto.bloco) {
             const rotulo = contexto.origemPrioritaria === "chamado"
@@ -204,12 +229,7 @@ export const Route = createFileRoute("/api/assistente")({
         }
 
         // CAMADA 4: somente agora a IA generativa é acionada.
-        const ferramentas = criarFerramentasAssistente({
-          supabase,
-          userId,
-          ai,
-          registrarFontes,
-        });
+        const ferramentas = criarFerramentasAssistente({ supabase, userId, ai, registrarFontes });
         const gateway = createAiProvider({ apiKey: ai.apiKey, baseURL: ai.baseURL, name: "ai-provider" });
 
         try {
