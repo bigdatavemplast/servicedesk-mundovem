@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Pencil, ThumbsDown, ThumbsUp } from "lucide-react";
@@ -32,13 +33,16 @@ function DetalhePage() {
 
   const { data: artigo, isLoading, error } = useQuery({ queryKey: ["bc-artigo", id], queryFn: async () => { const { data, error } = await supabase.from("base_conhecimento").select("id,titulo,conteudo,visualizacoes,publicado,criado_em,atualizado_em,categoria:categorias(nome)").eq("id", id).eq("publicado", true).maybeSingle(); if (error) throw error; return data; } });
 
-  const { data: meuFeedback } = useQuery({ queryKey: ["bc-feedback", id, user.id], queryFn: async () => { const { data, error } = await supabase.from("base_conhecimento_feedback").select("util").eq("artigo_id", id).eq("usuario_id", user.id).maybeSingle(); if (error) throw error; return data; } });
+  const { data: meuFeedback } = useQuery({ queryKey: ["bc-feedback", id, user.id], queryFn: async () => { const { data, error } = await (supabase as any).from("base_conhecimento_feedback").select("util").eq("artigo_id", id).eq("usuario_id", user.id).maybeSingle(); if (error) throw error; return data as { util: boolean } | null; } });
 
   useEffect(() => { if (artigo?.id) { supabase.from("base_conhecimento").update({ visualizacoes: (artigo.visualizacoes ?? 0) + 1 } as never).eq("id", artigo.id).then(() => {}); } }, [artigo?.id]);
 
   const enviarFeedback = async (util: boolean) => {
-    const { error: upsertError } = await supabase.from("base_conhecimento_feedback").upsert({ artigo_id: id, usuario_id: user.id, util }, { onConflict: "artigo_id,usuario_id" });
-    if (upsertError) return;
+    const { error: upsertError } = await (supabase as any).from("base_conhecimento_feedback").upsert({ artigo_id: id, usuario_id: user.id, util }, { onConflict: "artigo_id,usuario_id" });
+    if (upsertError) {
+      console.error("Erro ao registrar feedback da base de conhecimento:", upsertError);
+      return;
+    }
     window.location.reload();
   };
 
