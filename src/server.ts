@@ -18,8 +18,19 @@ async function getServerEntry(): Promise<ServerEntry> {
   return serverEntryPromise;
 }
 
-// h3 swallows in-handler throws into a normal 500 Response with body
-// {"unhandled":true,"message":"HTTPError"} — try/catch alone never fires for those.
+function requestComRuntimeEnv(request: Request, env: unknown): Request {
+  const runtimeRequest = request as Request & { env?: unknown };
+  if (runtimeRequest.env === undefined && env !== undefined) {
+    Object.defineProperty(runtimeRequest, "env", {
+      value: env,
+      configurable: true,
+      enumerable: false,
+      writable: false,
+    });
+  }
+  return runtimeRequest;
+}
+
 async function normalizeCatastrophicSsrResponse(response: Response): Promise<Response> {
   if (response.status < 500) return response;
   const contentType = response.headers.get("content-type") ?? "";
@@ -48,7 +59,7 @@ export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
       const handler = await getServerEntry();
-      const response = await handler.fetch(request, env, ctx);
+      const response = await handler.fetch(requestComRuntimeEnv(request, env), env, ctx);
       return await normalizeCatastrophicSsrResponse(response);
     } catch (error) {
       console.error(error);
