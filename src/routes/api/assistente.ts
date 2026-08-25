@@ -42,9 +42,6 @@ function consultaParaRecuperacao(mensagens: UIMessage[]): string {
   const atual = textoDaMensagem(mensagens[mensagens.length - 1]);
   const anterior = mensagens.length > 1 ? textoDaConversa(mensagens.slice(0, -1)) : "";
   if (!anterior) return atual;
-
-  // Mantém a pergunta atual no centro, mas fornece contexto suficiente para
-  // resolver referências como "e quem aprova?", "e nesse caso?" etc.
   return `PERGUNTA ATUAL:\n${atual}\n\nCONTEXTO RECENTE DA CONVERSA:\n${anterior}`;
 }
 
@@ -69,20 +66,52 @@ function configAi(env: unknown) {
 function sanitizarHistoricoUI(mensagens: UIMessage[]): UIMessage[] {
   return mensagens.map((mensagem) => ({
     ...mensagem,
-    parts: mensagem.parts.filter((part) => (part as { type?: string }).type !== "reasoning"),
+    parts: mensagem.parts
+      .filter((part) => {
+        const tipo = (part as { type?: string }).type;
+        return tipo !== "reasoning" && tipo !== "reasoning-part" && tipo !== "reasoning-delta";
+      })
+      .map((part) => {
+        const copia = { ...(part as Record<string, unknown>) };
+        delete copia.reasoning_content;
+        delete copia.reasoningContent;
+        delete copia.providerMetadata;
+        delete copia.providerOptions;
+        return copia as typeof part;
+      }),
   }));
+}
+
+function removerMetadadosProvedor(valor: unknown): unknown {
+  if (Array.isArray(valor)) return valor.map(removerMetadadosProvedor);
+  if (!valor || typeof valor !== "object") return valor;
+
+  const origem = valor as Record<string, unknown>;
+  const destino: Record<string, unknown> = {};
+  for (const [chave, item] of Object.entries(origem)) {
+    if (
+      chave === "reasoning_content" ||
+      chave === "reasoningContent" ||
+      chave === "providerMetadata" ||
+      chave === "providerOptions" ||
+      chave === "provider_metadata" ||
+      chave === "provider_options"
+    ) continue;
+    destino[chave] = removerMetadadosProvedor(item);
+  }
+  return destino;
 }
 
 function sanitizarModelMessages(mensagens: ModelMessage[]): ModelMessage[] {
   return mensagens.map((mensagem) => {
-    if (mensagem.role !== "assistant" || !Array.isArray(mensagem.content)) return mensagem;
-    const limpa = mensagem.content.filter((part) => (part as { type?: string }).type !== "reasoning");
-    const copia = { ...mensagem, content: limpa } as Record<string, unknown>;
-    delete copia.reasoning_content;
-    delete copia.reasoningContent;
-    delete copia.providerMetadata;
-    delete copia.providerOptions;
-    return copia as unknown as ModelMessage;
+    const limpa = removerMetadadosProvedor(mensagem) as ModelMessage;
+    if (limpa.role === "assistant" && Array.isArray(limpa.content)) {
+      limpa.content = limpa.content.filter((part) => {
+        const tipo = (part as { type?: string }).type;
+        return tipo !== "reasoning" && tipo !== "reasoning-part" && tipo !== "reasoning-delta";
+      });
+    }
+    return limpa;
   });
 }
 
@@ -165,7 +194,6 @@ export const Route = createFileRoute("/api/assistente")({
           }
         };
 
-        // CAMADA 1: regras determinísticas. Não chama modelo de IA.
         if (ehSaudacao(pergunta)) {
           const text = "Boa tarde! Como posso ajudar com seu atendimento no Service Desk?";
           await salvarResposta(supabase, conversationId, userId, text);
@@ -179,47 +207,25 @@ export const Route = createFileRoute("/api/assistente")({
         }
 
         if (querListarChamados(pergunta)) {
-          const { data, error } = await supabase
-            .from("chamados")
-            .select("numero, titulo, status, prioridade, aberto_em")
-            .eq("solicitante_id", userId)
-            .order("aberto_em", { ascending: false })
-            .limit(15);
-          const text = error
-            ? "Não consegui consultar seus chamados agora. Tente novamente em instantes."
-            : data?.length
-              ? `Seus chamados recentes:\n\n${data.map((c) => `- **${c.numero}** — ${c.titulo} — ${c.status} — prioridade ${c.prioridade}`).join("\n")}`
-              : "Você não possui chamados registrados.";
+          const { data, error } = await supabase.from("chamados").select("numero, titulo, status, prioridade, aberto_em").eq("solicitante_id", userId).order("aberto_em", { ascending: false }).limit(15);
+          const text = error ? "Não consegui consultar seus chamados agora. Tente novamente em instantes." : data?.length ? `Seus chamados recentes:\n\n${data.map((c) => `- **${c.numero}** — ${c.titulo} — ${c.status} — prioridade ${c.prioridade}`).join("\n")}` : "Você não possui chamados registrados.";
           await salvarResposta(supabase, conversationId, userId, text);
           return respostaDireta(mensagens, text);
         }
 
         const numero = numeroChamado(pergunta);
         if (numero) {
-          const { data, error } = await supabase
-            .from("chamados")
-            .select("numero, titulo, descricao, status, prioridade, aberto_em, respondido_em, resolvido_em, prazo_resolucao")
-            .eq("numero", numero)
-            .eq("solicitante_id", userId)
-            .maybeSingle();
-          const text = error
-            ? "Não consegui consultar esse chamado agora."
-            : !data
-              ? `Não encontrei o chamado **${numero}** entre os seus chamados.`
-              : `**${data.numero}** — ${data.titulo}\n\n- Status: ${data.status}\n- Prioridade: ${data.prioridade}\n- Aberto em: ${data.aberto_em}${data.prazo_resolucao ? `\n- Prazo de resolução: ${data.prazo_resolucao}` : ""}`;
+          const { data, error } = await supabase.from("chamados").select("numero, titulo, descricao, status, prioridade, aberto_em, respondido_em, resolvido_em, prazo_resolucao").eq("numero", numero).eq("solicitante_id", userId).maybeSingle();
+          const text = error ? "Não consegui consultar esse chamado agora." : !data ? `Não encontrei o chamado **${numero}** entre os seus chamados.` : `**${data.numero}** — ${data.titulo}\n\n- Status: ${data.status}\n- Prioridade: ${data.prioridade}\n- Aberto em: ${data.aberto_em}${data.prazo_resolucao ? `\n- Prazo de resolução: ${data.prazo_resolucao}` : ""}`;
           await salvarResposta(supabase, conversationId, userId, text);
           return respostaDireta(mensagens, text);
         }
 
-        // CAMADAS 2/3: a recuperação sempre recebe a pergunta + contexto recente,
-        // inclusive na segunda, terceira ou décima interação da mesma conversa.
         try {
           const contexto = await buscarContexto(supabase, consultaRecuperacao, ai);
           registrarFontes(contexto.fontes);
           if (contexto.confianca >= 0.62 && contexto.bloco) {
-            const rotulo = contexto.origemPrioritaria === "chamado"
-              ? "Encontrei um caso semelhante no histórico de chamados resolvidos. Ele é uma referência histórica, não uma regra oficial."
-              : "Encontrei uma orientação na base de conhecimento/documentação interna:";
+            const rotulo = contexto.origemPrioritaria === "chamado" ? "Encontrei um caso semelhante no histórico de chamados resolvidos. Ele é uma referência histórica, não uma regra oficial." : "Encontrei uma orientação na base de conhecimento/documentação interna:";
             const text = `${rotulo}\n\n${contexto.bloco}`;
             await salvarResposta(supabase, conversationId, userId, text, fontesUsadas, confianca);
             return respostaDireta(mensagens, text, { fontes: fontesUsadas, confianca });
@@ -228,13 +234,13 @@ export const Route = createFileRoute("/api/assistente")({
           console.error("[assistente] recuperação pré-IA falhou", erro);
         }
 
-        // CAMADA 4: somente agora a IA generativa é acionada.
         const ferramentas = criarFerramentasAssistente({ supabase, userId, ai, registrarFontes });
         const gateway = createAiProvider({ apiKey: ai.apiKey, baseURL: ai.baseURL, name: "ai-provider" });
 
         try {
           const mensagensSemReasoning = sanitizarHistoricoUI(mensagens);
-          const modelMessages = sanitizarModelMessages(await convertToModelMessages(mensagensSemReasoning, { tools: ferramentas, ignoreIncompleteToolCalls: true }));
+          const convertidas = await convertToModelMessages(mensagensSemReasoning, { tools: ferramentas, ignoreIncompleteToolCalls: true });
+          const modelMessages = sanitizarModelMessages(convertidas);
           const resultado = streamText({
             model: gateway(ai.model),
             system: montarPromptAgente(perfil?.nome ?? null),
