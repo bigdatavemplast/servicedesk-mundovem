@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { convertToModelMessages, stepCountIs, streamText, type UIMessage } from "ai";
-import { AI_BASE_URL_PADRAO, createAiProvider, MODELO_CHAT } from "@/lib/ai-gateway.server";
-import { gerarTituloConversa, tituloEhPadrao } from "@/lib/assistente-titulo.server";
+import { AI_BASE_URL_PADRAO, createAiProvider } from "@/lib/ai-gateway.server";
+import { tituloEhPadrao } from "@/lib/assistente-titulo.server";
 import { montarPromptAgente, type Fonte } from "@/lib/assistente-rag.server";
 import { criarFerramentasAssistente } from "@/lib/assistente-tools.server";
 import { autenticarRequisicao } from "@/lib/supabase-request.server";
@@ -26,7 +26,7 @@ function valorEnv(env: unknown, chave: string): string | undefined {
 function configAi(env: unknown) {
   const apiKey = valorEnv(env, "AI_API_KEY");
   const baseURL = valorEnv(env, "AI_BASE_URL") || AI_BASE_URL_PADRAO;
-  const model = valorEnv(env, "AI_MODEL") || MODELO_CHAT;
+  const model = valorEnv(env, "AI_MODEL");
   if (!apiKey) return null;
   return { apiKey, baseURL, model };
 }
@@ -57,7 +57,7 @@ export const Route = createFileRoute("/api/assistente")({
         const { error: erroUsuario } = await supabase.from("ai_messages").insert({ conversation_id: conversationId, user_id: userId, role: "user", content: pergunta });
         if (erroUsuario) console.error("[assistente] erro ao salvar pergunta", erroUsuario);
 
-        const promessaTitulo = tituloEhPadrao(conversa.title) ? gerarTituloConversa(pergunta, ai) : null;
+        const precisaTitulo = tituloEhPadrao(conversa.title);
         const fontesUsadas: Fonte[] = [];
         let confianca = 0;
         const ferramentas = criarFerramentasAssistente({ supabase, userId, ai, registrarFontes: (fontes) => { for (const f of fontes) { if (!fontesUsadas.some((x) => x.ref_id === f.ref_id)) fontesUsadas.push(f); confianca = Math.max(confianca, f.similaridade); } } });
@@ -75,9 +75,9 @@ export const Route = createFileRoute("/api/assistente")({
               const { error } = await supabase.from("ai_messages").insert({ conversation_id: conversationId, user_id: userId, role: "assistant", content: text, fontes: fontesUsadas as unknown as never, confianca });
               if (error) console.error("[assistente] erro ao salvar resposta", error);
               await supabase.from("ai_conversations").update({ updated_at: new Date().toISOString() }).eq("id", conversationId);
-              if (promessaTitulo) {
-                const titulo = await promessaTitulo;
-                const { error: erroTitulo } = await supabase.from("ai_conversations").update({ title: titulo }).eq("id", conversationId).or('title.is.null,title.in.("Nova conversa","Nova conversa IA")');
+              if (precisaTitulo) {
+                const fallback = pergunta.replace(/\s+/g, " ").trim().slice(0, 60).trimEnd() || "Nova conversa";
+                const { error: erroTitulo } = await supabase.from("ai_conversations").update({ title: fallback }).eq("id", conversationId).or('title.is.null,title.in.("Nova conversa","Nova conversa IA")');
                 if (erroTitulo) console.error("[assistente] erro ao salvar título", erroTitulo);
               }
               if (confianca < CONFIANCA_MINIMA) {
