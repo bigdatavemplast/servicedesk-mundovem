@@ -10,7 +10,7 @@ function ItsmProblemas() {
   const { data, isLoading, error } = useQuery({
     queryKey: ["itsm-problemas"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("itsm_problemas").select("*").order("created_at", { ascending: false });
+      const { data, error } = await supabase.from("itsm_problemas").select("*").order("criado_em", { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
@@ -26,7 +26,7 @@ function ItsmProblemas() {
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2"><AlertTriangle className="h-5 w-5" /> Problemas registrados</CardTitle></CardHeader>
         <CardContent>
-          {isLoading ? <p className="text-sm text-muted-foreground">Carregando...</p> : data?.length ? <div className="space-y-3">{data.map((item: any) => <div key={item.id} className="rounded-lg border p-4"><div className="font-medium">{item.titulo ?? item.title ?? `Problema ${item.id}`}</div><div className="mt-1 text-sm text-muted-foreground">Status: {item.status ?? "-"} · Prioridade: {item.prioridade ?? item.priority ?? "-"}</div></div>)}</div> : <p className="text-sm text-muted-foreground">Nenhum problema registrado.</p>}
+          {isLoading ? <p className="text-sm text-muted-foreground">Carregando...</p> : data?.length ? <div className="space-y-3">{data.map((item: any) => <div key={item.id} className="rounded-lg border p-4"><div className="font-medium">{item.titulo ?? `Problema #${item.numero ?? item.id}`}</div><div className="mt-1 text-sm text-muted-foreground">Status: {item.status ?? "-"} · Prioridade: {item.prioridade ?? "-"}</div></div>)}</div> : <p className="text-sm text-muted-foreground">Nenhum problema registrado.</p>}
         </CardContent>
       </Card>
     </div>
