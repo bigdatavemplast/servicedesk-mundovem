@@ -2,7 +2,7 @@ import { createFileRoute, redirect, Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FolderTree, ShieldCheck, Users, Ticket, BookOpen, Tag, UsersRound, Layers3, ListChecks, Route as RouteIcon, Workflow } from "lucide-react";
+import { FolderTree, ShieldCheck, Users, Ticket, BookOpen, Tag, UsersRound, Layers3, ListChecks, Route as RouteIcon, Workflow, Wrench } from "lucide-react";
 import { hasPermission } from "@/lib/permissions";
 import type { Role } from "@/lib/permissions";
 
@@ -34,6 +34,7 @@ function AdminIndexPage() {
   const kpis = [
     { to: "/admin/usuarios", label: "Usuários", value: stats?.usuarios ?? "—", icon: Users, color: "text-blue-500" },
     { to: "/admin/catalogo", label: "Catálogo", value: "→", icon: ListChecks, color: "text-violet-500" },
+    { to: "/itsm-avancado", label: "ITSM Avançado", value: "→", icon: Wrench, color: "text-emerald-500" },
     { to: "/admin/categorias", label: "Categorias", value: stats?.categorias ?? "—", icon: FolderTree, color: "text-orange-500" },
     { to: "/admin/categorias", label: "Subcategorias", value: stats?.subcategorias ?? "—", icon: Tag, color: "text-amber-500" },
     { to: "/admin/tipos-chamado", label: "Tipos de chamado", value: "→", icon: ListChecks, color: "text-violet-500" },
@@ -45,6 +46,7 @@ function AdminIndexPage() {
   ];
 
   const tools = [
+    { to: "/itsm-avancado", title: "ITSM Avançado", desc: "Problemas, mudanças, ativos/CMDB, relacionamentos, catálogo avançado, conhecimento, auditoria e governança.", icon: Wrench },
     { to: "/admin/catalogo", title: "Catálogo", desc: "Visualize a estrutura operacional de segmentos, categorias, subcategorias e tipos de chamado.", icon: ListChecks },
     { to: "/admin/categorias", title: "Categorias e Subcategorias", desc: "Organize categorias e subcategorias dos chamados.", icon: FolderTree },
     { to: "/admin/tipos-chamado", title: "Tipos de Chamado", desc: "Defina a natureza do atendimento, independente de segmento, categoria e subcategoria.", icon: ListChecks },
