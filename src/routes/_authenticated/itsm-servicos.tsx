@@ -2,7 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,7 +43,6 @@ type Service = {
   descricao: string | null;
   status: string;
   proprietario_id: string | null;
-  criado_por: string | null;
   criado_em: string;
   atualizado_em: string;
 };
@@ -49,6 +53,7 @@ function ItsmServicos() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Service | null>(null);
   const [selected, setSelected] = useState<Service | null>(null);
+
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -94,6 +99,7 @@ function ItsmServicos() {
     setDescricao(service.descricao ?? "");
     setStatus(service.status ?? "ativo");
     setError(null);
+
     setEditing(service);
     setOpen(true);
   };
@@ -107,20 +113,11 @@ function ItsmServicos() {
     setSaving(true);
     setError(null);
 
-    const {
-      data: userData,
-    } = await supabase.auth.getUser();
-
     const payload = {
       nome: nome.trim(),
       descricao: descricao.trim() || null,
       status,
       atualizado_em: new Date().toISOString(),
-      ...(editing
-        ? {}
-        : {
-            criado_por: userData.user?.id ?? null,
-          }),
     };
 
     const result = editing
@@ -144,6 +141,7 @@ function ItsmServicos() {
           ? "Já existe um serviço com este nome."
           : result.error.message,
       );
+
       return;
     }
 
@@ -187,6 +185,7 @@ function ItsmServicos() {
 
   return (
     <div className="space-y-6">
+
       {/* Cabeçalho */}
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -233,7 +232,9 @@ function ItsmServicos() {
           </CardHeader>
 
           <CardContent className="space-y-4">
+
             <div className="grid gap-4 md:grid-cols-2">
+
               <div className="space-y-2">
                 <Label htmlFor="servico-nome">
                   Nome *
@@ -287,6 +288,7 @@ function ItsmServicos() {
                   rows={4}
                 />
               </div>
+
             </div>
 
             {error && (
@@ -310,6 +312,7 @@ function ItsmServicos() {
                 {saving ? "Salvando..." : "Salvar"}
               </Button>
             </div>
+
           </CardContent>
         </Card>
       )}
@@ -317,7 +320,9 @@ function ItsmServicos() {
       {/* Detalhes */}
       {selected && !open && (
         <Card className="border-primary/50 ring-1 ring-primary/20">
+
           <CardHeader className="flex flex-row items-center justify-between">
+
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Eye className="h-5 w-5" />
@@ -330,6 +335,7 @@ function ItsmServicos() {
             </div>
 
             <div className="flex gap-2">
+
               <Button
                 variant="outline"
                 size="sm"
@@ -355,11 +361,15 @@ function ItsmServicos() {
               >
                 <X className="h-4 w-4" />
               </Button>
+
             </div>
+
           </CardHeader>
 
           <CardContent>
+
             <div className="grid gap-4 md:grid-cols-2">
+
               <Detail
                 label="Status"
                 value={
@@ -379,12 +389,14 @@ function ItsmServicos() {
                   value={selected.descricao}
                 />
               </div>
+
             </div>
+
           </CardContent>
         </Card>
       )}
 
-      {/* Erro de carregamento */}
+      {/* Erro */}
       {loadError && (
         <Card>
           <CardContent className="pt-6">
@@ -397,6 +409,7 @@ function ItsmServicos() {
 
       {/* Lista */}
       <Card>
+
         <CardHeader>
           <CardTitle>
             Serviços registrados
@@ -404,18 +417,23 @@ function ItsmServicos() {
         </CardHeader>
 
         <CardContent>
+
           {isLoading ? (
             <p className="text-sm text-muted-foreground">
               Carregando...
             </p>
           ) : data && data.length > 0 ? (
+
             <div className="space-y-3">
+
               {data.map((service) => (
                 <div
                   key={service.id}
                   className="flex items-center justify-between gap-4 rounded-lg border p-4"
                 >
+
                   <div className="min-w-0">
+
                     <div className="font-medium">
                       {service.nome}
                     </div>
@@ -430,6 +448,7 @@ function ItsmServicos() {
                         {service.descricao}
                       </div>
                     )}
+
                   </div>
 
                   <Button
@@ -440,16 +459,23 @@ function ItsmServicos() {
                     <Eye className="mr-2 h-4 w-4" />
                     Ver detalhes
                   </Button>
+
                 </div>
               ))}
+
             </div>
+
           ) : (
+
             <p className="text-sm text-muted-foreground">
               Nenhum serviço cadastrado.
             </p>
+
           )}
+
         </CardContent>
       </Card>
+
     </div>
   );
 }
@@ -463,6 +489,7 @@ function Detail({
 }) {
   return (
     <div className="space-y-1">
+
       <div className="text-xs font-medium text-muted-foreground">
         {label}
       </div>
@@ -474,6 +501,7 @@ function Detail({
           ? "-"
           : String(value)}
       </div>
+
     </div>
   );
 }
