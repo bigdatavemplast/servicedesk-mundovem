@@ -12,11 +12,8 @@ import {
 } from "@/lib/anexos";
 
 type Props = {
-  /** Chamado quando novos arquivos válidos são escolhidos (drop ou seleção). */
   onArquivos: (arquivos: File[]) => void;
-  /** Arquivos pendentes exibidos abaixo da área de soltar. */
   pendentes?: File[];
-  /** Progresso por nome de arquivo (0-100). */
   progresso?: Record<string, number>;
   onRemover?: (index: number) => void;
   disabled?: boolean;
@@ -28,18 +25,37 @@ export function AnexoDropzone({ onArquivos, pendentes = [], progresso, onRemover
 
   function processar(lista: FileList | null) {
     if (!lista || lista.length === 0) return;
+
     const validos: File[] = [];
     for (const file of Array.from(lista)) {
       const erro = validarAnexo(file);
-      if (erro) toast.error(erro);
-      else validos.push(file);
+      if (erro) {
+        toast.error(erro);
+      } else {
+        validos.push(file);
+      }
     }
+
     if (validos.length > 0) onArquivos(validos);
+  }
+
+  function abrirSeletor() {
+    if (!disabled) inputRef.current?.click();
   }
 
   return (
     <div className="space-y-2">
       <div
+        role="button"
+        tabIndex={disabled ? -1 : 0}
+        aria-disabled={disabled}
+        onClick={abrirSeletor}
+        onKeyDown={(e) => {
+          if (!disabled && (e.key === "Enter" || e.key === " ")) {
+            e.preventDefault();
+            abrirSeletor();
+          }
+        }}
         onDragOver={(e) => {
           e.preventDefault();
           if (!disabled) setArrastando(true);
@@ -50,34 +66,28 @@ export function AnexoDropzone({ onArquivos, pendentes = [], progresso, onRemover
           setArrastando(false);
           if (!disabled) processar(e.dataTransfer.files);
         }}
-        className={`rounded-lg border border-dashed p-4 text-center transition-colors ${
+        className={`cursor-pointer rounded-lg border border-dashed p-4 text-center transition-colors ${
           arrastando ? "border-primary bg-primary/5" : "border-border"
-        } ${disabled ? "opacity-60" : ""}`}
+        } ${disabled ? "cursor-not-allowed opacity-60" : "hover:bg-muted/30"}`}
       >
         <input
           ref={inputRef}
+          id="anexo-arquivo"
           type="file"
           multiple
           accept={ACCEPT_ANEXOS}
-          className="hidden"
+          className="sr-only"
           disabled={disabled}
           onChange={(e) => {
             processar(e.target.files);
             e.target.value = "";
           }}
+          onClick={(e) => e.stopPropagation()}
         />
+
         <Upload className="mx-auto mb-2 h-5 w-5 text-muted-foreground" aria-hidden="true" />
         <p className="text-sm">
-          Arraste os arquivos aqui ou{" "}
-          <Button
-            type="button"
-            variant="link"
-            className="h-auto p-0 align-baseline text-sm"
-            disabled={disabled}
-            onClick={() => inputRef.current?.click()}
-          >
-            Anexar arquivo
-          </Button>
+          Arraste os arquivos aqui ou <span className="font-medium text-primary underline underline-offset-2">clique para anexar</span>
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
           {EXTENSOES_PERMITIDAS.join(", ").toUpperCase()} · até 10 MB por arquivo
@@ -107,7 +117,10 @@ export function AnexoDropzone({ onArquivos, pendentes = [], progresso, onRemover
                       variant="ghost"
                       className="h-6 w-6"
                       aria-label={`Remover ${file.name}`}
-                      onClick={() => onRemover(i)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRemover(i);
+                      }}
                     >
                       <X className="h-3 w-3" />
                     </Button>
