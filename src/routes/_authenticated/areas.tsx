@@ -1,0 +1,89 @@
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Building2, ChevronRight, Settings2, Loader2 } from "lucide-react";
+
+export const Route = createFileRoute("/_authenticated/areas")({
+  ssr: false,
+  component: AreasPage,
+});
+
+type Segmento = { id: string; nome: string; ativo: boolean; ordem: number };
+
+const descricoes: Record<string, string> = {
+  TI: "Sistemas, infraestrutura, acessos, equipamentos e suporte de tecnologia.",
+  RH: "Pessoas, benefícios, férias, folha e processos de Recursos Humanos.",
+  Financeiro: "Pagamentos, notas, processos e serviços financeiros.",
+  Projetos: "Projetos, demandas e serviços relacionados às iniciativas da empresa.",
+  Outros: "Serviços e solicitações de outras áreas da empresa.",
+};
+
+function AreasPage() {
+  const navigate = useNavigate();
+  const { data: segmentos = [], isLoading, error } = useQuery({
+    queryKey: ["areas-service-desk"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("segmentos")
+        .select("id,nome,ativo,ordem")
+        .eq("ativo", true)
+        .order("ordem")
+        .order("nome");
+      if (error) throw error;
+      return (data ?? []) as Segmento[];
+    },
+  });
+
+  const entrar = (segmento: Segmento) => {
+    localStorage.setItem("service_desk_segmento", JSON.stringify({ id: segmento.id, nome: segmento.nome }));
+    navigate({ to: "/dashboard", search: { segmento: segmento.id } });
+  };
+
+  return (
+    <div className="min-h-[calc(100vh-8rem)]">
+      <div className="mx-auto max-w-5xl py-8">
+        <div className="mb-8 text-center">
+          <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-xl bg-primary/10 text-primary">
+            <Building2 className="h-6 w-6" />
+          </div>
+          <h1 className="text-3xl font-semibold tracking-tight">Qual área você deseja acessar?</h1>
+          <p className="mx-auto mt-2 max-w-2xl text-muted-foreground">
+            Escolha uma área para entrar no ambiente correspondente do Service Desk. O contexto da área será usado para suas solicitações e consultas.
+          </p>
+        </div>
+
+        {isLoading && <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}
+        {error && <Card><CardContent className="py-8 text-center text-sm text-destructive">Não foi possível carregar as áreas disponíveis.</CardContent></Card>}
+        {!isLoading && !error && (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {segmentos.map((segmento) => (
+              <Card key={segmento.id} className="group cursor-pointer transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-md" onClick={() => entrar(segmento)}>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="grid h-10 w-10 place-items-center rounded-lg bg-primary/10 text-primary"><Building2 className="h-5 w-5" /></div>
+                    <ChevronRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
+                  </div>
+                  <CardTitle className="pt-2">{segmento.nome}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">{descricoes[segmento.nome] ?? `Acesse os serviços e solicitações de ${segmento.nome}.`}</p>
+                  <Button variant="ghost" className="mt-4 w-full justify-between px-0 hover:bg-transparent hover:text-primary">
+                    Acessar {segmento.nome}<ChevronRight className="h-4 w-4" />
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-8 flex justify-center">
+          <Button variant="outline" onClick={() => navigate({ to: "/itsm-avancado" })}>
+            <Settings2 className="mr-2 h-4 w-4" /> Administração / ITSM
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
