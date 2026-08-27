@@ -2,7 +2,7 @@ import { createFileRoute, redirect, Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FolderTree, ShieldCheck, Users, Ticket, BookOpen, Tag, UsersRound, Layers3, ListChecks, Route as RouteIcon, Workflow } from "lucide-react";
+import { FolderTree, ShieldCheck, Users, Ticket, BookOpen, Tag, UsersRound, Layers3, ListChecks, Route as RouteIcon, Workflow, Settings2 } from "lucide-react";
 import { hasPermission } from "@/lib/permissions";
 import type { Role } from "@/lib/permissions";
 
@@ -15,51 +15,13 @@ export const Route = createFileRoute("/_authenticated/admin/")({
   },
   component: AdminIndexPage,
 });
-
 function AdminIndexPage() {
-  const { data: stats } = useQuery({
-    queryKey: ["admin-overview"],
-    queryFn: async () => {
-      const [u, c, s, ch, kb] = await Promise.all([
-        supabase.from("profiles").select("id", { count: "exact", head: true }),
-        supabase.from("categorias").select("id", { count: "exact", head: true }),
-        supabase.from("subcategorias").select("id", { count: "exact", head: true }),
-        supabase.from("chamados").select("id", { count: "exact", head: true }),
-        supabase.from("base_conhecimento").select("id", { count: "exact", head: true }),
-      ]);
-      return { usuarios: u.count ?? 0, categorias: c.count ?? 0, subcategorias: s.count ?? 0, chamados: ch.count ?? 0, artigos: kb.count ?? 0 };
-    },
-  });
-
+  const { data: stats } = useQuery({ queryKey: ["admin-overview"], queryFn: async () => { const [u,c,s,ch,kb] = await Promise.all([supabase.from("profiles").select("id",{count:"exact",head:true}),supabase.from("categorias").select("id",{count:"exact",head:true}),supabase.from("subcategorias").select("id",{count:"exact",head:true}),supabase.from("chamados").select("id",{count:"exact",head:true}),supabase.from("base_conhecimento").select("id",{count:"exact",head:true})]); return {usuarios:u.count??0,categorias:c.count??0,subcategorias:s.count??0,chamados:ch.count??0,artigos:kb.count??0}; } });
   const kpis = [
-    { to: "/admin/usuarios", label: "Usuários", value: stats?.usuarios ?? "—", icon: Users, color: "text-blue-500" },
-    { to: "/admin/catalogo", label: "Catálogo", value: "→", icon: ListChecks, color: "text-violet-500" },
-    { to: "/admin/categorias", label: "Categorias", value: stats?.categorias ?? "—", icon: FolderTree, color: "text-orange-500" },
-    { to: "/admin/categorias", label: "Subcategorias", value: stats?.subcategorias ?? "—", icon: Tag, color: "text-amber-500" },
-    { to: "/admin/tipos-chamado", label: "Tipos de chamado", value: "→", icon: ListChecks, color: "text-violet-500" },
-    { to: "/admin/segmentos", label: "Segmentos", value: "→", icon: Layers3, color: "text-indigo-500" },
-    { to: "/admin/grupos", label: "Grupos de atendimento", value: "→", icon: UsersRound, color: "text-cyan-500" },
-    { to: "/admin/regras-atribuicao", label: "Regras de atribuição", value: "→", icon: RouteIcon, color: "text-purple-500" },
-    { to: "/admin/automacoes", label: "Automações", value: "→", icon: Workflow, color: "text-pink-500" },
-    { to: "/fila", label: "Chamados", value: stats?.chamados ?? "—", icon: Ticket, color: "text-emerald-500" },
+    {to:"/admin/usuarios",label:"Usuários",value:stats?.usuarios??"—",icon:Users,color:"text-blue-500"},{to:"/admin/catalogo",label:"Catálogo",value:"→",icon:ListChecks,color:"text-violet-500"},{to:"/admin/categorias",label:"Categorias",value:stats?.categorias??"—",icon:FolderTree,color:"text-orange-500"},{to:"/admin/categorias",label:"Subcategorias",value:stats?.subcategorias??"—",icon:Tag,color:"text-amber-500"},{to:"/admin/tipos-chamado",label:"Tipos de chamado",value:"→",icon:ListChecks,color:"text-violet-500"},{to:"/admin/segmentos",label:"Segmentos",value:"→",icon:Layers3,color:"text-indigo-500"},{to:"/admin/grupos",label:"Grupos de atendimento",value:"→",icon:UsersRound,color:"text-cyan-500"},{to:"/admin/regras-atribuicao",label:"Regras de atribuição",value:"→",icon:RouteIcon,color:"text-purple-500"},{to:"/admin/automacoes",label:"Automações",value:"→",icon:Workflow,color:"text-pink-500"},{to:"/fila",label:"Chamados",value:stats?.chamados??"—",icon:Ticket,color:"text-emerald-500"},
   ];
-
   const tools = [
-    { to: "/admin/catalogo", title: "Catálogo", desc: "Visualize a estrutura operacional de segmentos, categorias, subcategorias e tipos de chamado.", icon: ListChecks },
-    { to: "/admin/categorias", title: "Categorias e Subcategorias", desc: "Organize categorias e subcategorias dos chamados.", icon: FolderTree },
-    { to: "/admin/tipos-chamado", title: "Tipos de Chamado", desc: "Defina a natureza do atendimento, independente de segmento, categoria e subcategoria.", icon: ListChecks },
-    { to: "/admin/usuarios", title: "Usuários e Permissões", desc: "Gerencie papéis e contas.", icon: ShieldCheck },
-    { to: "/admin/segmentos", title: "Segmentos", desc: "Defina as áreas responsáveis pelo atendimento.", icon: Layers3 },
-    { to: "/admin/grupos", title: "Grupos de Atendimento", desc: "Organize filas por segmento e associe os atendentes responsáveis.", icon: UsersRound },
-    { to: "/admin/regras-atribuicao", title: "Regras de Atribuição", desc: "Configure quem recebe automaticamente os chamados de cada combinação de fila e classificação.", icon: RouteIcon },
-    { to: "/admin/automacoes", title: "Automações", desc: "Configure regras operacionais no formato evento, condições e ação.", icon: Workflow },
-    { to: "/base-conhecimento", title: "Base de conhecimento", desc: "Acesse os artigos e conteúdos utilizados pelo Service Desk.", icon: BookOpen },
-    { to: "/fila", title: "Fila de chamados", desc: "Acompanhe os chamados em atendimento.", icon: Ticket },
+    {to:"/admin/catalogo",title:"Catálogo",desc:"Visualize a estrutura operacional de segmentos, categorias, subcategorias e tipos de chamado.",icon:ListChecks},{to:"/admin/categorias",title:"Categorias e Subcategorias",desc:"Organize categorias e subcategorias dos chamados.",icon:FolderTree},{to:"/admin/tipos-chamado",title:"Tipos de Chamado",desc:"Defina a natureza do atendimento, independente de segmento, categoria e subcategoria.",icon:ListChecks},{to:"/admin/usuarios",title:"Usuários e Permissões",desc:"Gerencie papéis, contas e permissões individuais do ITSM Avançado.",icon:ShieldCheck},{to:"/admin/itsm-permissoes",title:"Permissões ITSM Avançado",desc:"Escolha por usuário quais módulos ITSM ele pode visualizar, criar, editar e excluir.",icon:Settings2},{to:"/admin/segmentos",title:"Segmentos",desc:"Defina as áreas responsáveis pelo atendimento.",icon:Layers3},{to:"/admin/grupos",title:"Grupos de Atendimento",desc:"Organize filas por segmento e associe os atendentes responsáveis.",icon:UsersRound},{to:"/admin/regras-atribuicao",title:"Regras de Atribuição",desc:"Configure quem recebe automaticamente os chamados de cada combinação de fila e classificação.",icon:RouteIcon},{to:"/admin/automacoes",title:"Automações",desc:"Configure regras operacionais no formato evento, condições e ação.",icon:Workflow},{to:"/base-conhecimento",title:"Base de conhecimento",desc:"Acesse os artigos e conteúdos utilizados pelo Service Desk.",icon:BookOpen},{to:"/fila",title:"Fila de chamados",desc:"Acompanhe os chamados em atendimento.",icon:Ticket},
   ];
-
-  return <div className="space-y-6">
-    <div className="flex items-center gap-2"><ShieldCheck className="h-6 w-6 text-primary" /><div><h1 className="text-2xl font-bold">Painel administrativo</h1><p className="text-sm text-muted-foreground">Configurações e gestão da plataforma</p></div></div>
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-10">{kpis.map((k) => <Link key={k.label} to={k.to} className="block"><Card className="h-full cursor-pointer transition-colors hover:border-primary hover:shadow-md"><CardContent className="flex items-center justify-between p-4"><div><div className="text-xs text-muted-foreground">{k.label}</div><div className="text-2xl font-bold">{k.value}</div></div><k.icon className={`h-8 w-8 ${k.color}`} /></CardContent></Card></Link>)}</div>
-    <div className="grid gap-4 md:grid-cols-2">{tools.map((t) => <Link key={t.to} to={t.to} className="block"><Card className="h-full transition-colors hover:border-primary hover:shadow-md"><CardHeader className="flex flex-row items-center gap-3 pb-2"><div className="grid h-10 w-10 place-items-center rounded-md bg-primary/10 text-primary"><t.icon className="h-5 w-5" /></div><CardTitle className="text-base">{t.title}</CardTitle></CardHeader><CardContent><p className="text-sm text-muted-foreground">{t.desc}</p></CardContent></Card></Link>)}</div>
-  </div>;
+  return <div className="space-y-6"><div className="flex items-center gap-2"><ShieldCheck className="h-6 w-6 text-primary"/><div><h1 className="text-2xl font-bold">Painel administrativo</h1><p className="text-sm text-muted-foreground">Configurações e gestão da plataforma</p></div></div><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-10">{kpis.map((k)=><Link key={k.label} to={k.to} className="block"><Card className="h-full cursor-pointer transition-colors hover:border-primary hover:shadow-md"><CardContent className="flex items-center justify-between p-4"><div><div className="text-xs text-muted-foreground">{k.label}</div><div className="text-2xl font-bold">{k.value}</div></div><k.icon className={`h-8 w-8 ${k.color}`}/></CardContent></Card></Link>)}</div><div className="grid gap-4 md:grid-cols-2">{tools.map((t)=><Link key={t.to} to={t.to} className="block"><Card className="h-full transition-colors hover:border-primary hover:shadow-md"><CardHeader className="flex flex-row items-center gap-3 pb-2"><div className="grid h-10 w-10 place-items-center rounded-md bg-primary/10 text-primary"><t.icon className="h-5 w-5"/></div><CardTitle className="text-base">{t.title}</CardTitle></CardHeader><CardContent><p className="text-sm text-muted-foreground">{t.desc}</p></CardContent></Card></Link>)}</div></div>;
 }
