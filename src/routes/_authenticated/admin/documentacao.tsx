@@ -21,9 +21,11 @@ export const Route = createFileRoute("/_authenticated/admin/documentacao")({
 const CATEGORIAS = ["Atualização", "Visão geral", "Operação", "SLA", "Classificação", "ITSM", "Segurança", "Técnico"];
 const vazio = { categoria: "Atualização", titulo: "", conteudo: "", versao: "", ordem: "0" };
 
+type EditingState = { id?: string | null } | null;
+
 function DocumentacaoPage() {
   const qc = useQueryClient();
-  const [editing, setEditing] = useState<any>(null);
+  const [editing, setEditing] = useState<EditingState>(null);
   const [form, setForm] = useState(vazio);
 
   const { data: docs = [], isLoading } = useQuery({
@@ -92,6 +94,10 @@ function DocumentacaoPage() {
   });
 
   const remove = async (id: string) => {
+    if (!id) {
+      toast.error("Registro de documentação inválido.");
+      return;
+    }
     if (!confirm("Excluir este registro da documentação?")) return;
     const { error } = await supabase.from("documentacao_sistema").delete().eq("id", id);
     if (error) toast.error(error.message);
@@ -101,12 +107,22 @@ function DocumentacaoPage() {
     }
   };
 
+  const startNew = () => {
+    setForm(vazio);
+    setEditing({ id: null });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const startEdit = (d: any) => {
-    setEditing(d);
+    if (!d?.id) {
+      toast.error("Não foi possível editar: documentação sem ID.");
+      return;
+    }
+    setEditing({ id: d.id });
     setForm({
-      categoria: d.categoria,
-      titulo: d.titulo,
-      conteudo: d.conteudo,
+      categoria: d.categoria ?? "Atualização",
+      titulo: d.titulo ?? "",
+      conteudo: d.conteudo ?? "",
       versao: d.versao ?? "",
       ordem: String(d.ordem ?? 0),
     });
@@ -125,12 +141,7 @@ function DocumentacaoPage() {
             </p>
           </div>
         </div>
-        <Button
-          onClick={() => {
-            setEditing(null);
-            setForm(vazio);
-          }}
-        >
+        <Button type="button" onClick={startNew}>
           <Plus className="mr-2 h-4 w-4" />Nova documentação
         </Button>
       </div>
@@ -139,7 +150,7 @@ function DocumentacaoPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>{editing.id ? "Editar documentação" : "Nova documentação"}</CardTitle>
-            <Button variant="ghost" size="icon" onClick={() => setEditing(null)}>
+            <Button type="button" variant="ghost" size="icon" onClick={() => setEditing(null)}>
               <X />
             </Button>
           </CardHeader>
@@ -172,8 +183,8 @@ function DocumentacaoPage() {
               <Textarea className="min-h-[240px]" value={form.conteudo} onChange={(e) => setForm((f) => ({ ...f, conteudo: e.target.value }))} placeholder="Descreva o funcionamento, regra, atualização ou detalhe técnico..." />
             </div>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
-              <Button onClick={() => save.mutate()} disabled={save.isPending}>
+              <Button type="button" variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
+              <Button type="button" onClick={() => save.mutate()} disabled={save.isPending}>
                 <Save className="mr-2 h-4 w-4" />{save.isPending ? "Salvando..." : "Salvar"}
               </Button>
             </div>
@@ -195,8 +206,8 @@ function DocumentacaoPage() {
                   <CardTitle className="text-lg">{d.titulo}</CardTitle>
                 </div>
                 <div className="flex gap-1">
-                  <Button variant="ghost" size="icon" onClick={() => startEdit(d)}><Pencil /></Button>
-                  <Button variant="ghost" size="icon" onClick={() => remove(d.id)}><Trash2 /></Button>
+                  <Button type="button" variant="ghost" size="icon" onClick={() => startEdit(d)}><Pencil /></Button>
+                  <Button type="button" variant="ghost" size="icon" onClick={() => remove(d.id)}><Trash2 /></Button>
                 </div>
               </CardHeader>
               <CardContent>
