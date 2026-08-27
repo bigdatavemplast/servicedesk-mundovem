@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { CheckCircle2, Info, Lightbulb, Loader2 } from "lucide-react";
 import { AnexoDropzone } from "@/components/anexos/AnexoDropzone";
-import { enviarAnexo } from "@/lib/anexos";
+import { enviarAnexo, validarAnexo } from "@/lib/anexos";
 import { criarChamadoComCatalogo } from "@/lib/chamado-catalogo.functions";
 
 export const Route = createFileRoute("/_authenticated/chamados/novo")({ component: NovoChamadoPage });
@@ -113,16 +113,40 @@ function NovoChamadoPage() {
   });
 
   const sugestao = useMemo(() => sugestaoAbertura(`${titulo} ${descricao}`), [titulo, descricao]);
-  const etapas = [titulo.trim().length >= 5, descricao.trim().length >= 20, !!tipoChamadoId, !!area?.id, !!categoriaId, !incidente || (!!impacto && !!urgencia)];
-  const progressoAbertura = Math.round((etapas.filter(Boolean).length / etapas.length) * 100);
+
+  const requisitos = {
+    titulo: titulo.trim().length >= 5,
+    descricao: descricao.trim().length >= 20,
+    tipo: !!tipoChamadoId,
+    area: !!area?.id,
+    categoria: !!categoriaId,
+    incidente: !incidente || (!!impacto && !!urgencia),
+  };
+  const prontoParaAbrir = Object.values(requisitos).every(Boolean);
+  const progressoAbertura = prontoParaAbrir
+    ? 100
+    : Math.round((Object.values(requisitos).filter(Boolean).length / Object.values(requisitos).length) * 100);
+
+  function adicionarAnexos(novos: File[]) {
+    const validos: File[] = [];
+    for (const file of novos) {
+      const erro = validarAnexo(file);
+      if (erro) {
+        toast.error(erro);
+        continue;
+      }
+      validos.push(file);
+    }
+    if (validos.length) setAnexos((atual) => [...atual, ...validos]);
+  }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    if (!area?.id) return toast.error("Selecione uma área antes de abrir o chamado.");
-    if (titulo.trim().length < 5) return toast.error("Informe um título mais descritivo (mínimo de 5 caracteres).");
-    if (descricao.trim().length < 20) return toast.error("Descreva o ocorrido com pelo menos 20 caracteres.");
-    if (!tipoChamadoId) return toast.error("Selecione o tipo de chamado.");
-    if (!categoriaId) return toast.error("Selecione a categoria.");
+    if (!requisitos.area) return toast.error("Selecione uma área antes de abrir o chamado.");
+    if (!requisitos.titulo) return toast.error("Informe um título mais descritivo (mínimo de 5 caracteres).");
+    if (!requisitos.descricao) return toast.error("Descreva o ocorrido com pelo menos 20 caracteres.");
+    if (!requisitos.tipo) return toast.error("Selecione o tipo de chamado.");
+    if (!requisitos.categoria) return toast.error("Selecione a categoria.");
     if (incidente && !impacto) return toast.error("Selecione o impacto do incidente.");
     if (incidente && !urgencia) return toast.error("Selecione a urgência do incidente.");
 
@@ -150,7 +174,12 @@ function NovoChamadoPage() {
     let falhas = 0;
     for (const file of anexos) {
       try {
-        await enviarAnexo({ chamadoId: criado.id, autorId: user.id, file, onProgress: (pct) => setProgresso((p) => ({ ...p, [file.name]: pct })) });
+        await enviarAnexo({
+          chamadoId: criado.id,
+          autorId: user.id,
+          file,
+          onProgress: (pct) => setProgresso((p) => ({ ...p, [file.name]: pct })),
+        });
       } catch (error) {
         falhas += 1;
         toast.error(error instanceof Error ? error.message : `Falha ao anexar ${file.name}`);
@@ -189,9 +218,9 @@ function NovoChamadoPage() {
       {incidente && prioridadeCalculada && <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm"><span className="font-medium">Prioridade calculada:</span> {prioridadeCalculada === "critica" ? "P1 – Crítica" : prioridadeCalculada === "alta" ? "P2 – Alta" : prioridadeCalculada === "media" ? "P3 – Média" : "P4 – Baixa"}</div>}
     </CardContent></Card>
 
-    <Card><CardHeader><CardTitle>4. Anexos</CardTitle></CardHeader><CardContent><AnexoDropzone onArquivos={(novos) => setAnexos((atual) => [...atual, ...novos])} pendentes={anexos} progresso={progresso} onRemover={(i) => setAnexos((atual) => atual.filter((_, idx) => idx !== i))} disabled={loading} /><p className="mt-2 text-xs text-muted-foreground">Opcional. Use imagens ou arquivos que ajudem o atendimento.</p></CardContent></Card>
+    <Card><CardHeader><CardTitle>4. Anexos</CardTitle></CardHeader><CardContent><AnexoDropzone onArquivos={adicionarAnexos} pendentes={anexos} progresso={progresso} onRemover={(i) => setAnexos((atual) => atual.filter((_, idx) => idx !== i))} disabled={loading} /><p className="mt-2 text-xs text-muted-foreground">Opcional. Use imagens ou arquivos que ajudem o atendimento.</p></CardContent></Card>
 
-    <Card><CardHeader><CardTitle>Resumo</CardTitle></CardHeader><CardContent className="space-y-3 text-sm"><div className="grid gap-2 sm:grid-cols-2"><Summary label="Área" value={area.nome} /><Summary label="Tipo" value={tipoSelecionado?.nome} /><Summary label="Categoria" value={categorias.find((c) => c.id === categoriaId)?.nome} /><Summary label="Subcategoria" value={subcategorias.find((s) => s.id === subcategoriaId)?.nome || "Não informada"} /><Summary label="Prioridade" value={prioridadeCalculada ?? prioridade} /></div>{progressoAbertura < 100 && <p className="text-xs text-muted-foreground">Complete os campos obrigatórios para liberar a abertura.</p>}<div className="flex justify-end gap-2 pt-2"><Button type="button" variant="outline" onClick={() => navigate({ to: "/chamados" })}>Cancelar</Button><Button type="button" disabled={loading || progressoAbertura < 100} onClick={handleSubmit}>{loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}Abrir chamado</Button></div></CardContent></Card>
+    <Card><CardHeader><CardTitle>Resumo</CardTitle></CardHeader><CardContent className="space-y-3 text-sm"><div className="grid gap-2 sm:grid-cols-2"><Summary label="Área" value={area.nome} /><Summary label="Tipo" value={tipoSelecionado?.nome} /><Summary label="Categoria" value={categorias.find((c) => c.id === categoriaId)?.nome} /><Summary label="Subcategoria" value={subcategorias.find((s) => s.id === subcategoriaId)?.nome || "Não informada"} /><Summary label="Prioridade" value={prioridadeCalculada ?? prioridade} /></div>{!prontoParaAbrir && <p className="text-xs text-muted-foreground">Complete os campos obrigatórios para liberar a abertura.</p>}<div className="flex justify-end gap-2 pt-2"><Button type="button" variant="outline" onClick={() => navigate({ to: "/chamados" })}>Cancelar</Button><Button type="button" disabled={loading || !prontoParaAbrir} onClick={handleSubmit}>{loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}Abrir chamado</Button></div></CardContent></Card>
   </div>;
 }
 
