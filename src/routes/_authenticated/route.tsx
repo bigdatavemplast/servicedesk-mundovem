@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, redirect, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Ticket, PlusCircle, BookOpen, LogOut, Users, FolderTree, ShieldCheck, MessageSquare, BarChart3, Settings2 } from "lucide-react";
+import { LayoutDashboard, Ticket, PlusCircle, BookOpen, LogOut, Users, FolderTree, ShieldCheck, MessageSquare, BarChart3, Settings2, Building2 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { NotificationBell } from "@/components/NotificationBell";
 
@@ -28,7 +28,7 @@ function AppShell() {
   const isAdmin = roles.includes("admin");
   async function handleSignOut() { await queryClient.cancelQueries(); queryClient.clear(); await supabase.auth.signOut(); navigate({ to: "/auth", replace: true }); }
   const sections: { title: string; items: { to: string; icon: any; label: string }[] }[] = [
-    { title: "PRINCIPAL", items: [ ...(canDashboard ? [{ to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" }] : []), ...(canGestao ? [{ to: "/gestao", icon: BarChart3, label: "Gestão" }] : []), { to: "/chamados/novo", icon: PlusCircle, label: "Novo chamado" }, { to: "/chamados", icon: Ticket, label: "Meus chamados" }, { to: "/base-conhecimento", icon: BookOpen, label: "Base de conhecimento" }, ] },
+    { title: "PRINCIPAL", items: [ { to: "/areas", icon: Building2, label: "Áreas" }, ...(canDashboard ? [{ to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" }] : []), ...(canGestao ? [{ to: "/gestao", icon: BarChart3, label: "Gestão" }] : []), { to: "/chamados/novo", icon: PlusCircle, label: "Novo chamado" }, { to: "/chamados", icon: Ticket, label: "Meus chamados" }, { to: "/base-conhecimento", icon: BookOpen, label: "Base de conhecimento" }, ] },
     ...(isStaff ? [{ title: "ATENDIMENTO", items: [{ to: "/fila", icon: Users, label: "Fila de atendimento" }] }] : []),
     ...(canItsm ? [{ title: "ITSM", items: [{ to: "/itsm-avancado", icon: Settings2, label: "ITSM Avançado" }] }] : []),
     ...(isAdmin ? [{ title: "ADMIN", items: [{ to: "/admin", icon: ShieldCheck, label: "Painel admin" }, { to: "/admin/categorias", icon: FolderTree, label: "Categorias" }, { to: "/admin/usuarios", icon: Users, label: "Usuários" }, { to: "/admin/assistente", icon: MessageSquare, label: "Conversas IA" }] }] : []),
