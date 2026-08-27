@@ -115,13 +115,23 @@ function NovoChamadoPage() {
   const sugestao = useMemo(() => sugestaoAbertura(`${titulo} ${descricao}`), [titulo, descricao]);
 
   const requisitos = {
-    titulo: titulo.trim().length >= 5,
-    descricao: descricao.trim().length >= 20,
-    tipo: !!tipoChamadoId,
-    area: !!area?.id,
-    categoria: !!categoriaId,
-    incidente: !incidente || (!!impacto && !!urgencia),
-  };
+  titulo: titulo.trim().length >= 5,
+  descricao: descricao.trim().length >= 20,
+  tipo: !!tipoChamadoId,
+  categoria: !!categoriaId,
+  incidente: !incidente || (!!impacto && !!urgencia),
+};
+
+const prontoParaAbrir =
+  !!area?.id && Object.values(requisitos).every(Boolean);
+
+const progressoAbertura = prontoParaAbrir
+  ? 100
+  : Math.round(
+      (Object.values(requisitos).filter(Boolean).length /
+        Object.values(requisitos).length) *
+        100
+    );
   const prontoParaAbrir = Object.values(requisitos).every(Boolean);
   const progressoAbertura = prontoParaAbrir
     ? 100
