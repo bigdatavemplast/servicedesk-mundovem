@@ -21,15 +21,21 @@ export const Route = createFileRoute("/_authenticated/chamados/")({
 const statusLabel: Record<string, string> = { aberto: "Aberto", em_andamento: "Em andamento", aguardando_usuario: "Aguardando você", aguardando_terceiro: "Aguardando terceiro", resolvido: "Resolvido", fechado: "Fechado", cancelado: "Cancelado" };
 const prioLabel: Record<string, string> = { baixa: "Baixa", media: "Média", alta: "Alta", critica: "Crítica" };
 
+type AreaContext = { id: string; nome: string };
+function getAreaContext(): AreaContext | null { try { const raw = localStorage.getItem("service_desk_segmento"); if (!raw) return null; const value = JSON.parse(raw); return value?.id ? { id: String(value.id), nome: String(value.nome ?? "") } : null; } catch { return null; } }
+
 function ChamadosPage() {
   const { user } = Route.useRouteContext();
   const [mostrarTodos, setMostrarTodos] = useState(false);
   const [busca, setBusca] = useState("");
   const [statusFiltro, setStatusFiltro] = useState("todos");
+  const area = getAreaContext();
   const { data: chamados = [], isLoading } = useQuery({
-    queryKey: ["meus-chamados", user.id],
+    queryKey: ["meus-chamados", user.id, area?.id ?? "sem-area"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("chamados").select("id, numero, titulo, status, prioridade, aberto_em").order("aberto_em", { ascending: false }).limit(100);
+      let query = supabase.from("chamados").select("id, numero, titulo, status, prioridade, aberto_em, segmento_id").eq("solicitante_id", user.id).order("aberto_em", { ascending: false }).limit(100);
+      if (area?.id) query = query.eq("segmento_id", area.id);
+      const { data, error } = await query;
       if (error) throw error;
       return data ?? [];
     },
@@ -53,7 +59,7 @@ function ChamadosPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div><h1 className="text-2xl font-bold">Olá! 👋</h1><p className="text-sm text-muted-foreground">Acompanhe seus chamados ou abra um novo atendimento.</p></div>
+        <div><h1 className="text-2xl font-bold">Olá! 👋</h1><p className="text-sm text-muted-foreground">{area ? `Chamados da área ${area.nome}.` : "Acompanhe seus chamados ou abra um novo atendimento."}</p></div>
         <Link to="/chamados/novo"><Button><PlusCircle className="mr-2 h-4 w-4" />Abrir chamado</Button></Link>
       </div>
 
@@ -65,9 +71,9 @@ function ChamadosPage() {
       </div>
 
       <Card><CardContent className="p-0">
-        <div className="flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="font-semibold">Meus chamados</h2><p className="text-xs text-muted-foreground">Busque por número ou título e filtre pelo status.</p></div><Link to="/chamados/novo"><Button variant="outline" size="sm"><PlusCircle className="mr-2 h-4 w-4" />Novo chamado</Button></Link></div>
+        <div className="flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="font-semibold">Meus chamados{area ? ` — ${area.nome}` : ""}</h2><p className="text-xs text-muted-foreground">Busque por número ou título e filtre pelo status.</p></div><Link to="/chamados/novo"><Button variant="outline" size="sm"><PlusCircle className="mr-2 h-4 w-4" />Novo chamado</Button></Link></div>
         <div className="flex flex-col gap-2 border-b p-4 sm:flex-row"><div className="relative flex-1"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por número ou título..." className="pl-9 pr-9" />{busca && <button type="button" aria-label="Limpar busca" onClick={() => setBusca("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>}</div><Select value={statusFiltro} onValueChange={setStatusFiltro}><SelectTrigger className="w-full sm:w-52"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos">Todos os status</SelectItem>{Object.entries(statusLabel).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></div>
-        {isLoading ? <div className="p-8 text-center text-sm text-muted-foreground">Carregando…</div> : !chamadosFiltrados.length ? <div className="p-8 text-center"><Search className="mx-auto mb-2 h-5 w-5 text-muted-foreground" /><p className="text-sm text-muted-foreground">Nenhum chamado encontrado.</p>{(busca || statusFiltro !== "todos") && <Button variant="ghost" className="mt-2" onClick={() => { setBusca(""); setStatusFiltro("todos"); }}>Limpar filtros</Button>}</div> : <div className="divide-y">{chamadosVisiveis.map((c) => <Link key={c.id} to="/chamados/$id" params={{ id: c.id }} className="flex items-center justify-between gap-4 p-4 hover:bg-muted/40"><div className="min-w-0"><div className="flex items-center gap-2"><span className="font-mono text-xs text-muted-foreground">{c.numero}</span><Badge variant="secondary">{prioLabel[c.prioridade] ?? c.prioridade}</Badge></div><div className="truncate font-medium">{c.titulo}</div><div className="text-xs text-muted-foreground">Aberto em {new Date(c.aberto_em).toLocaleString("pt-BR")}</div></div><Badge>{statusLabel[c.status] ?? c.status}</Badge></Link>)}</div>}
+        {isLoading ? <div className="p-8 text-center text-sm text-muted-foreground">Carregando…</div> : !chamadosFiltrados.length ? <div className="p-8 text-center"><Search className="mx-auto mb-2 h-5 w-5 text-muted-foreground" /><p className="text-sm text-muted-foreground">Nenhum chamado encontrado{area ? ` na área ${area.nome}` : ""}.</p>{(busca || statusFiltro !== "todos") && <Button variant="ghost" className="mt-2" onClick={() => { setBusca(""); setStatusFiltro("todos"); }}>Limpar filtros</Button>}</div> : <div className="divide-y">{chamadosVisiveis.map((c) => <Link key={c.id} to="/chamados/$id" params={{ id: c.id }} className="flex items-center justify-between gap-4 p-4 hover:bg-muted/40"><div className="min-w-0"><div className="flex items-center gap-2"><span className="font-mono text-xs text-muted-foreground">{c.numero}</span><Badge variant="secondary">{prioLabel[c.prioridade] ?? c.prioridade}</Badge></div><div className="truncate font-medium">{c.titulo}</div><div className="text-xs text-muted-foreground">Aberto em {new Date(c.aberto_em).toLocaleString("pt-BR")}</div></div><Badge>{statusLabel[c.status] ?? c.status}</Badge></Link>)}</div>}
         {!busca && statusFiltro === "todos" && chamadosFiltrados.length > 8 && <div className="border-t p-3 text-center"><Button variant="ghost" size="sm" onClick={() => setMostrarTodos((v) => !v)}>{mostrarTodos ? <><ChevronUp className="mr-2 h-4 w-4" />Mostrar recentes</> : "Ver todos"}</Button></div>}
       </CardContent></Card>
     </div>
