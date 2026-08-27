@@ -41,12 +41,14 @@ function ItsmRelacionamentos() {
     if (error) throw error; return (data ?? []) as Relacionamento[];
   }});
   const { data: ativos } = useQuery({ queryKey: ["itsm-ativos-relacionamentos"], queryFn: async () => { const { data, error } = await supabase.from("itsm_ativos").select("id,nome,codigo_patrimonio,tipo").order("nome"); if (error) throw error; return data ?? []; }});
+  const { data: servicos } = useQuery({ queryKey: ["itsm-servicos-relacionamentos"], queryFn: async () => { const { data, error } = await supabase.from("itsm_servicos").select("id,nome,descricao,status").order("nome"); if (error) throw error; return data ?? []; }});
   const { data: problemas } = useQuery({ queryKey: ["itsm-problemas-relacionamentos"], queryFn: async () => { const { data, error } = await supabase.from("itsm_problemas").select("id,titulo,numero").order("criado_em", { ascending: false }); if (error) throw error; return data ?? []; }});
   const { data: mudancas } = useQuery({ queryKey: ["itsm-mudancas-relacionamentos"], queryFn: async () => { const { data, error } = await supabase.from("itsm_mudancas").select("id,titulo,numero").order("criado_em", { ascending: false }); if (error) throw error; return data ?? []; }});
   const { data: chamados } = useQuery({ queryKey: ["itsm-chamados-relacionamentos"], queryFn: async () => { const { data, error } = await supabase.from("chamados").select("id,numero,titulo,status").order("aberto_em", { ascending: false }).limit(200); if (error) throw error; return data ?? []; }});
 
   const registros = (tipo: string): Registro[] => {
     if (tipo === "chamado") return (chamados ?? []).map((x: any) => ({ id: x.id, nome: x.titulo ?? `Chamado #${x.numero ?? x.id}`, tipo, detalhe: x.numero ? `#${x.numero} · ${x.status ?? ""}` : x.status }));
+    if (tipo === "servico") return (servicos ?? []).map((x: any) => ({ id: x.id, nome: x.nome, tipo, detalhe: x.status ?? "" }));
     if (tipo === "ativo") return (ativos ?? []).map((x: any) => ({ id: x.id, nome: x.nome, tipo, detalhe: x.codigo_patrimonio ?? x.tipo }));
     if (tipo === "problema") return (problemas ?? []).map((x: any) => ({ id: x.id, nome: x.titulo, tipo, detalhe: x.numero ? `#${x.numero}` : undefined }));
     if (tipo === "mudanca") return (mudancas ?? []).map((x: any) => ({ id: x.id, nome: x.titulo, tipo, detalhe: x.numero ? `#${x.numero}` : undefined }));
