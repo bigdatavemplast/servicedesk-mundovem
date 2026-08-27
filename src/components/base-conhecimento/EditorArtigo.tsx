@@ -49,12 +49,22 @@ export function EditorArtigo({ id }: { id?: string }) {
     e.preventDefault();
     setSaving(true);
     const { data: userRes } = await supabase.auth.getUser();
-    const payload: any = {
-      titulo, conteudo,
-      categoria_id: categoriaId === "__none__" ? null : categoriaId,
-      publicado,
-      slug: titulo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60),
-    };
+   const payload: any = {
+  titulo: titulo.trim(),
+  conteudo: conteudo.trim(),
+  categoria_id:
+    categoriaId && categoriaId !== "__none__"
+      ? categoriaId
+      : null,
+  publicado,
+  slug: titulo
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 60),
+};
     let res;
     if (id) {
       res = await supabase.from("base_conhecimento").update(payload).eq("id", id);
