@@ -32,7 +32,7 @@ function ItsmAvancado() {
   const isAdmin = roles.some((r: any) => r.role === "admin");
   const { data: perms = [] } = useQuery({ queryKey: ["my-itsm-module-permissions"], enabled: !isAdmin, queryFn: async () => { const { data, error } = await supabase.from("itsm_permissoes_usuario").select("modulo").eq("user_id", (await supabase.auth.getUser()).data.user?.id).eq("visualizar", true); if (error) throw error; return data ?? []; } });
   const allowed = new Set(perms.map((p: any) => p.modulo));
-  const visibleModules = isAdmin ? modules : modules.filter((m) => allowed.has(m[4]));
+  const visibleModules = isAdmin ? modules : modules.map((m) => m[4] === "catalogo" ? [m[0], m[1], m[2], "/catalogo", m[4]] as const : m).filter((m) => allowed.has(m[4]));
   return <div className="space-y-6">
     <div><h1 className="text-2xl font-semibold tracking-tight">ITSM Avançado</h1><p className="text-sm text-muted-foreground">Central de gestão dos processos avançados de ITSM.</p></div>
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{visibleModules.map(([title, description, Icon, path]) => <Card key={title} className="cursor-pointer transition-colors hover:border-primary/50 hover:bg-muted/30" onClick={() => navigate({ to: path })} role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); navigate({ to: path }); } }}><CardHeader className="flex flex-row items-center gap-3 space-y-0"><div className="grid h-9 w-9 place-items-center rounded-md bg-primary/10 text-primary"><Icon className="h-5 w-5" /></div><CardTitle className="text-base">{title}</CardTitle></CardHeader><CardContent className="text-sm text-muted-foreground">{description}</CardContent></Card> )}</div>
