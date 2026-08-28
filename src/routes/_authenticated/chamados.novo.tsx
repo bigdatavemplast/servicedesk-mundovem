@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -40,6 +40,23 @@ function sugestaoAbertura(texto: string) {
   return "Explique o que você esperava que acontecesse, o que aconteceu de fato e se o problema ainda está ocorrendo.";
 }
 function lerAreaSelecionada() { try { const raw = localStorage.getItem("service_desk_segmento"); if (!raw) return null; const value = JSON.parse(raw); if (!value?.id) return null; return { id: String(value.id), nome: String(value.nome ?? "") }; } catch { return null; } }
+function lerItemCatalogoSelecionado() {
+  try {
+    const raw = localStorage.getItem("service_desk_catalogo_item");
+    if (!raw) return null;
+    const value = JSON.parse(raw);
+    if (!value?.id) return null;
+    return {
+      id: String(value.id),
+      nome: String(value.nome ?? ""),
+      descricao: String(value.descricao ?? ""),
+      segmentoId: value.segmentoId ? String(value.segmentoId) : "",
+      categoriaId: value.categoriaId ? String(value.categoriaId) : "",
+      subcategoriaId: value.subcategoriaId ? String(value.subcategoriaId) : "",
+      tipoChamadoId: value.tipoChamadoId ? String(value.tipoChamadoId) : "",
+    };
+  } catch { return null; }
+}
 
 function NovoChamadoPage() {
   const { user } = Route.useRouteContext(); const navigate = useNavigate(); const area = lerAreaSelecionada();
@@ -50,6 +67,17 @@ function NovoChamadoPage() {
   const { data: categorias = [] } = useQuery({ queryKey: ["categorias-ativas-catalogo", area?.id], enabled: !!area?.id, queryFn: async () => { const { data, error } = await supabase.from("categorias").select("id,nome,segmento_id").eq("ativo", true).eq("segmento_id", area!.id).order("ordem").order("nome"); if (error) throw new Error(error.message); return data ?? []; } });
   const { data: subcategorias = [] } = useQuery({ queryKey: ["subcategorias-ativas-catalogo", categoriaId], enabled: !!categoriaId, queryFn: async () => { const { data, error } = await supabase.from("subcategorias").select("id,nome,categoria_id").eq("categoria_id", categoriaId).eq("ativo", true).order("ordem").order("nome"); if (error) throw new Error(error.message); return data ?? []; } });
   const sugestao = useMemo(() => sugestaoAbertura(`${titulo} ${descricao}`), [titulo, descricao]);
+
+  useEffect(() => {
+    const item = lerItemCatalogoSelecionado();
+    if (!item) return;
+    if (item.nome) setTitulo(item.nome);
+    if (item.descricao) setDescricao(item.descricao);
+    if (item.tipoChamadoId) setTipoChamadoId(item.tipoChamadoId);
+    if (item.categoriaId) setCategoriaId(item.categoriaId);
+    if (item.subcategoriaId) setSubcategoriaId(item.subcategoriaId);
+    localStorage.removeItem("service_desk_catalogo_item");
+  }, []);
 
   // A área/segmento já vem definida pela tela anterior e não é uma etapa manual.
   const requisitos = { titulo: titulo.trim().length >= 5, descricao: descricao.trim().length >= 20, tipo: !!tipoChamadoId, categoria: !!categoriaId, incidente: !incidente || (!!impacto && !!urgencia) };
