@@ -9,98 +9,28 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertTriangle, Plus, X, Eye, Pencil, Trash2, UserRound } from "lucide-react";
-
 const STATUS_LABELS: Record<string, string> = { aberto: "Aberto", em_analise: "Em análise", identificado: "Identificado", resolvido: "Resolvido", fechado: "Fechado" };
 const STATUS_FLOW: Record<string, string[]> = { aberto: ["aberto", "em_analise"], em_analise: ["em_analise", "identificado"], identificado: ["identificado", "resolvido"], resolvido: ["resolvido", "fechado"], fechado: ["fechado"] };
-
 export const Route = createFileRoute("/_authenticated/itsm-problemas")({ component: ItsmProblemas });
-
 function ItsmProblemas() {
-  const queryClient = useQueryClient();
-  const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState<any | null>(null);
-  const [editing, setEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [titulo, setTitulo] = useState("");
-  const [descricao, setDescricao] = useState("");
-  const [status, setStatus] = useState("aberto");
-  const [prioridade, setPrioridade] = useState("media");
-  const [impacto, setImpacto] = useState("medio");
-  const [urgencia, setUrgencia] = useState("media");
-  const [causaRaiz, setCausaRaiz] = useState("");
-  const [workaround, setWorkaround] = useState("");
-
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["itsm-problemas"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("itsm_problemas").select("*").order("criado_em", { ascending: false });
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-
+  const queryClient = useQueryClient(); const [open, setOpen] = useState(false); const [selected, setSelected] = useState<any | null>(null); const [editing, setEditing] = useState(false); const [saving, setSaving] = useState(false); const [deleting, setDeleting] = useState(false); const [formError, setFormError] = useState<string | null>(null); const [titulo, setTitulo] = useState(""); const [descricao, setDescricao] = useState(""); const [status, setStatus] = useState("aberto"); const [prioridade, setPrioridade] = useState("media"); const [impacto, setImpacto] = useState("medio"); const [urgencia, setUrgencia] = useState("media"); const [causaRaiz, setCausaRaiz] = useState(""); const [workaround, setWorkaround] = useState("");
+  const { data, isLoading, error } = useQuery({ queryKey: ["itsm-problemas"], queryFn: async () => { const { data, error } = await supabase.from("itsm_problemas").select("*").order("criado_em", { ascending: false }); if (error) throw error; return data ?? []; } });
   const resetForm = () => { setTitulo(""); setDescricao(""); setStatus("aberto"); setPrioridade("media"); setImpacto("medio"); setUrgencia("media"); setCausaRaiz(""); setWorkaround(""); setFormError(null); };
   const carregarFormulario = (item: any) => { setTitulo(item.titulo ?? ""); setDescricao(item.descricao ?? ""); setStatus(item.status ?? "aberto"); setPrioridade(item.prioridade ?? "media"); setImpacto(item.impacto ?? "medio"); setUrgencia(item.urgencia ?? "media"); setCausaRaiz(item.causa_raiz ?? ""); setWorkaround(item.workaround ?? ""); setFormError(null); };
-  const abrirDetalhes = (item: any) => {
-    setSelected(item); setEditing(false); setFormError(null);
-    window.setTimeout(() => document.getElementById("itsm-problema-detalhes")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
-  };
-  const criarProblema = async () => {
-    if (!titulo.trim()) { setFormError("Informe o título do problema."); return; }
-    setSaving(true); setFormError(null);
-    const { data: userData } = await supabase.auth.getUser();
-    const { error } = await supabase.from("itsm_problemas").insert({ titulo: titulo.trim(), descricao: descricao.trim() || null, prioridade, impacto, urgencia, causa_raiz: causaRaiz.trim() || null, workaround: workaround.trim() || null, criado_por: userData.user?.id ?? null });
-    setSaving(false); if (error) { setFormError(error.message); return; }
-    resetForm(); setOpen(false); await queryClient.invalidateQueries({ queryKey: ["itsm-problemas"] });
-  };
-  const editarProblema = async () => {
-    if (!selected?.id) return;
-    if (!titulo.trim()) { setFormError("Informe o título do problema."); return; }
-    const statusAnterior = selected.status ?? "aberto";
-    const permitidos = STATUS_FLOW[statusAnterior] ?? [statusAnterior];
-    if (!permitidos.includes(status)) { setFormError(`Transição de status não permitida: ${STATUS_LABELS[statusAnterior] ?? statusAnterior} → ${STATUS_LABELS[status] ?? status}.`); return; }
-    setSaving(true); setFormError(null);
-    const agora = new Date().toISOString();
-    const payload: Record<string, unknown> = { titulo: titulo.trim(), descricao: descricao.trim() || null, status, prioridade, impacto, urgencia, causa_raiz: causaRaiz.trim() || null, workaround: workaround.trim() || null, atualizado_em: agora };
-    if (status === "resolvido" && statusAnterior !== "resolvido") payload.data_resolucao = agora;
-    if (status !== "resolvido" && status !== "fechado" && statusAnterior === "resolvido") payload.data_resolucao = null;
-    const { data: updated, error } = await supabase.from("itsm_problemas").update(payload).eq("id", selected.id).select("*").single();
-    setSaving(false); if (error) { setFormError(error.message); return; }
-    setSelected(updated); setEditing(false); await queryClient.invalidateQueries({ queryKey: ["itsm-problemas"] });
-  };
-  const atribuirParaMim = async () => {
-    if (!selected?.id) return;
-    setSaving(true); setFormError(null);
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user?.id) { setSaving(false); setFormError("Não foi possível identificar o usuário atual."); return; }
-    const { data: updated, error } = await supabase.from("itsm_problemas").update({ responsavel_id: userData.user.id, atualizado_em: new Date().toISOString() }).eq("id", selected.id).select("*").single();
-    setSaving(false); if (error) { setFormError(error.message); return; }
-    setSelected(updated); await queryClient.invalidateQueries({ queryKey: ["itsm-problemas"] });
-  };
-  const excluirProblema = async () => {
-    if (!selected?.id) return;
-    const confirmado = window.confirm(`Excluir o problema "${selected.titulo ?? selected.numero ?? selected.id}"? Esta ação não pode ser desfeita.`);
-    if (!confirmado) return;
-    setDeleting(true); setFormError(null);
-    const { error } = await supabase.from("itsm_problemas").delete().eq("id", selected.id);
-    setDeleting(false);
-    if (error) { setFormError(error.message); return; }
-    setSelected(null); setEditing(false); await queryClient.invalidateQueries({ queryKey: ["itsm-problemas"] });
-  };
-
+  const abrirDetalhes = (item: any) => { setSelected(item); setEditing(false); setFormError(null); window.setTimeout(() => document.getElementById("itsm-problema-detalhes")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50); };
+  const criarProblema = async () => { if (!titulo.trim()) { setFormError("Informe o título do problema."); return; } setSaving(true); setFormError(null); const { data: userData } = await supabase.auth.getUser(); const { error } = await supabase.from("itsm_problemas").insert({ titulo: titulo.trim(), descricao: descricao.trim() || null, prioridade, impacto, urgencia, causa_raiz: causaRaiz.trim() || null, workaround: workaround.trim() || null, criado_por: userData.user?.id ?? null }); setSaving(false); if (error) { setFormError(error.message); return; } resetForm(); setOpen(false); await queryClient.invalidateQueries({ queryKey: ["itsm-problemas"] }); };
+  const editarProblema = async () => { if (!selected?.id) return; if (!titulo.trim()) { setFormError("Informe o título do problema."); return; } const statusAnterior = selected.status ?? "aberto"; const permitidos = STATUS_FLOW[statusAnterior] ?? [statusAnterior]; if (!permitidos.includes(status)) { setFormError(`Transição de status não permitida: ${STATUS_LABELS[statusAnterior] ?? statusAnterior} → ${STATUS_LABELS[status] ?? status}.`); return; } setSaving(true); setFormError(null); const agora = new Date().toISOString(); const payload: Record<string, unknown> = { titulo: titulo.trim(), descricao: descricao.trim() || null, status, prioridade, impacto, urgencia, causa_raiz: causaRaiz.trim() || null, workaround: workaround.trim() || null, atualizado_em: agora }; if (status === "resolvido" && statusAnterior !== "resolvido") payload.data_resolucao = agora; if (status !== "resolvido" && status !== "fechado" && statusAnterior === "resolvido") payload.data_resolucao = null; const { data: updated, error } = await supabase.from("itsm_problemas").update(payload).eq("id", selected.id).select("*").single(); setSaving(false); if (error) { setFormError(error.message); return; } setSelected(updated); setEditing(false); await queryClient.invalidateQueries({ queryKey: ["itsm-problemas"] }); };
+  const atribuirParaMim = async () => { if (!selected?.id) return; setSaving(true); setFormError(null); const { data: userData } = await supabase.auth.getUser(); if (!userData.user?.id) { setSaving(false); setFormError("Não foi possível identificar o usuário atual."); return; } const { data: updated, error } = await supabase.from("itsm_problemas").update({ responsavel_id: userData.user.id, atualizado_em: new Date().toISOString() }).eq("id", selected.id).select("*").single(); setSaving(false); if (error) { setFormError(error.message); return; } setSelected(updated); await queryClient.invalidateQueries({ queryKey: ["itsm-problemas"] }); };
+  const excluirProblema = async () => { if (!selected?.id) return; const confirmado = window.confirm(`Excluir o problema "${selected.titulo ?? selected.numero ?? selected.id}"? Esta ação não pode ser desfeita.`); if (!confirmado) return; setDeleting(true); setFormError(null); const { error } = await supabase.from("itsm_problemas").delete().eq("id", selected.id); setDeleting(false); if (error) { setFormError(error.message); return; } setSelected(null); setEditing(false); await queryClient.invalidateQueries({ queryKey: ["itsm-problemas"] }); };
   const statusOptions = STATUS_FLOW[selected?.status ?? status] ?? [selected?.status ?? status];
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4"><div><h1 className="text-2xl font-semibold tracking-tight">Problemas</h1><p className="text-sm text-muted-foreground">Gestão de problemas, causas raiz e soluções permanentes.</p></div><Button onClick={() => { resetForm(); setSelected(null); setEditing(false); setOpen(true); }}><Plus className="mr-2 h-4 w-4" />Novo problema</Button></div>
+  const { data: responsavelProfile } = useQuery({ queryKey: ["itsm-problema-responsavel", selected?.responsavel_id], enabled: !!selected?.responsavel_id, queryFn: async () => { const { data, error } = await supabase.from("profiles").select("nome,email").eq("id", selected!.responsavel_id).maybeSingle(); return error ? null : data; } });
+  const responsavelNome = responsavelProfile?.nome || responsavelProfile?.email || "-";
+  return <div className="space-y-6"><div className="flex items-start justify-between gap-4"><div><h1 className="text-2xl font-semibold tracking-tight">Problemas</h1><p className="text-sm text-muted-foreground">Gestão de problemas, causas raiz e soluções permanentes.</p></div><Button onClick={() => { resetForm(); setSelected(null); setEditing(false); setOpen(true); }}><Plus className="mr-2 h-4 w-4" />Novo problema</Button></div>
       {(open || editing) ? <Card><CardHeader className="flex flex-row items-center justify-between space-y-0"><CardTitle>{editing ? "Editar problema" : "Novo problema"}</CardTitle><Button variant="ghost" size="icon" onClick={() => { setOpen(false); setEditing(false); resetForm(); }}><X className="h-4 w-4" /></Button></CardHeader><CardContent className="space-y-5"><div className="grid gap-4 md:grid-cols-2"><div className="space-y-2 md:col-span-2"><Label htmlFor="problema-titulo">Título *</Label><Input id="problema-titulo" value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Descreva o problema" /></div><div className="space-y-2 md:col-span-2"><Label htmlFor="problema-descricao">Descrição</Label><Textarea id="problema-descricao" value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Descreva o problema e seus sintomas" /></div>{editing ? <div className="space-y-2"><Label>Status</Label><Select value={status} onValueChange={setStatus}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{statusOptions.map((value) => <SelectItem key={value} value={value}>{STATUS_LABELS[value] ?? value}</SelectItem>)}</SelectContent></Select></div> : null}<div className="space-y-2"><Label>Prioridade</Label><Select value={prioridade} onValueChange={setPrioridade}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="baixa">Baixa</SelectItem><SelectItem value="media">Média</SelectItem><SelectItem value="alta">Alta</SelectItem><SelectItem value="critica">Crítica</SelectItem></SelectContent></Select></div><div className="space-y-2"><Label>Impacto</Label><Select value={impacto} onValueChange={setImpacto}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="baixo">Baixo</SelectItem><SelectItem value="medio">Médio</SelectItem><SelectItem value="alto">Alto</SelectItem></SelectContent></Select></div><div className="space-y-2"><Label>Urgência</Label><Select value={urgencia} onValueChange={setUrgencia}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="baixa">Baixa</SelectItem><SelectItem value="media">Média</SelectItem><SelectItem value="alta">Alta</SelectItem></SelectContent></Select></div><div className="space-y-2 md:col-span-2"><Label htmlFor="problema-causa">Causa raiz</Label><Textarea id="problema-causa" value={causaRaiz} onChange={(e) => setCausaRaiz(e.target.value)} placeholder="Causa identificada, quando conhecida" /></div><div className="space-y-2 md:col-span-2"><Label htmlFor="problema-workaround">Workaround</Label><Textarea id="problema-workaround" value={workaround} onChange={(e) => setWorkaround(e.target.value)} placeholder="Solução temporária, se houver" /></div></div>{formError ? <p className="text-sm text-destructive">{formError}</p> : null}<div className="flex justify-end gap-2"><Button variant="outline" onClick={() => { setOpen(false); setEditing(false); resetForm(); }} disabled={saving || deleting}>Cancelar</Button><Button onClick={editing ? editarProblema : criarProblema} disabled={saving || deleting}>{saving ? "Salvando..." : editing ? "Salvar alterações" : "Criar problema"}</Button></div></CardContent></Card> : null}
-      {selected && !editing ? <Card id="itsm-problema-detalhes" className="scroll-mt-6 border-primary/50 shadow-sm ring-1 ring-primary/20"><CardHeader className="flex flex-row items-center justify-between space-y-0"><div><CardTitle className="flex items-center gap-2"><Eye className="h-5 w-5" />{selected.titulo ?? `Problema #${selected.numero ?? selected.id}`}</CardTitle><p className="text-sm text-muted-foreground">Detalhes do problema #{selected.numero ?? "-"}</p></div><div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={() => { carregarFormulario(selected); setEditing(true); }}><Pencil className="mr-2 h-4 w-4" />Editar</Button><Button variant="outline" size="sm" onClick={atribuirParaMim} disabled={saving || deleting}><UserRound className="mr-2 h-4 w-4" />{saving ? "Salvando..." : "Atribuir a mim"}</Button><Button variant="destructive" size="sm" onClick={excluirProblema} disabled={deleting}><Trash2 className="mr-2 h-4 w-4" />{deleting ? "Excluindo..." : "Excluir"}</Button><Button variant="ghost" size="icon" onClick={() => setSelected(null)} disabled={deleting}><X className="h-4 w-4" /></Button></div></CardHeader><CardContent className="space-y-5"><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"><Detail label="Status" value={STATUS_LABELS[selected.status] ?? selected.status} /><Detail label="Prioridade" value={selected.prioridade} /><Detail label="Impacto" value={selected.impacto} /><Detail label="Urgência" value={selected.urgencia} /><Detail label="Responsável" value={selected.responsavel_id} /><Detail label="Identificado em" value={formatDate(selected.data_identificacao)} /><Detail label="Resolvido em" value={formatDate(selected.data_resolucao)} /><Detail label="Criado em" value={formatDate(selected.criado_em)} /><Detail label="Atualizado em" value={formatDate(selected.atualizado_em)} /></div><Detail label="Descrição" value={selected.descricao} multiline /><Detail label="Causa raiz" value={selected.causa_raiz} multiline /><Detail label="Workaround" value={selected.workaround} multiline /></CardContent></Card> : null}
+      {selected && !editing ? <Card id="itsm-problema-detalhes" className="scroll-mt-6 border-primary/50 shadow-sm ring-1 ring-primary/20"><CardHeader className="flex flex-row items-center justify-between space-y-0"><div><CardTitle className="flex items-center gap-2"><Eye className="h-5 w-5" />{selected.titulo ?? `Problema #${selected.numero ?? selected.id}`}</CardTitle><p className="text-sm text-muted-foreground">Detalhes do problema #{selected.numero ?? "-"}</p></div><div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={() => { carregarFormulario(selected); setEditing(true); }}><Pencil className="mr-2 h-4 w-4" />Editar</Button><Button variant="outline" size="sm" onClick={atribuirParaMim} disabled={saving || deleting}><UserRound className="mr-2 h-4 w-4" />{saving ? "Salvando..." : "Atribuir a mim"}</Button><Button variant="destructive" size="sm" onClick={excluirProblema} disabled={deleting}><Trash2 className="mr-2 h-4 w-4" />{deleting ? "Excluindo..." : "Excluir"}</Button><Button variant="ghost" size="icon" onClick={() => setSelected(null)} disabled={deleting}><X className="h-4 w-4" /></Button></div></CardHeader><CardContent className="space-y-5"><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"><Detail label="Status" value={STATUS_LABELS[selected.status] ?? selected.status} /><Detail label="Prioridade" value={selected.prioridade} /><Detail label="Impacto" value={selected.impacto} /><Detail label="Urgência" value={selected.urgencia} /><Detail label="Responsável" value={responsavelNome} /><Detail label="Identificado em" value={formatDate(selected.data_identificacao)} /><Detail label="Resolvido em" value={formatDate(selected.data_resolucao)} /><Detail label="Criado em" value={formatDate(selected.criado_em)} /><Detail label="Atualizado em" value={formatDate(selected.atualizado_em)} /></div><Detail label="Descrição" value={selected.descricao} multiline /><Detail label="Causa raiz" value={selected.causa_raiz} multiline /><Detail label="Workaround" value={selected.workaround} multiline /></CardContent></Card> : null}
       {error ? <Card><CardContent className="pt-6 text-sm text-destructive">Não foi possível carregar os problemas.</CardContent></Card> : null}
       <Card><CardHeader><CardTitle className="flex items-center gap-2"><AlertTriangle className="h-5 w-5" /> Problemas registrados</CardTitle></CardHeader><CardContent>{isLoading ? <p className="text-sm text-muted-foreground">Carregando...</p> : data?.length ? <div className="space-y-3">{data.map((item: any) => <div key={item.id} className="flex items-center justify-between gap-4 rounded-lg border p-4"><div className="min-w-0"><div className="font-medium truncate">{item.titulo ?? `Problema #${item.numero ?? item.id}`}</div><div className="mt-1 text-sm text-muted-foreground">Status: {STATUS_LABELS[item.status] ?? item.status ?? "-"} · Prioridade: {item.prioridade ?? "-"}</div></div><Button variant="outline" size="sm" onClick={() => abrirDetalhes(item)}><Eye className="mr-2 h-4 w-4" />Ver detalhes</Button></div>)}</div> : <p className="text-sm text-muted-foreground">Nenhum problema registrado.</p>}</CardContent></Card>
-    </div>
-  );
+    </div>;
 }
 function Detail({ label, value, multiline = false }: { label: string; value: unknown; multiline?: boolean }) { const text = value === null || value === undefined || value === "" ? "-" : String(value); return <div className={multiline ? "space-y-1 md:col-span-2" : "space-y-1"}><div className="text-xs font-medium text-muted-foreground">{label}</div><div className={multiline ? "whitespace-pre-wrap rounded-md border p-3 text-sm" : "text-sm"}>{text}</div></div>; }
 function formatDate(value: unknown) { if (!value) return "-"; const date = new Date(String(value)); return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString("pt-BR"); }
