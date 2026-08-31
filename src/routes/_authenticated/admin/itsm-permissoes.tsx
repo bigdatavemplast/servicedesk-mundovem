@@ -1,5 +1,5 @@
 import * as React from "react";
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,19 +11,6 @@ import { ShieldCheck, Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin/itsm-permissoes")({
-  beforeLoad: async () => {
-    const { data: authData, error: authError } = await supabase.auth.getUser();
-    if (authError || !authData.user) throw redirect({ to: "/auth" });
-
-    const { data, error } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", authData.user.id);
-
-    if (error || !(data ?? []).some((r) => r.role === "admin")) {
-      throw redirect({ to: "/dashboard" });
-    }
-  },
   component: ItsmPermissoesPage,
 });
 
@@ -36,8 +23,31 @@ function ItsmPermissoesPage() {
   const [selected, setSelected] = React.useState("");
   const [draft, setDraft] = React.useState<Record<string, Perm>>({});
 
+  const { data: currentUser, isLoading: loadingCurrentUser } = useQuery({
+    queryKey: ["itsm-admin-current-user"],
+    queryFn: async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (error) throw error;
+      return data.user;
+    },
+  });
+
+  const { data: isAdmin = false, isLoading: loadingAdmin } = useQuery({
+    queryKey: ["itsm-admin-check", currentUser?.id],
+    enabled: !!currentUser?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", currentUser!.id);
+      if (error) throw error;
+      return (data ?? []).some((r) => r.role === "admin");
+    },
+  });
+
   const { data: users = [], isLoading: loadingUsers } = useQuery({
     queryKey: ["itsm-permission-users"],
+    enabled: isAdmin,
     queryFn: async () => {
       const { data, error } = await supabase.from("profiles").select("id,nome,email,departamento,ativo").eq("ativo", true).order("nome");
       if (error) throw error;
@@ -47,7 +57,7 @@ function ItsmPermissoesPage() {
 
   const { data: permissions = [], isLoading: loadingPermissions } = useQuery({
     queryKey: ["itsm-permissions", selected],
-    enabled: !!selected,
+    enabled: isAdmin && !!selected,
     queryFn: async () => {
       const { data, error } = await supabase.from("itsm_permissoes_usuario").select("modulo,visualizar,criar,editar,excluir").eq("user_id", selected);
       if (error) throw error;
@@ -80,6 +90,14 @@ function ItsmPermissoesPage() {
     },
     onError: (e: any) => toast.error(e.message ?? "Não foi possível salvar as permissões"),
   });
+
+  if (loadingCurrentUser || loadingAdmin) {
+    return <div className="py-12 text-center text-sm text-muted-foreground">Verificando permissões de administrador…</div>;
+  }
+
+  if (!currentUser || !isAdmin) {
+    return <Card><CardContent className="py-12 text-center"><ShieldCheck className="mx-auto mb-3 h-8 w-8 text-muted-foreground" /><p className="font-medium">Acesso restrito</p><p className="mt-1 text-sm text-muted-foreground">Somente administradores podem gerenciar as permissões ITSM.</p></CardContent></Card>;
+  }
 
   const user = users.find((u: any) => u.id === selected);
 
