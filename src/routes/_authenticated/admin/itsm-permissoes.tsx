@@ -11,9 +11,18 @@ import { ShieldCheck, Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin/itsm-permissoes")({
-  beforeLoad: async ({ context }) => {
-    const { data } = await supabase.from("user_roles").select("role").eq("user_id", context.user.id);
-    if (!(data ?? []).some((r) => r.role === "admin")) throw redirect({ to: "/dashboard" });
+  beforeLoad: async () => {
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    if (authError || !authData.user) throw redirect({ to: "/auth" });
+
+    const { data, error } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", authData.user.id);
+
+    if (error || !(data ?? []).some((r) => r.role === "admin")) {
+      throw redirect({ to: "/dashboard" });
+    }
   },
   component: ItsmPermissoesPage,
 });
