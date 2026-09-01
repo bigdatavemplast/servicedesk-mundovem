@@ -52,19 +52,19 @@
 :root {
   --radius: 0.625rem;
   --background: #FDFAF5;
-  --foreground: #3D3D3D;
+  --foreground: #9C1917;
   --card: #FFFFFF;
-  --card-foreground: #3D3D3D;
+  --card-foreground: #9C1917;
   --popover: #FFFFFF;
-  --popover-foreground: #3D3D3D;
+  --popover-foreground: #9C1917;
   --primary: #9C1917;
   --primary-foreground: #F4EBDD;
   --secondary: #F4EBDD;
-  --secondary-foreground: #3D3D3D;
+  --secondary-foreground: #9C1917;
   --muted: #F7F0E6;
-  --muted-foreground: #6B6360;
+  --muted-foreground: #9C1917;
   --accent: #E38B41;
-  --accent-foreground: #3D3D3D;
+  --accent-foreground: #9C1917;
   --destructive: #9C1917;
   --destructive-foreground: #F4EBDD;
   --border: #E7DCCB;
@@ -78,13 +78,12 @@
   --sidebar: #9C1917;
   --sidebar-foreground: #F4EBDD;
   --sidebar-primary: #E38B41;
-  --sidebar-primary-foreground: #3D3D3D;
+  --sidebar-primary-foreground: #9C1917;
   --sidebar-accent: #B02B26;
   --sidebar-accent-foreground: #F4EBDD;
   --sidebar-border: #B02B26;
   --sidebar-ring: #E38B41;
 }
-
 
 .dark {
   --background: #241413;
@@ -120,7 +119,6 @@
   --sidebar-border: #B02B26;
   --sidebar-ring: #E38B41;
 }
-
 
 @layer base {
   * { border-color: var(--color-border); }
