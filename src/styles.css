@@ -52,19 +52,19 @@
 :root {
   --radius: 0.625rem;
   --background: #FDFAF5;
-  --foreground: #9C1917;
+  --foreground: #3D3D3D;
   --card: #FFFFFF;
-  --card-foreground: #9C1917;
+  --card-foreground: #3D3D3D;
   --popover: #FFFFFF;
-  --popover-foreground: #9C1917;
+  --popover-foreground: #3D3D3D;
   --primary: #9C1917;
   --primary-foreground: #F4EBDD;
   --secondary: #F4EBDD;
-  --secondary-foreground: #9C1917;
+  --secondary-foreground: #3D3D3D;
   --muted: #F7F0E6;
-  --muted-foreground: #9C1917;
+  --muted-foreground: #6B6360;
   --accent: #E38B41;
-  --accent-foreground: #9C1917;
+  --accent-foreground: #3D3D3D;
   --destructive: #9C1917;
   --destructive-foreground: #F4EBDD;
   --border: #E7DCCB;
@@ -78,7 +78,7 @@
   --sidebar: #9C1917;
   --sidebar-foreground: #F4EBDD;
   --sidebar-primary: #E38B41;
-  --sidebar-primary-foreground: #9C1917;
+  --sidebar-primary-foreground: #3D3D3D;
   --sidebar-accent: #B02B26;
   --sidebar-accent-foreground: #F4EBDD;
   --sidebar-border: #B02B26;
@@ -122,31 +122,18 @@
 
 @layer base {
   * { border-color: var(--color-border); }
-
   html, body { font-family: "Montserrat", ui-sans-serif, system-ui, sans-serif; }
-
-  h1, h2, h3, h4, h5, h6 {
-    font-family: "Clash Grotesk", "Montserrat", ui-sans-serif, system-ui, sans-serif;
-  }
-
-  body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
-  }
+  h1, h2, h3, h4, h5, h6 { font-family: "Clash Grotesk", "Montserrat", ui-sans-serif, system-ui, sans-serif; }
+  body { background-color: var(--color-background); color: var(--color-foreground); }
 }
 
 @layer utilities {
   .font-display { font-family: "Clash Grotesk", "Montserrat", ui-sans-serif, system-ui, sans-serif; }
-
-  .area-card {
-    border-top: 3px solid #9C1917;
-  }
-
+  .area-card { border-top: 3px solid #9C1917; }
   .sla-low { color: #2F7D32; }
   .sla-medium { color: #B8860B; }
   .sla-high { color: #D96B1F; }
   .sla-critical { color: #9C1917; }
-
   .status-low { background-color: #E8F5E9; color: #2F7D32; }
   .status-medium { background-color: #FFF4CC; color: #8A6500; }
   .status-high { background-color: #FFF0E4; color: #B94F0A; }
