@@ -88,7 +88,7 @@ function DetalheChamadoPage() {
         .select("usuario_id, usuario:profiles(id,nome), grupo:grupos_atendimento!inner(segmento_id,ativo)")
         .eq("ativo", true)
         .eq("grupo.ativo", true)
-        .eq("grupo.segmento_id", chamado!.segmento_id);
+        .eq("grupo.segmento_id", chamado!.segmento_id as string);
       if (error) throw error;
       const seen = new Set<string>();
       return (data ?? []).map((r: any) => r.usuario).filter((p: any) => {

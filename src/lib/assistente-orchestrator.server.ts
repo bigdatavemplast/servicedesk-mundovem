@@ -43,14 +43,14 @@ function perguntaComContexto(mensagens: UIMessage[]): string {
 function direta(mensagens: UIMessage[], text: string, fontes: Fonte[] = [], confianca = 0) {
   const stream = createUIMessageStream({
     originalMessages: mensagens,
-    execute: ({ writer }) => {
+    execute: ({ writer }: { writer: any }) => {
       const id = generateId();
       writer.write({ type: "text-start", id });
       writer.write({ type: "text-delta", id, delta: text });
       writer.write({ type: "text-end", id });
     },
     messageMetadata: () => ({ fontes, confianca }),
-  });
+  } as any);
   return createUIMessageStreamResponse({ stream });
 }
 

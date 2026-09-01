@@ -35,7 +35,6 @@ import { Route as AuthenticatedChamadosIndexRouteImport } from './routes/_authen
 import { Route as AuthenticatedBaseConhecimentoIndexRouteImport } from './routes/_authenticated/base-conhecimento.index'
 import { Route as AuthenticatedAssistenteIndexRouteImport } from './routes/_authenticated/assistente.index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
-import { Route as ApiAssistenteBackupRouteImport } from './routes/api/assistente.backup'
 import { Route as AuthenticatedChamadosNovoRouteImport } from './routes/_authenticated/chamados.novo'
 import { Route as AuthenticatedChamadosIdRouteImport } from './routes/_authenticated/chamados.$id'
 import { Route as AuthenticatedBaseConhecimentoNovoRouteImport } from './routes/_authenticated/base-conhecimento.novo'
@@ -198,11 +197,6 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   path: '/admin/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const ApiAssistenteBackupRoute = ApiAssistenteBackupRouteImport.update({
-  id: '/backup',
-  path: '/backup',
-  getParentRoute: () => ApiAssistenteRoute,
-} as any)
 const AuthenticatedChamadosNovoRoute =
   AuthenticatedChamadosNovoRouteImport.update({
     id: '/chamados/novo',
@@ -337,7 +331,7 @@ export interface FileRoutesByFullPath {
   '/itsm-problemas': typeof AuthenticatedItsmProblemasRoute
   '/itsm-relacionamentos': typeof AuthenticatedItsmRelacionamentosRoute
   '/itsm-servicos': typeof AuthenticatedItsmServicosRoute
-  '/api/assistente': typeof ApiAssistenteRouteWithChildren
+  '/api/assistente': typeof ApiAssistenteRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/admin/assistente': typeof AuthenticatedAdminAssistenteRoute
@@ -356,7 +350,6 @@ export interface FileRoutesByFullPath {
   '/base-conhecimento/novo': typeof AuthenticatedBaseConhecimentoNovoRoute
   '/chamados/$id': typeof AuthenticatedChamadosIdRoute
   '/chamados/novo': typeof AuthenticatedChamadosNovoRoute
-  '/api/assistente/backup': typeof ApiAssistenteBackupRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/assistente/': typeof AuthenticatedAssistenteIndexRoute
   '/base-conhecimento/': typeof AuthenticatedBaseConhecimentoIndexRoute
@@ -384,7 +377,7 @@ export interface FileRoutesByTo {
   '/itsm-problemas': typeof AuthenticatedItsmProblemasRoute
   '/itsm-relacionamentos': typeof AuthenticatedItsmRelacionamentosRoute
   '/itsm-servicos': typeof AuthenticatedItsmServicosRoute
-  '/api/assistente': typeof ApiAssistenteRouteWithChildren
+  '/api/assistente': typeof ApiAssistenteRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/admin/assistente': typeof AuthenticatedAdminAssistenteRoute
@@ -403,7 +396,6 @@ export interface FileRoutesByTo {
   '/base-conhecimento/novo': typeof AuthenticatedBaseConhecimentoNovoRoute
   '/chamados/$id': typeof AuthenticatedChamadosIdRoute
   '/chamados/novo': typeof AuthenticatedChamadosNovoRoute
-  '/api/assistente/backup': typeof ApiAssistenteBackupRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/assistente': typeof AuthenticatedAssistenteIndexRoute
   '/base-conhecimento': typeof AuthenticatedBaseConhecimentoIndexRoute
@@ -433,7 +425,7 @@ export interface FileRoutesById {
   '/_authenticated/itsm-problemas': typeof AuthenticatedItsmProblemasRoute
   '/_authenticated/itsm-relacionamentos': typeof AuthenticatedItsmRelacionamentosRoute
   '/_authenticated/itsm-servicos': typeof AuthenticatedItsmServicosRoute
-  '/api/assistente': typeof ApiAssistenteRouteWithChildren
+  '/api/assistente': typeof ApiAssistenteRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/_authenticated/admin/assistente': typeof AuthenticatedAdminAssistenteRoute
@@ -452,7 +444,6 @@ export interface FileRoutesById {
   '/_authenticated/base-conhecimento/novo': typeof AuthenticatedBaseConhecimentoNovoRoute
   '/_authenticated/chamados/$id': typeof AuthenticatedChamadosIdRoute
   '/_authenticated/chamados/novo': typeof AuthenticatedChamadosNovoRoute
-  '/api/assistente/backup': typeof ApiAssistenteBackupRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/assistente/': typeof AuthenticatedAssistenteIndexRoute
   '/_authenticated/base-conhecimento/': typeof AuthenticatedBaseConhecimentoIndexRoute
@@ -501,7 +492,6 @@ export interface FileRouteTypes {
     | '/base-conhecimento/novo'
     | '/chamados/$id'
     | '/chamados/novo'
-    | '/api/assistente/backup'
     | '/admin/'
     | '/assistente/'
     | '/base-conhecimento/'
@@ -548,7 +538,6 @@ export interface FileRouteTypes {
     | '/base-conhecimento/novo'
     | '/chamados/$id'
     | '/chamados/novo'
-    | '/api/assistente/backup'
     | '/admin'
     | '/assistente'
     | '/base-conhecimento'
@@ -596,7 +585,6 @@ export interface FileRouteTypes {
     | '/_authenticated/base-conhecimento/novo'
     | '/_authenticated/chamados/$id'
     | '/_authenticated/chamados/novo'
-    | '/api/assistente/backup'
     | '/_authenticated/admin/'
     | '/_authenticated/assistente/'
     | '/_authenticated/base-conhecimento/'
@@ -612,7 +600,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
-  ApiAssistenteRoute: typeof ApiAssistenteRouteWithChildren
+  ApiAssistenteRoute: typeof ApiAssistenteRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
 }
@@ -800,13 +788,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/api/assistente/backup': {
-      id: '/api/assistente/backup'
-      path: '/backup'
-      fullPath: '/api/assistente/backup'
-      preLoaderRoute: typeof ApiAssistenteBackupRouteImport
-      parentRoute: typeof ApiAssistenteRoute
     }
     '/_authenticated/chamados/novo': {
       id: '/_authenticated/chamados/novo'
@@ -1041,18 +1022,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
-interface ApiAssistenteRouteChildren {
-  ApiAssistenteBackupRoute: typeof ApiAssistenteBackupRoute
-}
-
-const ApiAssistenteRouteChildren: ApiAssistenteRouteChildren = {
-  ApiAssistenteBackupRoute: ApiAssistenteBackupRoute,
-}
-
-const ApiAssistenteRouteWithChildren = ApiAssistenteRoute._addFileChildren(
-  ApiAssistenteRouteChildren,
-)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
@@ -1062,7 +1031,7 @@ const rootRouteChildren: RootRouteChildren = {
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
-  ApiAssistenteRoute: ApiAssistenteRouteWithChildren,
+  ApiAssistenteRoute: ApiAssistenteRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
 }
