@@ -1,155 +1,72 @@
-@import url("https://fonts.googleapis.com/css2?family=Clash+Grotesk:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap");
-@import "tailwindcss" source(none);
-@source "../src";
-@import "tw-animate-css";
+/* ============================================
+   IDENTIDADE VISUAL — MUNDO VEM SERVICE DESK
+   Tailwind v4 (Vite) — cole dentro do seu CSS de
+   entrada (o arquivo que já tem @import "tailwindcss";)
+   ============================================ */
 
-@custom-variant dark (&:is(.dark *));
+@import "tailwindcss";
 
-@theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
-  --font-sans: "Montserrat", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Clash Grotesk", "Montserrat", ui-sans-serif, system-ui, sans-serif;
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-ring-offset-background: var(--background);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
+@theme {
+  /* Paleta principal da marca */
+  --color-vem-vinho: #9C1917;
+  --color-vem-vinho-escuro: #6E1210;
+  --color-vem-bege: #F4EBDD;
+  --color-vem-bege-claro: #FBF7F1;
+  --color-vem-cinza: #3D3D3D;
+  --color-vem-cinza-suave: #7A7670;
+  --color-vem-laranja: #E38B41;
+
+  /* Paleta complementar (por matéria-prima) — status/categorias */
+  --color-vem-verde: #3c7f62;
+  --color-vem-azul-petroleo: #084256;
+  --color-vem-dourado: #C6922B;
+  --color-vem-marrom: #472422;
+  --color-vem-verde-escuro: #22472E;
+
+  /* Bordas e superfícies */
+  --color-vem-borda: #E7DFD2;
+
+  /* Tipografia */
+  --font-display: 'Clash Grotesk', sans-serif;
+  --font-sans: 'Montserrat', sans-serif;
 }
 
+/* Agora as classes ficam disponíveis automaticamente:
+   bg-vem-vinho, text-vem-cinza, border-vem-borda,
+   font-display, font-sans, etc. — sem precisar de
+   nenhum tailwind.config.js */
+
+
+/* ============================================
+   SE O PROJETO USA shadcn/ui (comum em projetos Lovable),
+   as variáveis semânticas (--primary, --background, etc.)
+   provavelmente já existem em outro bloco :root logo
+   abaixo do @theme. Nesse caso, ajuste os valores delas
+   (mantendo os NOMES) em vez de criar cores novas:
+   ============================================ */
+
+/*
 :root {
-  --radius: 0.625rem;
-  --background: oklch(0.985 0.004 75);
-  --foreground: oklch(0.22 0.02 30);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.22 0.02 30);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.22 0.02 30);
-  --primary: oklch(0.445 0.157 28);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.965 0.008 75);
-  --secondary-foreground: oklch(0.29 0.035 30);
-  --muted: oklch(0.955 0.008 75);
-  --muted-foreground: oklch(0.50 0.025 30);
-  --accent: oklch(0.955 0.018 35);
-  --accent-foreground: oklch(0.30 0.06 30);
-  --destructive: oklch(0.55 0.20 28);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.90 0.012 65);
-  --input: oklch(0.90 0.012 65);
-  --ring: oklch(0.445 0.157 28);
-  --chart-1: oklch(0.62 0.14 145);
-  --chart-2: oklch(0.72 0.13 85);
-  --chart-3: oklch(0.68 0.16 55);
-  --chart-4: oklch(0.445 0.157 28);
-  --chart-5: oklch(0.50 0.10 30);
-  --sidebar: oklch(0.225 0.055 30);
-  --sidebar-foreground: oklch(0.97 0.008 75);
-  --sidebar-primary: oklch(0.70 0.12 30);
-  --sidebar-primary-foreground: oklch(0.20 0.04 30);
-  --sidebar-accent: oklch(0.30 0.055 30);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.34 0.045 30);
-  --sidebar-ring: oklch(0.70 0.12 30);
+  --primary: 4 71% 37%;           // #9C1917 vinho
+  --primary-foreground: 36 45% 95%;
+  --background: 33 46% 96%;       // #FBF7F1 bege claro
+  --foreground: 0 0% 24%;         // #3D3D3D cinza
+  --secondary: 30 25% 90%;        // #F4EBDD bege
+  --accent: 30 68% 60%;           // #E38B41 laranja
+  --border: 33 33% 87%;           // #E7DFD2
+  --destructive: 4 71% 37%;       // vinho também como cor crítica
 }
+*/
 
-.dark {
-  --background: oklch(0.16 0.02 30);
-  --foreground: oklch(0.97 0.008 75);
-  --card: oklch(0.21 0.025 30);
-  --card-foreground: oklch(0.97 0.008 75);
-  --popover: oklch(0.21 0.025 30);
-  --popover-foreground: oklch(0.97 0.008 75);
-  --primary: oklch(0.64 0.15 28);
-  --primary-foreground: oklch(0.98 0 0);
-  --secondary: oklch(0.27 0.035 30);
-  --secondary-foreground: oklch(0.97 0.008 75);
-  --muted: oklch(0.27 0.035 30);
-  --muted-foreground: oklch(0.74 0.02 60);
-  --accent: oklch(0.29 0.045 30);
-  --accent-foreground: oklch(0.97 0.008 75);
-  --destructive: oklch(0.68 0.18 28);
-  --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(1 0 0 / 12%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.64 0.15 28);
-  --chart-1: oklch(0.70 0.14 145);
-  --chart-2: oklch(0.76 0.13 85);
-  --chart-3: oklch(0.72 0.16 55);
-  --chart-4: oklch(0.64 0.15 28);
-  --chart-5: oklch(0.62 0.10 30);
-  --sidebar: oklch(0.18 0.035 30);
-  --sidebar-foreground: oklch(0.97 0.008 75);
-  --sidebar-primary: oklch(0.64 0.15 28);
-  --sidebar-primary-foreground: oklch(0.98 0 0);
-  --sidebar-accent: oklch(0.27 0.045 30);
-  --sidebar-accent-foreground: oklch(0.97 0.008 75);
-  --sidebar-border: oklch(1 0 0 / 12%);
-  --sidebar-ring: oklch(0.64 0.15 28);
-}
+/* Importar as fontes no seu index.html (dentro de <head>) */
+/*
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-grotesk@400,500,600,700&display=swap">
+*/
 
-@layer base {
-  * { border-color: var(--color-border); }
-
-  html, body { font-family: "Montserrat", ui-sans-serif, system-ui, sans-serif; }
-
-  h1, h2, h3, h4, h5, h6 {
-    font-family: "Clash Grotesk", "Montserrat", ui-sans-serif, system-ui, sans-serif;
-  }
-
-  body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
-  }
-}
-
-@layer utilities {
-  .font-display { font-family: "Clash Grotesk", "Montserrat", ui-sans-serif, system-ui, sans-serif; }
-
-  .area-card {
-    border-top: 3px solid #9C1917;
-  }
-
-  .sla-low { color: #2F7D32; }
-  .sla-medium { color: #B8860B; }
-  .sla-high { color: #D96B1F; }
-  .sla-critical { color: #9C1917; }
-
-  .status-low { background-color: #E8F5E9; color: #2F7D32; }
-  .status-medium { background-color: #FFF4CC; color: #8A6500; }
-  .status-high { background-color: #FFF0E4; color: #B94F0A; }
-  .status-critical { background-color: #F8E2E1; color: #9C1917; }
-}
+/* Cores semânticas de status (chamados/SLA) */
+.status-baixa   { color: var(--color-vem-verde); }
+.status-media   { color: var(--color-vem-dourado); }
+.status-alta    { color: var(--color-vem-laranja); }
+.status-critica { color: var(--color-vem-vinho); }
