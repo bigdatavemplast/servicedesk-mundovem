@@ -30,7 +30,7 @@ function ItsmAvancado() {
   const navigate = useNavigate();
   const { data: roles = [] } = useQuery({ queryKey: ["my-roles"], queryFn: async () => { const { data } = await supabase.from("user_roles").select("role"); return data ?? []; } });
   const isAdmin = roles.some((r: any) => r.role === "admin");
-  const { data: perms = [] } = useQuery({ queryKey: ["my-itsm-module-permissions"], enabled: !isAdmin, queryFn: async () => { const { data, error } = await supabase.from("itsm_permissoes_usuario").select("modulo").eq("user_id", (await supabase.auth.getUser()).data.user?.id).eq("visualizar", true); if (error) throw error; return data ?? []; } });
+  const { data: perms = [] } = useQuery({ queryKey: ["my-itsm-module-permissions"], enabled: !isAdmin, queryFn: async () => { const { data, error } = await supabase.from("itsm_permissoes_usuario").select("modulo").eq("user_id", (await supabase.auth.getUser()).data.user?.id as string).eq("visualizar", true); if (error) throw error; return data ?? []; } });
   const allowed = new Set(perms.map((p: any) => p.modulo));
   const visibleModules = isAdmin ? modules : modules.map((m) => m[4] === "catalogo" ? [m[0], m[1], m[2], "/catalogo", m[4]] as const : m).filter((m) => allowed.has(m[4]));
   return <div className="space-y-6">

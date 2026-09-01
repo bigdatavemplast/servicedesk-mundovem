@@ -50,7 +50,7 @@ function direta(mensagens: UIMessage[], text: string, fontes: Fonte[] = [], conf
       writer.write({ type: "text-end", id });
     },
     messageMetadata: () => ({ fontes, confianca }),
-  });
+  } as any);
   return createUIMessageStreamResponse({ stream });
 }
 
