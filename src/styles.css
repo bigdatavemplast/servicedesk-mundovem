@@ -34,12 +34,6 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-ring-offset-background: var(--background);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -48,9 +42,23 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* VEM brand utilities */
+  --color-vem-vinho: var(--vem-vinho);
+  --color-vem-bege: var(--vem-bege);
+  --color-vem-grafite: var(--vem-grafite);
+  --color-vem-laranja: var(--vem-laranja);
+  --color-vem-verde: var(--vem-verde);
 }
 
 :root {
+  /* VEM — brand palette */
+  --vem-vinho: #9C1917;
+  --vem-bege: #F4EBDD;
+  --vem-grafite: #3D3D3D;
+  --vem-laranja: #E38B41;
+  --vem-verde: #2F7D32;
+
   --radius: 0.625rem;
   --background: oklch(0.985 0.004 75);
   --foreground: oklch(0.22 0.02 30);
@@ -71,11 +79,6 @@
   --border: oklch(0.90 0.012 65);
   --input: oklch(0.90 0.012 65);
   --ring: oklch(0.445 0.157 28);
-  --chart-1: oklch(0.62 0.14 145);
-  --chart-2: oklch(0.72 0.13 85);
-  --chart-3: oklch(0.68 0.16 55);
-  --chart-4: oklch(0.445 0.157 28);
-  --chart-5: oklch(0.50 0.10 30);
   --sidebar: oklch(0.225 0.055 30);
   --sidebar-foreground: oklch(0.97 0.008 75);
   --sidebar-primary: oklch(0.70 0.12 30);
@@ -84,6 +87,16 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(0.34 0.045 30);
   --sidebar-ring: oklch(0.70 0.12 30);
+
+  /* Semantic VEM status colors */
+  --status-success-bg: #E8F5E9;
+  --status-success-fg: #2F7D32;
+  --status-warning-bg: #FFF4CC;
+  --status-warning-fg: #8A6500;
+  --status-attention-bg: #FFF0E4;
+  --status-attention-fg: #B94F0A;
+  --status-critical-bg: #F8E2E1;
+  --status-critical-fg: #9C1917;
 }
 
 .dark {
@@ -106,19 +119,14 @@
   --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.64 0.15 28);
-  --chart-1: oklch(0.70 0.14 145);
-  --chart-2: oklch(0.76 0.13 85);
-  --chart-3: oklch(0.72 0.16 55);
-  --chart-4: oklch(0.64 0.15 28);
-  --chart-5: oklch(0.62 0.10 30);
   --sidebar: oklch(0.18 0.035 30);
   --sidebar-foreground: oklch(0.97 0.008 75);
-  --sidebar-primary: oklch(0.64 0.15 28);
+  --sidebar-primary: oklch(0.64 0.15 30);
   --sidebar-primary-foreground: oklch(0.98 0 0);
   --sidebar-accent: oklch(0.27 0.045 30);
   --sidebar-accent-foreground: oklch(0.97 0.008 75);
   --sidebar-border: oklch(1 0 0 / 12%);
-  --sidebar-ring: oklch(0.64 0.15 28);
+  --sidebar-ring: oklch(0.64 0.15 30);
 }
 
 @layer base {
@@ -133,23 +141,39 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--vem-vinho);
+    outline-offset: 2px;
   }
 }
 
 @layer utilities {
   .font-display { font-family: "Clash Grotesk", "Montserrat", ui-sans-serif, system-ui, sans-serif; }
 
-  .area-card {
-    border-top: 3px solid #9C1917;
-  }
+  .bg-vem-vinho { background-color: var(--vem-vinho); }
+  .bg-vem-bege { background-color: var(--vem-bege); }
+  .bg-vem-grafite { background-color: var(--vem-grafite); }
+  .bg-vem-laranja { background-color: var(--vem-laranja); }
+  .bg-vem-verde { background-color: var(--vem-verde); }
+  .text-vem-vinho { color: var(--vem-vinho); }
+  .text-vem-grafite { color: var(--vem-grafite); }
+  .text-vem-laranja { color: var(--vem-laranja); }
+  .text-vem-verde { color: var(--vem-verde); }
+  .border-vem-vinho { border-color: var(--vem-vinho); }
 
-  .sla-low { color: #2F7D32; }
-  .sla-medium { color: #B8860B; }
-  .sla-high { color: #D96B1F; }
-  .sla-critical { color: #9C1917; }
+  .area-card { border-top: 3px solid var(--vem-vinho); }
 
-  .status-low { background-color: #E8F5E9; color: #2F7D32; }
-  .status-medium { background-color: #FFF4CC; color: #8A6500; }
-  .status-high { background-color: #FFF0E4; color: #B94F0A; }
-  .status-critical { background-color: #F8E2E1; color: #9C1917; }
+  .sla-low { color: var(--status-success-fg); }
+  .sla-medium { color: var(--status-warning-fg); }
+  .sla-high { color: var(--status-attention-fg); }
+  .sla-critical { color: var(--status-critical-fg); }
+
+  .status-low { background-color: var(--status-success-bg); color: var(--status-success-fg); }
+  .status-medium { background-color: var(--status-warning-bg); color: var(--status-warning-fg); }
+  .status-high { background-color: var(--status-attention-bg); color: var(--status-attention-fg); }
+  .status-critical { background-color: var(--status-critical-bg); color: var(--status-critical-fg); }
 }
