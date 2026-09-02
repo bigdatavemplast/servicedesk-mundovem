@@ -1027,6 +1027,48 @@ export type Database = {
           },
         ]
       }
+      gestao_atendimento_eventos: {
+        Row: {
+          chamado_id: string
+          criado_em: string
+          id: string
+          motivo: string | null
+          tipo: string
+          usuario_id: string | null
+        }
+        Insert: {
+          chamado_id: string
+          criado_em?: string
+          id?: string
+          motivo?: string | null
+          tipo: string
+          usuario_id?: string | null
+        }
+        Update: {
+          chamado_id?: string
+          criado_em?: string
+          id?: string
+          motivo?: string | null
+          tipo?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gestao_atendimento_eventos_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "chamados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gestao_atendimento_eventos_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gestao_capacidade: {
         Row: {
           ativo: boolean
@@ -1036,6 +1078,7 @@ export type Database = {
           grupo_atendimento_id: string | null
           horas_disponiveis_semana: number
           id: string
+          segmento_id: string | null
           usuario_id: string | null
         }
         Insert: {
@@ -1046,6 +1089,7 @@ export type Database = {
           grupo_atendimento_id?: string | null
           horas_disponiveis_semana?: number
           id?: string
+          segmento_id?: string | null
           usuario_id?: string | null
         }
         Update: {
@@ -1056,6 +1100,7 @@ export type Database = {
           grupo_atendimento_id?: string | null
           horas_disponiveis_semana?: number
           id?: string
+          segmento_id?: string | null
           usuario_id?: string | null
         }
         Relationships: [
@@ -1064,6 +1109,13 @@ export type Database = {
             columns: ["grupo_atendimento_id"]
             isOneToOne: false
             referencedRelation: "grupos_atendimento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gestao_capacidade_segmento_id_fkey"
+            columns: ["segmento_id"]
+            isOneToOne: false
+            referencedRelation: "segmentos"
             referencedColumns: ["id"]
           },
           {
@@ -2877,6 +2929,15 @@ export type Database = {
         }[]
       }
       proximo_numero_fila: { Args: { p_grupo_id: string }; Returns: number }
+      registrar_evento_gestao_atendimento: {
+        Args: {
+          p_chamado_id: string
+          p_motivo?: string
+          p_tipo: string
+          p_usuario_id?: string
+        }
+        Returns: string
+      }
       registrar_evento_sla: {
         Args: {
           p_chamado_id: string
@@ -2956,12 +3017,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2985,11 +3046,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3010,11 +3071,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3035,11 +3096,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3052,11 +3113,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
