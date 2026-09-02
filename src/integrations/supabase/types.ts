@@ -2926,6 +2926,10 @@ export type Database = {
           util: number
         }[]
       }
+      perfil_visivel_por_chamado: {
+        Args: { _perfil_id: string; _user_id: string }
+        Returns: boolean
+      }
       processar_escalonamentos_sla: {
         Args: never
         Returns: {
