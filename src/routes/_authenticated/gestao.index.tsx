@@ -75,8 +75,8 @@ type Chamado = {
   atendente_id: string | null;
   segmento_id: string | null;
   sla_tempo_pausado_segundos: number | null;
-  escalonado_em:string|null;
-  escalonamento_nivel:number|null;
+  escalonado_em: string | null;
+  escalonamento_nivel: number | null;
 };
 
 type Segmento = {
@@ -129,7 +129,10 @@ const money = (value: number | null) =>
 
 const areaStored = () => {
   try {
-    const value = JSON.parse(localStorage.getItem("service_desk_segmento") || "null");
+    const value = JSON.parse(
+      localStorage.getItem("service_desk_segmento") || "null",
+    );
+
     return value?.id ? String(value.id) : "";
   } catch {
     return "";
@@ -155,6 +158,7 @@ function Kpi({
           <p className="mt-2 text-2xl font-bold">{value}</p>
           <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
         </div>
+
         <div className="rounded-lg bg-primary/10 p-2 text-primary">
           <Icon className="h-5 w-5" />
         </div>
@@ -166,7 +170,9 @@ function Kpi({
 function GestaoPage() {
   const [dias, setDias] = useState("30");
   const [segmentoId, setSegmentoId] = useState(areaStored());
+
   const days = Number(dias);
+
   const inicio = useMemo(() => since(days), [days]);
 
   const { data: segmentos = [] } = useQuery({
@@ -180,12 +186,15 @@ function GestaoPage() {
         .order("nome");
 
       if (error) throw error;
+
       return data as Segmento[];
     },
     staleTime: 5 * 60 * 1000,
   });
 
-  const segmentoValido = segmentos.some((segmento) => segmento.id === segmentoId)
+  const segmentoValido = segmentos.some(
+    (segmento) => segmento.id === segmentoId,
+  )
     ? segmentoId
     : segmentos[0]?.id || "";
 
@@ -199,8 +208,12 @@ function GestaoPage() {
     queryKey: ["gestao-atualizar-abandonos"],
     enabled: !!segmentoValido,
     queryFn: async () => {
-      const { error } = await (supabase as any).rpc("gestao_atualizar_abandonos");
+      const { error } = await (supabase as any).rpc(
+        "gestao_atualizar_abandonos",
+      );
+
       if (error) throw error;
+
       return true;
     },
     staleTime: 5 * 60 * 1000,
@@ -219,13 +232,14 @@ function GestaoPage() {
       const { data, error } = await (supabase as any)
         .from("chamados")
         .select(
-          "id,status,prioridade,criado_em,resolvido_em,sla_resolucao_violado,prazo_resolucao,primeira_chamada_resolvida,escalonado,atendimento_abandonado,tempo_atendimento_minutos,custo_atendimento,categoria_id,atendente_id,segmento_id,sla_tempo_pausado_segundos",
+          "id,status,prioridade,criado_em,resolvido_em,sla_resolucao_violado,prazo_resolucao,primeira_chamada_resolvida,escalonado,atendimento_abandonado,tempo_atendimento_minutos,custo_atendimento,categoria_id,atendente_id,segmento_id,sla_tempo_pausado_segundos,escalonado_em,escalonamento_nivel",
         )
         .eq("segmento_id", segmentoValido)
         .gte("criado_em", inicio)
         .order("criado_em", { ascending: true });
 
       if (error) throw error;
+
       return data as Chamado[];
     },
   });
@@ -242,6 +256,7 @@ function GestaoPage() {
         .or(`resolvido_em.is.null,resolvido_em.gte.${inicio}`);
 
       if (error) throw error;
+
       return data || [];
     },
   });
@@ -265,7 +280,9 @@ function GestaoPage() {
 
       return {
         media_csat:
-          resultado?.media_csat != null ? Number(resultado.media_csat) : null,
+          resultado?.media_csat != null
+            ? Number(resultado.media_csat)
+            : null,
         total_avaliacoes:
           resultado?.total_avaliacoes != null
             ? Number(resultado.total_avaliacoes)
@@ -283,7 +300,11 @@ function GestaoPage() {
   const agentIds = useMemo(
     () =>
       Array.from(
-        new Set(chamados.map((chamado) => chamado.atendente_id).filter(Boolean)),
+        new Set(
+          chamados
+            .map((chamado) => chamado.atendente_id)
+            .filter(Boolean),
+        ),
       ) as string[],
     [chamados],
   );
@@ -298,6 +319,7 @@ function GestaoPage() {
         .in("id", agentIds);
 
       if (error) throw error;
+
       return data || [];
     },
   });
@@ -324,15 +346,25 @@ function GestaoPage() {
         .eq("ativo", true);
 
       if (error) throw error;
+
       return data || [];
     },
   });
 
-  const grupoIds = useMemo(() => grupos.map((grupo: any) => grupo.id), [grupos]);
+  const grupoIds = useMemo(
+    () => grupos.map((grupo: any) => grupo.id),
+    [grupos],
+  );
 
   const { data: capacidade = [] } = useQuery({
-    queryKey: ["gestao-capacidade", segmentoValido, agentIds.join(","), grupoIds.join(",")],
-    enabled: !!segmentoValido && (agentIds.length > 0 || grupoIds.length > 0),
+    queryKey: [
+      "gestao-capacidade",
+      segmentoValido,
+      agentIds.join(","),
+      grupoIds.join(","),
+    ],
+    enabled:
+      !!segmentoValido && (agentIds.length > 0 || grupoIds.length > 0),
     queryFn: async () => {
       let query = (supabase as any)
         .from("gestao_capacidade")
@@ -348,7 +380,9 @@ function GestaoPage() {
       }
 
       if (grupoIds.length) {
-        filters.push(`grupo_atendimento_id.in.(${grupoIds.join(",")})`);
+        filters.push(
+          `grupo_atendimento_id.in.(${grupoIds.join(",")})`,
+        );
       }
 
       if (!filters.length) return [];
@@ -358,6 +392,7 @@ function GestaoPage() {
       const { data, error } = await query;
 
       if (error) throw error;
+
       return data as Capacidade[];
     },
   });
@@ -373,6 +408,7 @@ function GestaoPage() {
         .gte("criado_em", inicio);
 
       if (error) throw error;
+
       return data as Equipe[];
     },
   });
@@ -386,6 +422,7 @@ function GestaoPage() {
         .eq("ativo", true);
 
       if (error) throw error;
+
       return data || [];
     },
     staleTime: 5 * 60 * 1000,
@@ -394,13 +431,17 @@ function GestaoPage() {
   const catMap = useMemo(
     () =>
       Object.fromEntries(
-        (categorias as any[]).map((categoria) => [categoria.id, categoria.nome]),
+        (categorias as any[]).map((categoria) => [
+          categoria.id,
+          categoria.nome,
+        ]),
       ),
     [categorias],
   );
 
   const areaNome =
-    segmentos.find((segmento) => segmento.id === segmentoValido)?.nome || "Área";
+    segmentos.find((segmento) => segmento.id === segmentoValido)?.nome ||
+    "Área";
 
   const m = useMemo(() => {
     const resolved = chamados.filter(
@@ -409,14 +450,19 @@ function GestaoPage() {
         CLOSED.includes(String(chamado.status).toLowerCase()),
     );
 
-    const encerradosComData = resolved.filter((chamado) => !!chamado.resolvido_em);
+    const encerradosComData = resolved.filter(
+      (chamado) => !!chamado.resolvido_em,
+    );
 
     const fcrE = chamados.filter(
-      (chamado) => chamado.primeira_chamada_resolvida !== null,
+      (chamado) =>
+        chamado.primeira_chamada_resolvida !== null,
     );
 
     const fcr = pct(
-      fcrE.filter((chamado) => chamado.primeira_chamada_resolvida === true).length,
+      fcrE.filter(
+        (chamado) => chamado.primeira_chamada_resolvida === true,
+      ).length,
       fcrE.length,
     );
 
@@ -430,16 +476,20 @@ function GestaoPage() {
         (new Date(chamado.resolvido_em!).getTime() -
           new Date(chamado.criado_em).getTime()) /
           3600000 -
-          Number(chamado.sla_tempo_pausado_segundos || 0) / 3600,
+          Number(chamado.sla_tempo_pausado_segundos || 0) /
+            3600,
       );
     });
 
     const tma = tmas.length
-      ? tmas.reduce((total, value) => total + value, 0) / tmas.length
+      ? tmas.reduce((total, value) => total + value, 0) /
+        tmas.length
       : null;
 
     const slaE = encerradosComData.filter(
-      (chamado) => chamado.prazo_resolucao || chamado.sla_resolucao_violado,
+      (chamado) =>
+        chamado.prazo_resolucao ||
+        chamado.sla_resolucao_violado,
     );
 
     const sla = pct(
@@ -447,93 +497,140 @@ function GestaoPage() {
         (chamado) =>
           !chamado.sla_resolucao_violado &&
           (!chamado.prazo_resolucao ||
-            new Date(chamado.resolvido_em!) <= new Date(chamado.prazo_resolucao)),
+            new Date(chamado.resolvido_em!) <=
+              new Date(chamado.prazo_resolucao)),
       ).length,
       slaE.length,
     );
 
     const team = equipe.length
-      ? equipe.reduce((total, item) => total + Number(item.nota), 0) / equipe.length
+      ? equipe.reduce(
+          (total, item) => total + Number(item.nota),
+          0,
+        ) / equipe.length
       : null;
 
     const cost = chamados
       .map((chamado) => chamado.custo_atendimento)
-      .filter((value): value is number => value != null);
+      .filter(
+        (value): value is number => value != null,
+      );
 
     const costTotal = cost.length
       ? cost.reduce((total, value) => total + value, 0)
       : null;
 
-    const costPer = costTotal != null && resolved.length
-      ? costTotal / resolved.length
-      : null;
+    const costPer =
+      costTotal != null && resolved.length
+        ? costTotal / resolved.length
+        : null;
 
     const used =
       chamados.reduce(
-        (total, chamado) => total + Number(chamado.tempo_atendimento_minutos || 0),
+        (total, chamado) =>
+          total +
+          Number(chamado.tempo_atendimento_minutos || 0),
         0,
       ) / 60;
 
     const capacity =
       capacidade.reduce(
-        (total, item) => total + Number(item.horas_disponiveis_semana),
+        (total, item) =>
+          total +
+          Number(item.horas_disponiveis_semana),
         0,
       ) *
       (days / 7);
 
-    const utilization = capacity ? (used / capacity) * 100 : null;
+    const utilization = capacity
+      ? (used / capacity) * 100
+      : null;
 
     const quality =
       csatData?.media_csat != null && fcr != null
-        ? (Number(csatData.media_csat) / 5) * 50 + fcr * 0.5
+        ? (Number(csatData.media_csat) / 5) * 50 +
+          fcr * 0.5
         : null;
+
+    const escalonados = chamados.filter(
+      (chamado) =>
+        chamado.escalonado === true ||
+        chamado.escalonado_em !== null ||
+        Number(chamado.escalonamento_nivel || 0) > 1,
+    );
 
     return {
       resolved: resolved.length,
+
       backlog: chamados.filter(
         (chamado) =>
-          !CLOSED.includes(String(chamado.status).toLowerCase()) &&
+          !CLOSED.includes(
+            String(chamado.status).toLowerCase(),
+          ) &&
           chamado.status !== CANCELLED,
       ).length,
+
       fcr,
+
       tma,
+
       sla,
+
       team,
+
       costTotal,
+
       costPer,
+
       utilization,
+
       quality,
+
       escal: pct(
-  chamados.filter(
-    c =>
-      c.escalonado ||
-      c.escalonado_em !== null ||
-      Number(c.escalonamento_nivel || 0) > 1
-  ).length,
-  chamados.length
-),
+        escalonados.length,
+        chamados.length,
+      ),
+
+      escalonados: escalonados.length,
+
       abandon: pct(
         chamados.filter(
           (chamado) =>
             chamado.atendimento_abandonado &&
-            !CLOSED.includes(String(chamado.status).toLowerCase()) &&
+            !CLOSED.includes(
+              String(chamado.status).toLowerCase(),
+            ) &&
             chamado.status !== CANCELLED,
         ).length,
         chamados.length,
       ),
     };
-  }, [csatData, capacidade, chamados, days, equipe]);
+  }, [
+    csatData,
+    capacidade,
+    chamados,
+    days,
+    equipe,
+  ]);
 
   const trend = useMemo(() => {
     const map = new Map<
       string,
-      { periodo: string; abertos: number; resolvidos: number; backlog: number }
+      {
+        periodo: string;
+        abertos: number;
+        resolvidos: number;
+        backlog: number;
+      }
     >();
 
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date();
+
       date.setDate(date.getDate() - i);
+
       const key = date.toISOString().slice(0, 10);
+
       map.set(key, {
         periodo: key.slice(5),
         abertos: 0,
@@ -543,57 +640,97 @@ function GestaoPage() {
     }
 
     chamados.forEach((chamado) => {
-      const aberto = map.get(chamado.criado_em.slice(0, 10));
-      if (aberto) aberto.abertos++;
+      const aberto = map.get(
+        chamado.criado_em.slice(0, 10),
+      );
+
+      if (aberto) {
+        aberto.abertos++;
+      }
 
       if (chamado.resolvido_em) {
-        const resolvido = map.get(chamado.resolvido_em.slice(0, 10));
-        if (resolvido) resolvido.resolvidos++;
+        const resolvido = map.get(
+          chamado.resolvido_em.slice(0, 10),
+        );
+
+        if (resolvido) {
+          resolvido.resolvidos++;
+        }
       }
     });
 
     let backlog = backlogAnterior.filter(
       (chamado: any) =>
-        !CLOSED.includes(String(chamado.status).toLowerCase()) &&
+        !CLOSED.includes(
+          String(chamado.status).toLowerCase(),
+        ) &&
         chamado.status !== CANCELLED,
     ).length;
 
     return [...map.values()].map((item) => {
-      backlog = Math.max(0, backlog + item.abertos - item.resolvidos);
-      return { ...item, backlog };
+      backlog = Math.max(
+        0,
+        backlog + item.abertos - item.resolvidos,
+      );
+
+      return {
+        ...item,
+        backlog,
+      };
     });
   }, [backlogAnterior, chamados, days]);
 
-  const priorities = ["baixa", "media", "alta", "critica"].map((prioridade) => ({
+  const priorities = [
+    "baixa",
+    "media",
+    "alta",
+    "critica",
+  ].map((prioridade) => ({
     prioridade,
-    total: chamados.filter((chamado) => chamado.prioridade === prioridade).length,
+    total: chamados.filter(
+      (chamado) =>
+        chamado.prioridade === prioridade,
+    ).length,
   }));
 
   const agents = useMemo(() => {
     const map = new Map<
       string,
-      { agente: string; total: number; resolvidos: number }
+      {
+        agente: string;
+        total: number;
+        resolvidos: number;
+      }
     >();
 
     chamados
       .filter((chamado) => chamado.atendente_id)
       .forEach((chamado) => {
         const id = chamado.atendente_id!;
+
         const item =
           map.get(id) ||
           {
-            agente: profileMap[id] || "Atendente",
+            agente:
+              profileMap[id] || "Atendente",
             total: 0,
             resolvidos: 0,
           };
 
         item.total++;
-        if (chamado.resolvido_em) item.resolvidos++;
+
+        if (chamado.resolvido_em) {
+          item.resolvidos++;
+        }
+
         map.set(id, item);
       });
 
     return [...map.values()]
-      .sort((a, b) => b.resolvidos - a.resolvidos)
+      .sort(
+        (a, b) =>
+          b.resolvidos - a.resolvidos,
+      )
       .slice(0, 10);
   }, [chamados, profileMap]);
 
@@ -602,15 +739,24 @@ function GestaoPage() {
 
     chamados.forEach((chamado) => {
       const name = chamado.categoria_id
-        ? catMap[chamado.categoria_id] || "Sem categoria"
+        ? catMap[chamado.categoria_id] ||
+          "Sem categoria"
         : "Sem categoria";
 
-      map.set(name, (map.get(name) || 0) + 1);
+      map.set(
+        name,
+        (map.get(name) || 0) + 1,
+      );
     });
 
     return [...map]
-      .map(([categoria, total]) => ({ categoria, total }))
-      .sort((a, b) => b.total - a.total)
+      .map(([categoria, total]) => ({
+        categoria,
+        total,
+      }))
+      .sort(
+        (a, b) => b.total - a.total,
+      )
       .slice(0, 8);
   }, [chamados, catMap]);
 
@@ -619,7 +765,9 @@ function GestaoPage() {
       <div className="p-8">
         <Card>
           <CardHeader>
-            <CardTitle>Selecione uma área</CardTitle>
+            <CardTitle>
+              Selecione uma área
+            </CardTitle>
           </CardHeader>
         </Card>
       </div>
@@ -639,7 +787,9 @@ function GestaoPage() {
       <div className="p-8">
         <Card>
           <CardHeader>
-            <CardTitle>Erro ao carregar Gestão</CardTitle>
+            <CardTitle>
+              Erro ao carregar Gestão
+            </CardTitle>
           </CardHeader>
           <CardContent>
             Não foi possível consultar os chamados.
@@ -652,7 +802,9 @@ function GestaoPage() {
   const csatValue = csatLoading
     ? "..."
     : csatData?.media_csat != null
-      ? `${Number(csatData.media_csat).toFixed(1)}/5`
+      ? `${Number(
+          csatData.media_csat,
+        ).toFixed(1)}/5`
       : "—";
 
   const csatHint = csatError
@@ -663,35 +815,61 @@ function GestaoPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Gestão do Service Desk</h1>
+          <h1 className="text-2xl font-bold">
+            Gestão do Service Desk
+          </h1>
+
           <p className="text-sm text-muted-foreground">
-            Indicadores exclusivamente da área <strong>{areaNome}</strong>.
+            Indicadores exclusivamente da área{" "}
+            <strong>{areaNome}</strong>.
           </p>
         </div>
 
         <div className="flex gap-2">
-          <Select value={segmentoValido} onValueChange={setSegmentoId}>
+          <Select
+            value={segmentoValido}
+            onValueChange={setSegmentoId}
+          >
             <SelectTrigger className="w-[180px]">
               <SelectValue />
             </SelectTrigger>
+
             <SelectContent>
               {segmentos.map((segmento) => (
-                <SelectItem key={segmento.id} value={segmento.id}>
+                <SelectItem
+                  key={segmento.id}
+                  value={segmento.id}
+                >
                   {segmento.nome}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
 
-          <Select value={dias} onValueChange={setDias}>
+          <Select
+            value={dias}
+            onValueChange={setDias}
+          >
             <SelectTrigger className="w-[160px]">
               <SelectValue />
             </SelectTrigger>
+
             <SelectContent>
-              <SelectItem value="7">Últimos 7 dias</SelectItem>
-              <SelectItem value="15">Últimos 15 dias</SelectItem>
-              <SelectItem value="30">Últimos 30 dias</SelectItem>
-              <SelectItem value="90">Últimos 90 dias</SelectItem>
+              <SelectItem value="7">
+                Últimos 7 dias
+              </SelectItem>
+
+              <SelectItem value="15">
+                Últimos 15 dias
+              </SelectItem>
+
+              <SelectItem value="30">
+                Últimos 30 dias
+              </SelectItem>
+
+              <SelectItem value="90">
+                Últimos 90 dias
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -704,42 +882,65 @@ function GestaoPage() {
           hint={`${m.resolved} resolvidos + fechados · ${areaNome}`}
           icon={Headphones}
         />
+
         <Kpi
           title="FCR"
-          value={m.fcr == null ? "—" : `${m.fcr}%`}
+          value={
+            m.fcr == null
+              ? "—"
+              : `${m.fcr}%`
+          }
           hint="resolução na primeira chamada"
           icon={Zap}
         />
+
         <Kpi
           title="TMA"
           value={hours(m.tma)}
           hint="tempo médio efetivamente trabalhado"
           icon={Clock3}
         />
+
         <Kpi
           title="SLA"
-          value={m.sla == null ? "—" : `${m.sla}%`}
+          value={
+            m.sla == null
+              ? "—"
+              : `${m.sla}%`
+          }
           hint="conformidade em encerrados"
           icon={ShieldCheck}
         />
+
         <Kpi
           title="CSAT"
           value={csatValue}
           hint={csatHint}
           icon={Star}
         />
+
         <Kpi
           title="Escalonamento"
-          value={m.escal == null ? "—" : `${m.escal}%`}
-          hint="chamados escalonados"
+          value={
+            m.escal == null
+              ? "—"
+              : `${m.escal}%`
+          }
+          hint={`${m.escalonados} chamados escalonados`}
           icon={TrendingUp}
         />
+
         <Kpi
           title="Abandono"
-          value={m.abandon == null ? "—" : `${m.abandon}%`}
+          value={
+            m.abandon == null
+              ? "—"
+              : `${m.abandon}%`
+          }
           hint="30 dias sem ação do atendimento"
           icon={Activity}
         />
+
         <Kpi
           title="Backlog"
           value={String(m.backlog)}
@@ -751,52 +952,103 @@ function GestaoPage() {
       <div className="grid gap-4 lg:grid-cols-4">
         <Card>
           <CardHeader>
-            <CardTitle>Custos</CardTitle>
+            <CardTitle>
+              Custos
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">Total registrado</p>
-            <p className="text-xl font-bold">{money(m.costTotal)}</p>
-            <p className="mt-2 text-sm text-muted-foreground">Por resolvido</p>
-            <p className="text-lg font-semibold">{money(m.costPer)}</p>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Capacidade</CardTitle>
-          </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">Utilização</p>
-            <p className="text-xl font-bold">
-              {m.utilization == null ? "—" : `${m.utilization.toFixed(1)}%`}
+            <p className="text-sm text-muted-foreground">
+              Total registrado
             </p>
-            <Badge variant="outline">{capacidade.length} parâmetros</Badge>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Satisfação da equipe</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">Média</p>
             <p className="text-xl font-bold">
-              {m.team == null ? "—" : `${m.team.toFixed(1)}/5`}
+              {money(m.costTotal)}
+            </p>
+
+            <p className="mt-2 text-sm text-muted-foreground">
+              Por resolvido
+            </p>
+
+            <p className="text-lg font-semibold">
+              {money(m.costPer)}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Qualidade</CardTitle>
+            <CardTitle>
+              Capacidade
+            </CardTitle>
           </CardHeader>
+
           <CardContent>
-            <p className="text-sm text-muted-foreground">CSAT + FCR</p>
-            <p className="text-xl font-bold">
-              {m.quality == null ? "—" : `${m.quality.toFixed(0)}/100`}
+            <p className="text-sm text-muted-foreground">
+              Utilização
             </p>
+
+            <p className="text-xl font-bold">
+              {m.utilization == null
+                ? "—"
+                : `${m.utilization.toFixed(1)}%`}
+            </p>
+
+            <Badge variant="outline">
+              {capacidade.length} parâmetros
+            </Badge>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              Satisfação da equipe
+            </CardTitle>
+          </CardHeader>
+
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Média
+            </p>
+
+            <p className="text-xl font-bold">
+              {m.team == null
+                ? "—"
+                : `${m.team.toFixed(1)}/5`}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              Qualidade
+            </CardTitle>
+          </CardHeader>
+
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              CSAT + FCR
+            </p>
+
+            <p className="text-xl font-bold">
+              {m.quality == null
+                ? "—"
+                : `${m.quality.toFixed(0)}/100`}
+            </p>
+
             <p className="text-xs text-muted-foreground">
-              CSAT: {csatData?.media_csat == null ? "—" : Number(csatData.media_csat).toFixed(1)} · FCR: {m.fcr == null ? "—" : `${m.fcr}%`}
+              CSAT:{" "}
+              {csatData?.media_csat == null
+                ? "—"
+                : Number(
+                    csatData.media_csat,
+                  ).toFixed(1)}{" "}
+              · FCR:{" "}
+              {m.fcr == null
+                ? "—"
+                : `${m.fcr}%`}
             </p>
           </CardContent>
         </Card>
@@ -805,19 +1057,37 @@ function GestaoPage() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Abertura x resolução</CardTitle>
+            <CardTitle>
+              Abertura x resolução
+            </CardTitle>
           </CardHeader>
+
           <CardContent>
             <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer
+                width="100%"
+                height="100%"
+              >
                 <LineChart data={trend}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="periodo" />
                   <YAxis allowDecimals={false} />
                   <Tooltip />
                   <Legend />
-                  <Line type="monotone" dataKey="abertos" name="Abertos" strokeWidth={2} />
-                  <Line type="monotone" dataKey="resolvidos" name="Resolvidos" strokeWidth={2} />
+
+                  <Line
+                    type="monotone"
+                    dataKey="abertos"
+                    name="Abertos"
+                    strokeWidth={2}
+                  />
+
+                  <Line
+                    type="monotone"
+                    dataKey="resolvidos"
+                    name="Resolvidos"
+                    strokeWidth={2}
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -826,17 +1096,29 @@ function GestaoPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Backlog acumulado</CardTitle>
+            <CardTitle>
+              Backlog acumulado
+            </CardTitle>
           </CardHeader>
+
           <CardContent>
             <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer
+                width="100%"
+                height="100%"
+              >
                 <LineChart data={trend}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="periodo" />
                   <YAxis allowDecimals={false} />
                   <Tooltip />
-                  <Line type="monotone" dataKey="backlog" name="Backlog" strokeWidth={2} />
+
+                  <Line
+                    type="monotone"
+                    dataKey="backlog"
+                    name="Backlog"
+                    strokeWidth={2}
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -847,17 +1129,27 @@ function GestaoPage() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Volume por prioridade</CardTitle>
+            <CardTitle>
+              Volume por prioridade
+            </CardTitle>
           </CardHeader>
+
           <CardContent>
             <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer
+                width="100%"
+                height="100%"
+              >
                 <BarChart data={priorities}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="prioridade" />
                   <YAxis allowDecimals={false} />
                   <Tooltip />
-                  <Bar dataKey="total" name="Chamados" />
+
+                  <Bar
+                    dataKey="total"
+                    name="Chamados"
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -866,8 +1158,11 @@ function GestaoPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Produtividade por atendente</CardTitle>
+            <CardTitle>
+              Produtividade por atendente
+            </CardTitle>
           </CardHeader>
+
           <CardContent>
             {agents.length ? (
               <div className="space-y-2">
@@ -878,10 +1173,15 @@ function GestaoPage() {
                   >
                     <div className="flex items-center gap-2">
                       <Users className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">{agent.agente}</span>
+
+                      <span className="text-sm font-medium">
+                        {agent.agente}
+                      </span>
                     </div>
+
                     <Badge variant="outline">
-                      {agent.resolvidos} resolvidos / {agent.total} total
+                      {agent.resolvidos} resolvidos /{" "}
+                      {agent.total} total
                     </Badge>
                   </div>
                 ))}
@@ -897,8 +1197,11 @@ function GestaoPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Volume por categoria</CardTitle>
+          <CardTitle>
+            Volume por categoria
+          </CardTitle>
         </CardHeader>
+
         <CardContent>
           {categories.length ? (
             <div className="grid gap-2 sm:grid-cols-2">
@@ -907,8 +1210,13 @@ function GestaoPage() {
                   key={category.categoria}
                   className="flex items-center justify-between rounded-lg border p-3"
                 >
-                  <span className="text-sm">{category.categoria}</span>
-                  <Badge>{category.total}</Badge>
+                  <span className="text-sm">
+                    {category.categoria}
+                  </span>
+
+                  <Badge>
+                    {category.total}
+                  </Badge>
                 </div>
               ))}
             </div>
