@@ -31,6 +31,7 @@ import { Route as AuthenticatedCatalogoRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedAreasRouteImport } from './routes/_authenticated/areas'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
+import { Route as AuthenticatedGestaoIndexRouteImport } from './routes/_authenticated/gestao.index'
 import { Route as AuthenticatedChamadosIndexRouteImport } from './routes/_authenticated/chamados.index'
 import { Route as AuthenticatedBaseConhecimentoIndexRouteImport } from './routes/_authenticated/base-conhecimento.index'
 import { Route as AuthenticatedAssistenteIndexRouteImport } from './routes/_authenticated/assistente.index'
@@ -174,6 +175,12 @@ const Char91DotmcpChar93ListToolsRoute =
     id: '/.mcp/list-tools',
     path: '/.mcp/list-tools',
     getParentRoute: () => rootRouteImport,
+  } as any)
+const AuthenticatedGestaoIndexRoute =
+  AuthenticatedGestaoIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedGestaoRoute,
   } as any)
 const AuthenticatedChamadosIndexRoute =
   AuthenticatedChamadosIndexRouteImport.update({
@@ -362,6 +369,7 @@ export interface FileRoutesByFullPath {
   '/assistente/': typeof AuthenticatedAssistenteIndexRoute
   '/base-conhecimento/': typeof AuthenticatedBaseConhecimentoIndexRoute
   '/chamados/': typeof AuthenticatedChamadosIndexRoute
+  '/gestao/': typeof AuthenticatedGestaoIndexRoute
   '/base-conhecimento/$id/editar': typeof AuthenticatedBaseConhecimentoIdEditarRoute
 }
 export interface FileRoutesByTo {
@@ -375,7 +383,6 @@ export interface FileRoutesByTo {
   '/catalogo': typeof AuthenticatedCatalogoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/fila': typeof AuthenticatedFilaRoute
-  '/gestao': typeof AuthenticatedGestaoRouteWithChildren
   '/itsm-ativos': typeof AuthenticatedItsmAtivosRoute
   '/itsm-auditoria': typeof AuthenticatedItsmAuditoriaRoute
   '/itsm-avancado': typeof AuthenticatedItsmAvancadoRoute
@@ -409,6 +416,7 @@ export interface FileRoutesByTo {
   '/assistente': typeof AuthenticatedAssistenteIndexRoute
   '/base-conhecimento': typeof AuthenticatedBaseConhecimentoIndexRoute
   '/chamados': typeof AuthenticatedChamadosIndexRoute
+  '/gestao': typeof AuthenticatedGestaoIndexRoute
   '/base-conhecimento/$id/editar': typeof AuthenticatedBaseConhecimentoIdEditarRoute
 }
 export interface FileRoutesById {
@@ -458,6 +466,7 @@ export interface FileRoutesById {
   '/_authenticated/assistente/': typeof AuthenticatedAssistenteIndexRoute
   '/_authenticated/base-conhecimento/': typeof AuthenticatedBaseConhecimentoIndexRoute
   '/_authenticated/chamados/': typeof AuthenticatedChamadosIndexRoute
+  '/_authenticated/gestao/': typeof AuthenticatedGestaoIndexRoute
   '/_authenticated/base-conhecimento/$id/editar': typeof AuthenticatedBaseConhecimentoIdEditarRoute
 }
 export interface FileRouteTypes {
@@ -507,6 +516,7 @@ export interface FileRouteTypes {
     | '/assistente/'
     | '/base-conhecimento/'
     | '/chamados/'
+    | '/gestao/'
     | '/base-conhecimento/$id/editar'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -520,7 +530,6 @@ export interface FileRouteTypes {
     | '/catalogo'
     | '/dashboard'
     | '/fila'
-    | '/gestao'
     | '/itsm-ativos'
     | '/itsm-auditoria'
     | '/itsm-avancado'
@@ -554,6 +563,7 @@ export interface FileRouteTypes {
     | '/assistente'
     | '/base-conhecimento'
     | '/chamados'
+    | '/gestao'
     | '/base-conhecimento/$id/editar'
   id:
     | '__root__'
@@ -602,6 +612,7 @@ export interface FileRouteTypes {
     | '/_authenticated/assistente/'
     | '/_authenticated/base-conhecimento/'
     | '/_authenticated/chamados/'
+    | '/_authenticated/gestao/'
     | '/_authenticated/base-conhecimento/$id/editar'
   fileRoutesById: FileRoutesById
 }
@@ -773,6 +784,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/.mcp/list-tools'
       preLoaderRoute: typeof Char91DotmcpChar93ListToolsRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/gestao/': {
+      id: '/_authenticated/gestao/'
+      path: '/'
+      fullPath: '/gestao/'
+      preLoaderRoute: typeof AuthenticatedGestaoIndexRouteImport
+      parentRoute: typeof AuthenticatedGestaoRoute
     }
     '/_authenticated/chamados/': {
       id: '/_authenticated/chamados/'
@@ -947,10 +965,12 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedGestaoRouteChildren {
   AuthenticatedGestaoCapacidadeRoute: typeof AuthenticatedGestaoCapacidadeRoute
+  AuthenticatedGestaoIndexRoute: typeof AuthenticatedGestaoIndexRoute
 }
 
 const AuthenticatedGestaoRouteChildren: AuthenticatedGestaoRouteChildren = {
   AuthenticatedGestaoCapacidadeRoute: AuthenticatedGestaoCapacidadeRoute,
+  AuthenticatedGestaoIndexRoute: AuthenticatedGestaoIndexRoute,
 }
 
 const AuthenticatedGestaoRouteWithChildren =
