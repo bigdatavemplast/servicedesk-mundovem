@@ -36,37 +36,26 @@ function GestaoPage(){
  const {data:chamados=[],isLoading,error}=useQuery({queryKey:["gestao-chamados",days,segmentoValido],enabled:!!segmentoValido,queryFn:async()=>{const {data,error}=await (supabase as any).from("chamados").select("id,status,prioridade,criado_em,resolvido_em,sla_resolucao_violado,prazo_resolucao,primeira_chamada_resolvida,escalonado,atendimento_abandonado,tempo_atendimento_minutos,custo_atendimento,categoria_id,atendente_id,segmento_id,sla_tempo_pausado_segundos").eq("segmento_id",segmentoValido).gte("criado_em",inicio).order("criado_em",{ascending:true});if(error)throw error;return data as Chamado[]}});
  const {data:backlogAnterior=[]}=useQuery({queryKey:["gestao-backlog",segmentoValido,inicio],enabled:!!segmentoValido,queryFn:async()=>{const {data,error}=await (supabase as any).from("chamados").select("id,status,criado_em,resolvido_em").eq("segmento_id",segmentoValido).lt("criado_em",inicio).or(`resolvido_em.is.null,resolvido_em.gte.${inicio}`);if(error)throw error;return data||[]}});
  // CSAT é consultado de forma independente da lista de chamados do período: o período vale para a avaliação.
-const { data: avaliacoes = [] } = useQuery({
+const { data: csatData } = useQuery({
   queryKey: ["gestao-csat", segmentoValido, inicio],
   enabled: !!segmentoValido,
   queryFn: async () => {
-    const { data, error } = await (supabase as any)
-      .from("avaliacoes_atendimento")
-      .select(`
-        chamado_id,
-        nota,
-        criado_em,
-        chamados!inner (
-          segmento_id
-        )
-      `)
-      .eq("chamados.segmento_id", segmentoValido)
-      .gte("criado_em", inicio)
-      .not("nota", "is", null)
-      .order("criado_em", { ascending: false });
+    const { data, error } = await supabase.rpc("gestao_csat", {
+      _segmento_id: segmentoValido,
+      _inicio: inicio,
+    });
 
     if (error) {
       throw error;
     }
 
-    return ((data ?? []) as any[]).map((avaliacao) => ({
-      chamado_id: avaliacao.chamado_id,
-      nota: Number(avaliacao.nota),
-      criado_em: avaliacao.criado_em,
-    })) as Avaliacao[];
+    return data?.[0] ?? {
+      media_csat: null,
+      total_avaliacoes: 0,
+    };
   },
 });
- const agentIds=useMemo(()=>Array.from(new Set(chamados.map(c=>c.atendente_id).filter(Boolean))) as string[],[chamados]);
+  const agentIds=useMemo(()=>Array.from(new Set(chamados.map(c=>c.atendente_id).filter(Boolean))) as string[],[chamados]);
  const {data:profiles=[]}=useQuery({queryKey:["gestao-profiles",agentIds.join(",")],enabled:agentIds.length>0,queryFn:async()=>{const {data,error}=await supabase.from("profiles").select("id,nome,email").in("id",agentIds);if(error)throw error;return data||[]}});
  const profileMap=useMemo(()=>Object.fromEntries((profiles as any[]).map(p=>[p.id,p.nome||p.email||p.id])),[profiles]);
  const {data:grupos=[]}=useQuery({queryKey:["gestao-grupos",segmentoValido],enabled:!!segmentoValido,queryFn:async()=>{const {data,error}=await (supabase as any).from("grupos_atendimento").select("id").eq("segmento_id",segmentoValido).eq("ativo",true);if(error)throw error;return data||[]}});
@@ -82,12 +71,15 @@ const { data: avaliacoes = [] } = useQuery({
   const fcrE=chamados.filter(c=>c.primeira_chamada_resolvida!==null); const fcr=pct(fcrE.filter(c=>c.primeira_chamada_resolvida===true).length,fcrE.length);
   const tmas=encerradosComData.map(c=>{if(c.tempo_atendimento_minutos!=null)return Number(c.tempo_atendimento_minutos)/60;return Math.max(0,(new Date(c.resolvido_em!).getTime()-new Date(c.criado_em).getTime())/3600000-Number(c.sla_tempo_pausado_segundos||0)/3600)}); const tma=tmas.length?tmas.reduce((a,b)=>a+b,0)/tmas.length:null;
   const slaE=encerradosComData.filter(c=>c.prazo_resolucao||c.sla_resolucao_violado);const sla=pct(slaE.filter(c=>!c.sla_resolucao_violado&&(!c.prazo_resolucao||new Date(c.resolvido_em!)<=new Date(c.prazo_resolucao))).length,slaE.length);
-  const csat=avaliacoes.length?avaliacoes.reduce((a,b)=>a+Number(b.nota),0)/avaliacoes.length:null;const team=equipe.length?equipe.reduce((a,b)=>a+Number(b.nota),0)/equipe.length:null;
+  const csat =
+  csatData?.total_avaliacoes > 0
+    ? Number(csatData.media_csat)
+    : null;const team=equipe.length?equipe.reduce((a,b)=>a+Number(b.nota),0)/equipe.length:null;
   const cost=chamados.map(c=>c.custo_atendimento).filter((v):v is number=>v!=null);const costTotal=cost.length?cost.reduce((a,b)=>a+b,0):null;const costPer=costTotal!=null&&resolved.length?costTotal/resolved.length:null;
   const used=chamados.reduce((a,c)=>a+Number(c.tempo_atendimento_minutos||0),0)/60;const capacity=capacidade.reduce((a,c)=>a+Number(c.horas_disponiveis_semana),0)*days/7;const utilization=capacity?used/capacity*100:null;
   const quality=csat!=null&&fcr!=null?csat/5*50+fcr*.5:null;
   return {resolved:resolved.length,backlog:chamados.filter(c=>!CLOSED.includes(c.status)&&c.status!==CANCELLED).length,fcr,tma,sla,csat,team,costTotal,costPer,utilization,quality,escal:pct(chamados.filter(c=>c.escalonado).length,chamados.length),abandon:pct(chamados.filter(c=>c.atendimento_abandonado&&!CLOSED.includes(c.status)&&c.status!==CANCELLED).length,chamados.length)};
- },[avaliacoes,capacidade,chamados,days,equipe]);
+ },[csatData,capacidade,chamados,days,equipe]);
  const trend=useMemo(()=>{const map=new Map<string,{periodo:string;abertos:number;resolvidos:number;backlog:number}>();for(let i=days-1;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const k=d.toISOString().slice(0,10);map.set(k,{periodo:k.slice(5),abertos:0,resolvidos:0,backlog:0})}chamados.forEach(c=>{map.get(c.criado_em.slice(0,10))!.abertos++;if(c.resolvido_em&&map.has(c.resolvido_em.slice(0,10)))map.get(c.resolvido_em.slice(0,10))!.resolvidos++});let b=backlogAnterior.filter((c:any)=>!CLOSED.includes(c.status)&&c.status!==CANCELLED).length;return [...map.values()].map(x=>{b=Math.max(0,b+x.abertos-x.resolvidos);return {...x,backlog:b}})},[backlogAnterior,chamados,days]);
  const priorities=["baixa","media","alta","critica"].map(p=>({prioridade:p,total:chamados.filter(c=>c.prioridade===p).length}));
  const agents=useMemo(()=>{const m=new Map<string,{agente:string;total:number;resolvidos:number}>();chamados.filter(c=>c.atendente_id).forEach(c=>{const id=c.atendente_id!;const r=m.get(id)||{agente:profileMap[id]||"Atendente",total:0,resolvidos:0};r.total++;if(c.resolvido_em)r.resolvidos++;m.set(id,r)});return [...m.values()].sort((a,b)=>b.resolvidos-a.resolvidos).slice(0,10)},[chamados,profileMap]);
@@ -96,7 +88,12 @@ const { data: avaliacoes = [] } = useQuery({
  if(isLoading)return <div className="p-8 text-center text-sm text-muted-foreground">Carregando indicadores de gestão…</div>;
  if(error)return <div className="p-8"><Card><CardHeader><CardTitle>Erro ao carregar Gestão</CardTitle></CardHeader><CardContent>Não foi possível consultar os chamados.</CardContent></Card></div>;
  return <div className="space-y-6"><div className="flex flex-wrap items-end justify-between gap-3"><div><h1 className="text-2xl font-bold">Gestão do Service Desk</h1><p className="text-sm text-muted-foreground">Indicadores exclusivamente da área <strong>{areaNome}</strong>.</p></div><div className="flex gap-2"><Select value={segmentoValido} onValueChange={setSegmentoId}><SelectTrigger className="w-[180px]"><SelectValue/></SelectTrigger><SelectContent>{segmentos.map(s=><SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}</SelectContent></Select><Select value={dias} onValueChange={setDias}><SelectTrigger className="w-[160px]"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="7">Últimos 7 dias</SelectItem><SelectItem value="15">Últimos 15 dias</SelectItem><SelectItem value="30">Últimos 30 dias</SelectItem><SelectItem value="90">Últimos 90 dias</SelectItem></SelectContent></Select></div></div>
- <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><Kpi title="Volume" value={String(m.resolved)} hint={`${m.resolved} resolvidos + fechados · ${areaNome}`} icon={Headphones}/><Kpi title="FCR" value={m.fcr==null?"—":`${m.fcr}%`} hint="resolução na primeira chamada" icon={Zap}/><Kpi title="TMA" value={hours(m.tma)} hint="tempo médio efetivamente trabalhado" icon={Clock3}/><Kpi title="SLA" value={m.sla==null?"—":`${m.sla}%`} hint="conformidade em encerrados" icon={ShieldCheck}/><Kpi title="CSAT" value={m.csat==null?"—":`${m.csat.toFixed(1)}/5`} hint={`${avaliacoes.length} avaliações da área`} icon={Star}/><Kpi title="Escalonamento" value={m.escal==null?"—":`${m.escal}%`} hint="chamados escalonados" icon={TrendingUp}/><Kpi title="Abandono" value={m.abandon==null?"—":`${m.abandon}%`} hint="30 dias sem ação do atendimento" icon={Activity}/><Kpi title="Backlog" value={String(m.backlog)} hint="não encerrados" icon={Gauge}/></div>
+ <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><Kpi title="Volume" value={String(m.resolved)} hint={`${m.resolved} resolvidos + fechados · ${areaNome}`} icon={Headphones}/><Kpi title="FCR" value={m.fcr==null?"—":`${m.fcr}%`} hint="resolução na primeira chamada" icon={Zap}/><Kpi title="TMA" value={hours(m.tma)} hint="tempo médio efetivamente trabalhado" icon={Clock3}/><Kpi title="SLA" value={m.sla==null?"—":`${m.sla}%`} hint="conformidade em encerrados" icon={ShieldCheck}/><Kpi
+  title="CSAT"
+  value={m.csat==null?"—":`${m.csat.toFixed(1)}/5`}
+  hint={`${csatData?.total_avaliacoes ?? 0} avaliações da área`}
+  icon={Star}
+/><Kpi title="Escalonamento" value={m.escal==null?"—":`${m.escal}%`} hint="chamados escalonados" icon={TrendingUp}/><Kpi title="Abandono" value={m.abandon==null?"—":`${m.abandon}%`} hint="30 dias sem ação do atendimento" icon={Activity}/><Kpi title="Backlog" value={String(m.backlog)} hint="não encerrados" icon={Gauge}/></div>
  <div className="grid gap-4 lg:grid-cols-4"><Card><CardHeader><CardTitle>Custos</CardTitle></CardHeader><CardContent><p className="text-sm text-muted-foreground">Total registrado</p><p className="text-xl font-bold">{money(m.costTotal)}</p><p className="mt-2 text-sm text-muted-foreground">Por resolvido</p><p className="text-lg font-semibold">{money(m.costPer)}</p></CardContent></Card><Card><CardHeader><CardTitle>Capacidade</CardTitle></CardHeader><CardContent><p className="text-sm text-muted-foreground">Utilização</p><p className="text-xl font-bold">{m.utilization==null?"—":`${m.utilization.toFixed(1)}%`}</p><Badge variant="outline">{capacidade.length} parâmetros</Badge></CardContent></Card><Card><CardHeader><CardTitle>Satisfação da equipe</CardTitle></CardHeader><CardContent><p className="text-sm text-muted-foreground">Média</p><p className="text-xl font-bold">{m.team==null?"—":`${m.team.toFixed(1)}/5`}</p></CardContent></Card><Card><CardHeader><CardTitle>Qualidade</CardTitle></CardHeader><CardContent><p className="text-sm text-muted-foreground">CSAT + FCR</p><p className="text-xl font-bold">{m.quality==null?"—":`${m.quality.toFixed(0)}/100`}</p><p className="text-xs text-muted-foreground">CSAT: {m.csat==null?"—":m.csat.toFixed(1)} · FCR: {m.fcr==null?"—":`${m.fcr}%`}</p></CardContent></Card></div>
  <div className="grid gap-4 lg:grid-cols-2"><Card><CardHeader><CardTitle>Abertura x resolução</CardTitle></CardHeader><CardContent><div className="h-[300px]"><ResponsiveContainer width="100%" height="100%"><LineChart data={trend}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="periodo"/><YAxis allowDecimals={false}/><Tooltip/><Legend/><Line type="monotone" dataKey="abertos" name="Abertos" strokeWidth={2}/><Line type="monotone" dataKey="resolvidos" name="Resolvidos" strokeWidth={2}/></LineChart></ResponsiveContainer></div></CardContent></Card><Card><CardHeader><CardTitle>Backlog acumulado</CardTitle></CardHeader><CardContent><div className="h-[300px]"><ResponsiveContainer width="100%" height="100%"><LineChart data={trend}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="periodo"/><YAxis allowDecimals={false}/><Tooltip/><Line type="monotone" dataKey="backlog" name="Backlog" strokeWidth={2}/></LineChart></ResponsiveContainer></div></CardContent></Card></div>
  <div className="grid gap-4 lg:grid-cols-2"><Card><CardHeader><CardTitle>Volume por prioridade</CardTitle></CardHeader><CardContent><div className="h-[300px]"><ResponsiveContainer width="100%" height="100%"><BarChart data={priorities}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="prioridade"/><YAxis allowDecimals={false}/><Tooltip/><Bar dataKey="total" name="Chamados"/></BarChart></ResponsiveContainer></div></CardContent></Card><Card><CardHeader><CardTitle>Produtividade por atendente</CardTitle></CardHeader><CardContent>{agents.length?<div className="space-y-2">{agents.map(a=><div key={a.agente} className="flex items-center justify-between rounded-lg border p-3"><div className="flex items-center gap-2"><Users className="h-4 w-4 text-muted-foreground"/><span className="text-sm font-medium">{a.agente}</span></div><Badge variant="outline">{a.resolvidos} resolvidos / {a.total} total</Badge></div>)}</div>:<p className="text-sm text-muted-foreground">Nenhum chamado atribuído no período.</p>}</CardContent></Card></div>
