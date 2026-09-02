@@ -511,19 +511,20 @@ function GestaoPage() {
       : null;
 
     const cost = chamados
-      .map((chamado) => chamado.custo_atendimento)
-      .filter(
-        (value): value is number => value != null,
-      );
+  .map((chamado) => chamado.custo_atendimento)
+  .filter((value): value is number => value != null);
 
-    const costTotal = cost.length
-      ? cost.reduce((total, value) => total + value, 0)
-      : null;
+const costTotal = cost.length
+  ? cost.reduce((total, value) => total + value, 0)
+  : null;
 
-    const costPer =
-      costTotal != null && resolved.length
-        ? costTotal / resolved.length
-        : null;
+const costResolved = resolved
+  .map((chamado) => chamado.custo_atendimento)
+  .filter((value): value is number => value != null);
+
+const costPer = costResolved.length && resolved.length
+  ? costResolved.reduce((total, value) => total + value, 0) / resolved.length
+  : null;
 
     const used =
       chamados.reduce(
