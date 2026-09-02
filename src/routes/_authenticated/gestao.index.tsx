@@ -40,27 +40,17 @@ const { data: avaliacoes = [] } = useQuery({
   queryKey: ["gestao-csat", segmentoValido, inicio],
   enabled: !!segmentoValido,
   queryFn: async () => {
-    const { data: chamadosArea, error: chamadosError } = await (supabase as any)
-      .from("chamados")
-      .select("id")
-      .eq("segmento_id", segmentoValido);
-
-    if (chamadosError) {
-      throw chamadosError;
-    }
-
-    const chamadoIds = ((chamadosArea ?? []) as { id: string }[]).map(
-      (chamado) => chamado.id
-    );
-
-    if (chamadoIds.length === 0) {
-      return [] as Avaliacao[];
-    }
-
     const { data, error } = await (supabase as any)
       .from("avaliacoes_atendimento")
-      .select("chamado_id, nota, criado_em")
-      .in("chamado_id", chamadoIds)
+      .select(`
+        chamado_id,
+        nota,
+        criado_em,
+        chamados!inner (
+          segmento_id
+        )
+      `)
+      .eq("chamados.segmento_id", segmentoValido)
       .gte("criado_em", inicio)
       .not("nota", "is", null)
       .order("criado_em", { ascending: false });
