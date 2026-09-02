@@ -96,6 +96,11 @@ type Equipe = {
   criado_em: string;
 };
 
+type CsatResult = {
+  media_csat: number | null;
+  total_avaliacoes: number;
+};
+
 const CLOSED = ["resolvido", "fechado"];
 const CANCELLED = "cancelado";
 
@@ -160,7 +165,7 @@ function GestaoPage() {
   const [dias, setDias] = useState("30");
   const [segmentoId, setSegmentoId] = useState(areaStored());
   const days = Number(dias);
-  const inicio = since(days);
+  const inicio = useMemo(() => since(days), [days]);
 
   const { data: segmentos = [] } = useQuery({
     queryKey: ["gestao-segmentos"],
@@ -206,7 +211,7 @@ function GestaoPage() {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["gestao-chamados", days, segmentoValido],
+    queryKey: ["gestao-chamados", days, segmentoValido, inicio],
     enabled: !!segmentoValido,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
@@ -243,11 +248,11 @@ function GestaoPage() {
     data: csatData,
     isLoading: csatLoading,
     error: csatError,
-  } = useQuery({
+  } = useQuery<CsatResult>({
     queryKey: ["gestao-csat", segmentoValido, inicio],
     enabled: !!segmentoValido,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("gestao_csat", {
+      const { data, error } = await (supabase as any).rpc("gestao_csat", {
         _segmento_id: segmentoValido,
         _inicio: inicio,
       });
@@ -266,8 +271,11 @@ function GestaoPage() {
       };
     },
     staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnMount: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
+    retry: 1,
   });
 
   const agentIds = useMemo(
@@ -382,7 +390,10 @@ function GestaoPage() {
   });
 
   const catMap = useMemo(
-    () => Object.fromEntries((categorias as any[]).map((categoria) => [categoria.id, categoria.nome])),
+    () =>
+      Object.fromEntries(
+        (categorias as any[]).map((categoria) => [categoria.id, categoria.nome]),
+      ),
     [categorias],
   );
 
@@ -401,6 +412,7 @@ function GestaoPage() {
     const fcrE = chamados.filter(
       (chamado) => chamado.primeira_chamada_resolvida !== null,
     );
+
     const fcr = pct(
       fcrE.filter((chamado) => chamado.primeira_chamada_resolvida === true).length,
       fcrE.length,
@@ -797,18 +809,8 @@ function GestaoPage() {
                   <YAxis allowDecimals={false} />
                   <Tooltip />
                   <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="abertos"
-                    name="Abertos"
-                    strokeWidth={2}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="resolvidos"
-                    name="Resolvidos"
-                    strokeWidth={2}
-                  />
+                  <Line type="monotone" dataKey="abertos" name="Abertos" strokeWidth={2} />
+                  <Line type="monotone" dataKey="resolvidos" name="Resolvidos" strokeWidth={2} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -827,12 +829,7 @@ function GestaoPage() {
                   <XAxis dataKey="periodo" />
                   <YAxis allowDecimals={false} />
                   <Tooltip />
-                  <Line
-                    type="monotone"
-                    dataKey="backlog"
-                    name="Backlog"
-                    strokeWidth={2}
-                  />
+                  <Line type="monotone" dataKey="backlog" name="Backlog" strokeWidth={2} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
