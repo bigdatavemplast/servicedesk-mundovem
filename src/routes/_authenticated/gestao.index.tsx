@@ -48,10 +48,11 @@ function GestaoPage(){
  const catMap=useMemo(()=>Object.fromEntries((categorias as any[]).map(c=>[c.id,c.nome])),[categorias]);
  const areaNome=segmentos.find(s=>s.id===segmentoValido)?.nome||"Área";
  const m=useMemo(()=>{
-  const resolved=chamados.filter(c=>!!c.resolvido_em&&!CANCELLED&&CLOSED.includes(c.status));
+  const resolved=chamados.filter(c=>c.status!==CANCELLED&&CLOSED.includes(String(c.status).toLowerCase()));
+  const encerradosComData=resolved.filter(c=>!!c.resolvido_em);
   const fcrE=chamados.filter(c=>c.primeira_chamada_resolvida!==null); const fcr=pct(fcrE.filter(c=>c.primeira_chamada_resolvida===true).length,fcrE.length);
-  const tmas=resolved.map(c=>{if(c.tempo_atendimento_minutos!=null)return Number(c.tempo_atendimento_minutos)/60;return Math.max(0,(new Date(c.resolvido_em!).getTime()-new Date(c.criado_em).getTime())/3600000-Number(c.sla_tempo_pausado_segundos||0)/3600)}); const tma=tmas.length?tmas.reduce((a,b)=>a+b,0)/tmas.length:null;
-  const slaE=resolved.filter(c=>c.prazo_resolucao||c.sla_resolucao_violado);const sla=pct(slaE.filter(c=>!c.sla_resolucao_violado&&(!c.prazo_resolucao||new Date(c.resolvido_em!)<=new Date(c.prazo_resolucao))).length,slaE.length);
+  const tmas=encerradosComData.map(c=>{if(c.tempo_atendimento_minutos!=null)return Number(c.tempo_atendimento_minutos)/60;return Math.max(0,(new Date(c.resolvido_em!).getTime()-new Date(c.criado_em).getTime())/3600000-Number(c.sla_tempo_pausado_segundos||0)/3600)}); const tma=tmas.length?tmas.reduce((a,b)=>a+b,0)/tmas.length:null;
+  const slaE=encerradosComData.filter(c=>c.prazo_resolucao||c.sla_resolucao_violado);const sla=pct(slaE.filter(c=>!c.sla_resolucao_violado&&(!c.prazo_resolucao||new Date(c.resolvido_em!)<=new Date(c.prazo_resolucao))).length,slaE.length);
   const csat=avaliacoes.length?avaliacoes.reduce((a,b)=>a+Number(b.nota),0)/avaliacoes.length:null;const team=equipe.length?equipe.reduce((a,b)=>a+Number(b.nota),0)/equipe.length:null;
   const cost=chamados.map(c=>c.custo_atendimento).filter((v):v is number=>v!=null);const costTotal=cost.length?cost.reduce((a,b)=>a+b,0):null;const costPer=costTotal!=null&&resolved.length?costTotal/resolved.length:null;
   const used=chamados.reduce((a,c)=>a+Number(c.tempo_atendimento_minutos||0),0)/60;const capacity=capacidade.reduce((a,c)=>a+Number(c.horas_disponiveis_semana),0)*days/7;const utilization=capacity?used/capacity*100:null;
