@@ -36,15 +36,38 @@ function GestaoPage(){
  const {data:chamados=[],isLoading,error}=useQuery({queryKey:["gestao-chamados",days,segmentoValido],enabled:!!segmentoValido,queryFn:async()=>{const {data,error}=await (supabase as any).from("chamados").select("id,status,prioridade,criado_em,resolvido_em,sla_resolucao_violado,prazo_resolucao,primeira_chamada_resolvida,escalonado,atendimento_abandonado,tempo_atendimento_minutos,custo_atendimento,categoria_id,atendente_id,segmento_id,sla_tempo_pausado_segundos").eq("segmento_id",segmentoValido).gte("criado_em",inicio).order("criado_em",{ascending:true});if(error)throw error;return data as Chamado[]}});
  const {data:backlogAnterior=[]}=useQuery({queryKey:["gestao-backlog",segmentoValido,inicio],enabled:!!segmentoValido,queryFn:async()=>{const {data,error}=await (supabase as any).from("chamados").select("id,status,criado_em,resolvido_em").eq("segmento_id",segmentoValido).lt("criado_em",inicio).or(`resolvido_em.is.null,resolvido_em.gte.${inicio}`);if(error)throw error;return data||[]}});
  // CSAT é consultado de forma independente da lista de chamados do período: o período vale para a avaliação.
- const {data:avaliacoes=[]}=useQuery({queryKey:["gestao-csat",segmentoValido,inicio],enabled:!!segmentoValido,queryFn:async()=>{
-   const {data:chamadosArea,error:chamadosError}=await (supabase as any).from("chamados").select("id").eq("segmento_id",segmentoValido);
-   if(chamadosError)throw chamadosError;
-   const chamadoIds=((chamadosArea??[]) as {id:string}[]).map(c=>c.id);
-   if(!chamadoIds.length)return [] as Avaliacao[];
-   const {data,error}=await (supabase as any).from("avaliacoes_atendimento").select("chamado_id,nota,criado_em").in("chamado_id",chamadoIds).gte("criado_em",inicio).order("criado_em",{ascending:false});
-   if(error)throw error;
-   return data as Avaliacao[];
- }});
+const { data: avaliacoes = [] } = useQuery({
+  queryKey: ["gestao-csat", segmentoValido, inicio],
+  enabled: !!segmentoValido,
+  queryFn: async () => {
+    const { data, error } = await (supabase as any)
+      .from("avaliacoes_atendimento")
+      .select(`
+        chamado_id,
+        nota,
+        criado_em,
+        chamados!inner (
+          id,
+          segmento_id,
+          criado_em
+        )
+      `)
+      .eq("chamados.segmento_id", segmentoValido)
+      .gte("chamados.criado_em", inicio)
+      .not("nota", "is", null)
+      .order("criado_em", { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    return ((data ?? []) as any[]).map((avaliacao) => ({
+      chamado_id: avaliacao.chamado_id,
+      nota: Number(avaliacao.nota),
+      criado_em: avaliacao.criado_em,
+    })) as Avaliacao[];
+  },
+});
  const agentIds=useMemo(()=>Array.from(new Set(chamados.map(c=>c.atendente_id).filter(Boolean))) as string[],[chamados]);
  const {data:profiles=[]}=useQuery({queryKey:["gestao-profiles",agentIds.join(",")],enabled:agentIds.length>0,queryFn:async()=>{const {data,error}=await supabase.from("profiles").select("id,nome,email").in("id",agentIds);if(error)throw error;return data||[]}});
  const profileMap=useMemo(()=>Object.fromEntries((profiles as any[]).map(p=>[p.id,p.nome||p.email||p.id])),[profiles]);
