@@ -75,6 +75,8 @@ type Chamado = {
   atendente_id: string | null;
   segmento_id: string | null;
   sla_tempo_pausado_segundos: number | null;
+  escalonado_em:string|null;
+  escalonamento_nivel:number|null;
 };
 
 type Segmento = {
