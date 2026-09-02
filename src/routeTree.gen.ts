@@ -31,10 +31,12 @@ import { Route as AuthenticatedCatalogoRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedAreasRouteImport } from './routes/_authenticated/areas'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
+import { Route as AuthenticatedGestaoIndexRouteImport } from './routes/_authenticated/gestao.index'
 import { Route as AuthenticatedChamadosIndexRouteImport } from './routes/_authenticated/chamados.index'
 import { Route as AuthenticatedBaseConhecimentoIndexRouteImport } from './routes/_authenticated/base-conhecimento.index'
 import { Route as AuthenticatedAssistenteIndexRouteImport } from './routes/_authenticated/assistente.index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
+import { Route as AuthenticatedGestaoCapacidadeRouteImport } from './routes/_authenticated/gestao.capacidade'
 import { Route as AuthenticatedChamadosNovoRouteImport } from './routes/_authenticated/chamados.novo'
 import { Route as AuthenticatedChamadosIdRouteImport } from './routes/_authenticated/chamados.$id'
 import { Route as AuthenticatedBaseConhecimentoNovoRouteImport } from './routes/_authenticated/base-conhecimento.novo'
@@ -174,6 +176,12 @@ const Char91DotmcpChar93ListToolsRoute =
     path: '/.mcp/list-tools',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AuthenticatedGestaoIndexRoute =
+  AuthenticatedGestaoIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedGestaoRoute,
+  } as any)
 const AuthenticatedChamadosIndexRoute =
   AuthenticatedChamadosIndexRouteImport.update({
     id: '/chamados/',
@@ -197,6 +205,12 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   path: '/admin/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedGestaoCapacidadeRoute =
+  AuthenticatedGestaoCapacidadeRouteImport.update({
+    id: '/capacidade',
+    path: '/capacidade',
+    getParentRoute: () => AuthenticatedGestaoRoute,
+  } as any)
 const AuthenticatedChamadosNovoRoute =
   AuthenticatedChamadosNovoRouteImport.update({
     id: '/chamados/novo',
@@ -321,7 +335,7 @@ export interface FileRoutesByFullPath {
   '/catalogo': typeof AuthenticatedCatalogoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/fila': typeof AuthenticatedFilaRoute
-  '/gestao': typeof AuthenticatedGestaoRoute
+  '/gestao': typeof AuthenticatedGestaoRouteWithChildren
   '/itsm-ativos': typeof AuthenticatedItsmAtivosRoute
   '/itsm-auditoria': typeof AuthenticatedItsmAuditoriaRoute
   '/itsm-avancado': typeof AuthenticatedItsmAvancadoRoute
@@ -350,10 +364,12 @@ export interface FileRoutesByFullPath {
   '/base-conhecimento/novo': typeof AuthenticatedBaseConhecimentoNovoRoute
   '/chamados/$id': typeof AuthenticatedChamadosIdRoute
   '/chamados/novo': typeof AuthenticatedChamadosNovoRoute
+  '/gestao/capacidade': typeof AuthenticatedGestaoCapacidadeRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/assistente/': typeof AuthenticatedAssistenteIndexRoute
   '/base-conhecimento/': typeof AuthenticatedBaseConhecimentoIndexRoute
   '/chamados/': typeof AuthenticatedChamadosIndexRoute
+  '/gestao/': typeof AuthenticatedGestaoIndexRoute
   '/base-conhecimento/$id/editar': typeof AuthenticatedBaseConhecimentoIdEditarRoute
 }
 export interface FileRoutesByTo {
@@ -367,7 +383,6 @@ export interface FileRoutesByTo {
   '/catalogo': typeof AuthenticatedCatalogoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/fila': typeof AuthenticatedFilaRoute
-  '/gestao': typeof AuthenticatedGestaoRoute
   '/itsm-ativos': typeof AuthenticatedItsmAtivosRoute
   '/itsm-auditoria': typeof AuthenticatedItsmAuditoriaRoute
   '/itsm-avancado': typeof AuthenticatedItsmAvancadoRoute
@@ -396,10 +411,12 @@ export interface FileRoutesByTo {
   '/base-conhecimento/novo': typeof AuthenticatedBaseConhecimentoNovoRoute
   '/chamados/$id': typeof AuthenticatedChamadosIdRoute
   '/chamados/novo': typeof AuthenticatedChamadosNovoRoute
+  '/gestao/capacidade': typeof AuthenticatedGestaoCapacidadeRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/assistente': typeof AuthenticatedAssistenteIndexRoute
   '/base-conhecimento': typeof AuthenticatedBaseConhecimentoIndexRoute
   '/chamados': typeof AuthenticatedChamadosIndexRoute
+  '/gestao': typeof AuthenticatedGestaoIndexRoute
   '/base-conhecimento/$id/editar': typeof AuthenticatedBaseConhecimentoIdEditarRoute
 }
 export interface FileRoutesById {
@@ -415,7 +432,7 @@ export interface FileRoutesById {
   '/_authenticated/catalogo': typeof AuthenticatedCatalogoRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/fila': typeof AuthenticatedFilaRoute
-  '/_authenticated/gestao': typeof AuthenticatedGestaoRoute
+  '/_authenticated/gestao': typeof AuthenticatedGestaoRouteWithChildren
   '/_authenticated/itsm-ativos': typeof AuthenticatedItsmAtivosRoute
   '/_authenticated/itsm-auditoria': typeof AuthenticatedItsmAuditoriaRoute
   '/_authenticated/itsm-avancado': typeof AuthenticatedItsmAvancadoRoute
@@ -444,10 +461,12 @@ export interface FileRoutesById {
   '/_authenticated/base-conhecimento/novo': typeof AuthenticatedBaseConhecimentoNovoRoute
   '/_authenticated/chamados/$id': typeof AuthenticatedChamadosIdRoute
   '/_authenticated/chamados/novo': typeof AuthenticatedChamadosNovoRoute
+  '/_authenticated/gestao/capacidade': typeof AuthenticatedGestaoCapacidadeRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/assistente/': typeof AuthenticatedAssistenteIndexRoute
   '/_authenticated/base-conhecimento/': typeof AuthenticatedBaseConhecimentoIndexRoute
   '/_authenticated/chamados/': typeof AuthenticatedChamadosIndexRoute
+  '/_authenticated/gestao/': typeof AuthenticatedGestaoIndexRoute
   '/_authenticated/base-conhecimento/$id/editar': typeof AuthenticatedBaseConhecimentoIdEditarRoute
 }
 export interface FileRouteTypes {
@@ -492,10 +511,12 @@ export interface FileRouteTypes {
     | '/base-conhecimento/novo'
     | '/chamados/$id'
     | '/chamados/novo'
+    | '/gestao/capacidade'
     | '/admin/'
     | '/assistente/'
     | '/base-conhecimento/'
     | '/chamados/'
+    | '/gestao/'
     | '/base-conhecimento/$id/editar'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -509,7 +530,6 @@ export interface FileRouteTypes {
     | '/catalogo'
     | '/dashboard'
     | '/fila'
-    | '/gestao'
     | '/itsm-ativos'
     | '/itsm-auditoria'
     | '/itsm-avancado'
@@ -538,10 +558,12 @@ export interface FileRouteTypes {
     | '/base-conhecimento/novo'
     | '/chamados/$id'
     | '/chamados/novo'
+    | '/gestao/capacidade'
     | '/admin'
     | '/assistente'
     | '/base-conhecimento'
     | '/chamados'
+    | '/gestao'
     | '/base-conhecimento/$id/editar'
   id:
     | '__root__'
@@ -585,10 +607,12 @@ export interface FileRouteTypes {
     | '/_authenticated/base-conhecimento/novo'
     | '/_authenticated/chamados/$id'
     | '/_authenticated/chamados/novo'
+    | '/_authenticated/gestao/capacidade'
     | '/_authenticated/admin/'
     | '/_authenticated/assistente/'
     | '/_authenticated/base-conhecimento/'
     | '/_authenticated/chamados/'
+    | '/_authenticated/gestao/'
     | '/_authenticated/base-conhecimento/$id/editar'
   fileRoutesById: FileRoutesById
 }
@@ -761,6 +785,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char91DotmcpChar93ListToolsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/gestao/': {
+      id: '/_authenticated/gestao/'
+      path: '/'
+      fullPath: '/gestao/'
+      preLoaderRoute: typeof AuthenticatedGestaoIndexRouteImport
+      parentRoute: typeof AuthenticatedGestaoRoute
+    }
     '/_authenticated/chamados/': {
       id: '/_authenticated/chamados/'
       path: '/chamados'
@@ -788,6 +819,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/gestao/capacidade': {
+      id: '/_authenticated/gestao/capacidade'
+      path: '/capacidade'
+      fullPath: '/gestao/capacidade'
+      preLoaderRoute: typeof AuthenticatedGestaoCapacidadeRouteImport
+      parentRoute: typeof AuthenticatedGestaoRoute
     }
     '/_authenticated/chamados/novo': {
       id: '/_authenticated/chamados/novo'
@@ -925,6 +963,19 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedGestaoRouteChildren {
+  AuthenticatedGestaoCapacidadeRoute: typeof AuthenticatedGestaoCapacidadeRoute
+  AuthenticatedGestaoIndexRoute: typeof AuthenticatedGestaoIndexRoute
+}
+
+const AuthenticatedGestaoRouteChildren: AuthenticatedGestaoRouteChildren = {
+  AuthenticatedGestaoCapacidadeRoute: AuthenticatedGestaoCapacidadeRoute,
+  AuthenticatedGestaoIndexRoute: AuthenticatedGestaoIndexRoute,
+}
+
+const AuthenticatedGestaoRouteWithChildren =
+  AuthenticatedGestaoRoute._addFileChildren(AuthenticatedGestaoRouteChildren)
+
 interface AuthenticatedBaseConhecimentoIdRouteChildren {
   AuthenticatedBaseConhecimentoIdEditarRoute: typeof AuthenticatedBaseConhecimentoIdEditarRoute
 }
@@ -945,7 +996,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCatalogoRoute: typeof AuthenticatedCatalogoRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedFilaRoute: typeof AuthenticatedFilaRoute
-  AuthenticatedGestaoRoute: typeof AuthenticatedGestaoRoute
+  AuthenticatedGestaoRoute: typeof AuthenticatedGestaoRouteWithChildren
   AuthenticatedItsmAtivosRoute: typeof AuthenticatedItsmAtivosRoute
   AuthenticatedItsmAuditoriaRoute: typeof AuthenticatedItsmAuditoriaRoute
   AuthenticatedItsmAvancadoRoute: typeof AuthenticatedItsmAvancadoRoute
@@ -982,7 +1033,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCatalogoRoute: AuthenticatedCatalogoRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedFilaRoute: AuthenticatedFilaRoute,
-  AuthenticatedGestaoRoute: AuthenticatedGestaoRoute,
+  AuthenticatedGestaoRoute: AuthenticatedGestaoRouteWithChildren,
   AuthenticatedItsmAtivosRoute: AuthenticatedItsmAtivosRoute,
   AuthenticatedItsmAuditoriaRoute: AuthenticatedItsmAuditoriaRoute,
   AuthenticatedItsmAvancadoRoute: AuthenticatedItsmAvancadoRoute,
