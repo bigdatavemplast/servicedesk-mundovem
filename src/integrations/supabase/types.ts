@@ -615,6 +615,7 @@ export type Database = {
           titulo: string
           triagem_em: string | null
           triagem_por: string | null
+          ultima_acao_atendimento_em: string | null
           urgencia: string | null
         }
         Insert: {
@@ -667,6 +668,7 @@ export type Database = {
           titulo: string
           triagem_em?: string | null
           triagem_por?: string | null
+          ultima_acao_atendimento_em?: string | null
           urgencia?: string | null
         }
         Update: {
@@ -719,6 +721,7 @@ export type Database = {
           titulo?: string
           triagem_em?: string | null
           triagem_por?: string | null
+          ultima_acao_atendimento_em?: string | null
           urgencia?: string | null
         }
         Relationships: [
@@ -2857,6 +2860,11 @@ export type Database = {
         Returns: boolean
       }
       executar_escalonamento_sla_n1_n2: { Args: never; Returns: number }
+      fechar_chamado_apos_avaliacao: {
+        Args: { p_chamado_id: string }
+        Returns: boolean
+      }
+      gestao_atualizar_abandonos: { Args: never; Returns: number }
       gestor_mesma_area: {
         Args: { _colaborador_id: string; _gestor_id: string }
         Returns: boolean
