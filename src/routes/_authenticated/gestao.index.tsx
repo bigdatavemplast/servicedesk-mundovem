@@ -502,9 +502,14 @@ function GestaoPage() {
       utilization,
       quality,
       escal: pct(
-        chamados.filter((chamado) => chamado.escalonado).length,
-        chamados.length,
-      ),
+  chamados.filter(
+    c =>
+      c.escalonado ||
+      c.escalonado_em !== null ||
+      Number(c.escalonamento_nivel || 0) > 1
+  ).length,
+  chamados.length
+),
       abandon: pct(
         chamados.filter(
           (chamado) =>
