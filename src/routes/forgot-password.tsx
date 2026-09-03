@@ -11,12 +11,7 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/forgot-password")({
   ssr: false,
-  head: () => ({
-    meta: [
-      { title: "Recuperar senha — Mundo Vem Service Desk" },
-      { name: "robots", content: "noindex, follow" },
-    ],
-  }),
+  head: () => ({ meta: [{ title: "Recuperar senha — Vemplast Support Hub" }, { name: "robots", content: "noindex, follow" }] }),
   component: ForgotPasswordPage,
 });
 
@@ -28,19 +23,14 @@ function ForgotPasswordPage() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
-
-    const redirectTo = `${window.location.origin}/auth?recovery=1`;
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo,
-    });
-
+    // The recovery link must return to the Service Desk itself, never to Lovable.
+    const redirectTo = `${window.location.origin}/reset-password`;
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
     setLoading(false);
-
     if (error) {
       toast.error("Não foi possível solicitar a recuperação da senha. Tente novamente.");
       return;
     }
-
     setSent(true);
   }
 
@@ -50,17 +40,12 @@ function ForgotPasswordPage() {
         <div className="mb-6 flex flex-col items-center justify-center gap-2 text-center">
           <img src={LOGO_VEM} alt={LOGO_VEM_ALT} className="h-12 w-auto shrink-0 object-contain sm:h-14" width={108} height={56} />
           <h1 className="text-xl font-bold tracking-tight">Recuperar acesso</h1>
-          <p className="text-sm text-muted-foreground">Mundo Vem Service Desk</p>
+          <p className="text-sm text-muted-foreground">Vemplast Support Hub</p>
         </div>
-
         <Card>
           <CardHeader>
             <CardTitle>{sent ? "Verifique seu e-mail" : "Esqueci minha senha"}</CardTitle>
-            <CardDescription>
-              {sent
-                ? "Se o endereço estiver cadastrado, enviaremos um link para redefinir sua senha."
-                : "Informe seu e-mail corporativo para receber um link de recuperação."}
-            </CardDescription>
+            <CardDescription>{sent ? "Se o endereço estiver cadastrado, enviaremos um link para redefinir sua senha." : "Informe seu e-mail corporativo para receber um link de recuperação."}</CardDescription>
           </CardHeader>
           <CardContent>
             {sent ? (
@@ -70,15 +55,11 @@ function ForgotPasswordPage() {
                     <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
                     <div className="space-y-1 text-sm">
                       <p className="font-medium">Solicitação enviada</p>
-                      <p className="text-muted-foreground">
-                        Verifique sua caixa de entrada e também a pasta de spam ou lixo eletrônico.
-                      </p>
+                      <p className="text-muted-foreground">Verifique sua caixa de entrada e também a pasta de spam ou lixo eletrônico.</p>
                     </div>
                   </div>
                 </div>
-                <Button asChild className="w-full">
-                  <Link to="/auth">Voltar para o login</Link>
-                </Button>
+                <Button asChild className="w-full"><Link to="/auth">Voltar para o login</Link></Button>
               </div>
             ) : (
               <form className="space-y-4" onSubmit={handleSubmit}>
@@ -86,28 +67,11 @@ function ForgotPasswordPage() {
                   <Label htmlFor="recovery-email">E-mail corporativo</Label>
                   <div className="relative">
                     <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      id="recovery-email"
-                      type="email"
-                      autoComplete="email"
-                      required
-                      value={email}
-                      onChange={(event) => setEmail(event.target.value)}
-                      className="pl-9"
-                      placeholder="seu.email@mundovem.com.br"
-                    />
+                    <Input id="recovery-email" type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} className="pl-9" placeholder="seu.email@vemplast.com.br" />
                   </div>
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Enviar link de recuperação
-                </Button>
-                <Button asChild type="button" variant="ghost" className="w-full">
-                  <Link to="/auth">
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Voltar para o login
-                  </Link>
-                </Button>
+                <Button type="submit" className="w-full" disabled={loading}>{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Enviar link de recuperação</Button>
+                <Button asChild type="button" variant="ghost" className="w-full"><Link to="/auth"><ArrowLeft className="mr-2 h-4 w-4" />Voltar para o login</Link></Button>
               </form>
             )}
           </CardContent>
