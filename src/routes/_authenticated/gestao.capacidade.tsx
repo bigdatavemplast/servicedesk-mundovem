@@ -54,9 +54,23 @@ function CapacidadePage() {
   });
 
   const { data: profiles = [] } = useQuery({
-    queryKey: ["gestao-capacidade-profiles"],
+    queryKey: ["gestao-capacidade-atendentes"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("profiles").select("id,nome,email,ativo").eq("ativo", true).order("nome");
+      const { data: roles, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "atendente");
+      if (rolesError) throw rolesError;
+
+      const ids = Array.from(new Set((roles ?? []).map((r) => r.user_id).filter(Boolean)));
+      if (!ids.length) return [] as Profile[];
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id,nome,email,ativo")
+        .eq("ativo", true)
+        .in("id", ids)
+        .order("nome");
       if (error) throw error;
       return (data ?? []) as Profile[];
     },
