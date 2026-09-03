@@ -64,6 +64,19 @@ function AdminIndexPage() {
     },
   });
 
+  const { data: tiposChamado = [] } = useQuery({
+    queryKey: ["admin-tipos-chamado"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tipos_chamado")
+        .select("id, nome, ativo")
+        .order("ordem", { ascending: true })
+        .order("nome", { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const kpis = [
     {
       to: "/admin/usuarios",
@@ -293,7 +306,24 @@ function AdminIndexPage() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium">{item.title}</p>
-                        <p className="mt-0.5 text-xs leading-5 text-muted-foreground">{item.desc}</p>
+                        {item.to === "/admin/tipos-chamado" ? (
+                          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                            <span className="text-xs text-muted-foreground">
+                              {tiposChamado.length} {tiposChamado.length === 1 ? "tipo cadastrado" : "tipos cadastrados"}:
+                            </span>
+                            {tiposChamado.length > 0 ? (
+                              tiposChamado.map((tipo) => (
+                                <Badge key={tipo.id} variant={tipo.ativo ? "outline" : "secondary"} className="text-[11px]">
+                                  {tipo.nome}
+                                </Badge>
+                              ))
+                            ) : (
+                              <span className="text-xs text-muted-foreground">nenhum tipo cadastrado</span>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="mt-0.5 text-xs leading-5 text-muted-foreground">{item.desc}</p>
+                        )}
                       </div>
                       <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100" />
                     </Link>
