@@ -34,28 +34,63 @@ function ResetPasswordPage() {
 
     const initializeRecovery = async () => {
       try {
-        // Supabase may return the recovery token using the PKCE `code` query
-        // parameter. Exchange it here while the user is still on the SD route.
-        const params = new URLSearchParams(window.location.search);
-        const code = params.get("code");
+        const url = new URL(window.location.href);
+        const params = url.searchParams;
+        const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
 
+        // Support the PKCE recovery format when Supabase returns ?code=...
+        // directly to the Service Desk route.
+        const code = params.get("code");
         if (code) {
           const { error } = await supabase.auth.exchangeCodeForSession(code);
-          if (error) {
-            console.error("[Recovery] exchangeCodeForSession:", error);
-          } else if (mounted) {
-            setReady(true);
-          }
-
-          // Remove the one-time code from the address bar without leaving the
-          // Service Desk route or triggering an external redirect.
-          window.history.replaceState({}, document.title, "/reset-password");
+          if (error) console.error("[Recovery] exchangeCodeForSession:", error);
+          else if (mounted) setReady(true);
         }
 
+        // Support the implicit recovery format when Supabase returns
+        // #access_token=...&refresh_token=...&type=recovery.
+        const accessToken = hash.get("access_token");
+        const refreshToken = hash.get("refresh_token");
+        if (accessToken && refreshToken) {
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (error) console.error("[Recovery] setSession:", error);
+          else if (mounted) setReady(true);
+        }
+
+        // Support recovery links that use token_hash + type=recovery.
+        const tokenHash = params.get("token_hash");
+        const tokenType = params.get("type");
+        if (tokenHash && tokenType === "recovery") {
+          const { error } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: "recovery",
+          });
+          if (error) console.error("[Recovery] verifyOtp:", error);
+          else if (mounted) setReady(true);
+        }
+
+        // Give supabase-js a moment to persist the session created from the
+        // recovery URL before checking it.
         const { data } = await supabase.auth.getSession();
         if (!mounted) return;
-        setReady(Boolean(data.session));
+        if (data.session) setReady(true);
         setCheckingSession(false);
+
+        // One short retry handles asynchronous browser storage persistence.
+        if (!data.session) {
+          await new Promise((resolve) => setTimeout(resolve, 300));
+          if (!mounted) return;
+          const retry = await supabase.auth.getSession();
+          if (retry.data.session) setReady(true);
+        }
+
+        // Never leave recovery parameters/tokens in the address bar.
+        if (window.location.search || window.location.hash) {
+          window.history.replaceState({}, document.title, "/reset-password");
+        }
       } catch (error) {
         console.error("[Recovery] initialization error:", error);
         if (mounted) {
@@ -67,7 +102,8 @@ function ResetPasswordPage() {
 
     const { data: subscription } = supabase.auth.onAuthStateChange((event, session) => {
       if (!mounted) return;
-      if (event === "PASSWORD_RECOVERY" || session) setReady(true);
+      if (event === "PASSWORD_RECOVERY" && session) setReady(true);
+      if (event === "SIGNED_IN" && session) setReady(true);
       if (event === "SIGNED_OUT") setReady(false);
     });
 
@@ -85,11 +121,23 @@ function ResetPasswordPage() {
     if (password !== confirmation) return toast.error("As senhas não coincidem.");
 
     setLoading(true);
+
+    // Always refresh the current session before updateUser. This prevents the
+    // recovery screen from attempting to update a stale/anonymous session.
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session) {
+      setLoading(false);
+      toast.error("O link de recuperação é inválido ou expirou. Solicite um novo link.");
+      setReady(false);
+      return;
+    }
+
     const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
 
     if (error) {
-      toast.error("Não foi possível alterar a senha. Solicite um novo link de recuperação.");
+      console.error("[Recovery] updateUser:", error);
+      toast.error(error.message || "Não foi possível alterar a senha.");
       return;
     }
 
