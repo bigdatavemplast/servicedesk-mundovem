@@ -2865,6 +2865,13 @@ export type Database = {
         Returns: boolean
       }
       gestao_atualizar_abandonos: { Args: never; Returns: number }
+      gestao_csat: {
+        Args: { _inicio: string; _segmento_id: string }
+        Returns: {
+          media_csat: number
+          total_avaliacoes: number
+        }[]
+      }
       gestor_mesma_area: {
         Args: { _colaborador_id: string; _gestor_id: string }
         Returns: boolean
