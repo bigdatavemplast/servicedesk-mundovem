@@ -118,8 +118,8 @@ function ItsmConhecimento() {
 
   const excluir = async (a: Article) => {
     setError(null);
-    const { error: bcError } = await supabase.from("base_conhecimento").delete().eq("id", a.id);
-    if (bcError) return setError(`Não foi possível remover o artigo da Base de Conhecimento: ${bcError.message}`);
+    // O espelho na Base de Conhecimento é removido pelo gatilho do banco.
+
     const { error, count } = await supabase.from("itsm_artigos_conhecimento").delete({ count: "exact" }).eq("id", a.id);
     if (error) return setError(error.message);
     if (!count) return setError("Exclusão bloqueada: você não tem permissão para excluir este artigo.");
