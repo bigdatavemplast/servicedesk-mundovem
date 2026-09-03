@@ -9,8 +9,6 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 
-const PASSWORD_RESET_URL = "https://servicedesk-mundovem.lovable.app/reset-password";
-
 export const Route = createFileRoute("/forgot-password")({
   ssr: false,
   head: () => ({
@@ -31,11 +29,9 @@ function ForgotPasswordPage() {
     event.preventDefault();
     setLoading(true);
 
-    // Use the public Service Desk URL instead of the current preview/editor origin.
-    // A private Lovable preview can intercept the recovery link and show Access Denied
-    // before the public reset-password route is reached.
+    const redirectTo = `${window.location.origin}/auth?recovery=1`;
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: PASSWORD_RESET_URL,
+      redirectTo,
     });
 
     setLoading(false);
