@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Eye, Search, ShieldCheck, X } from "lucide-react";
 
-export const Route = createFileRoute("/_authenticated/itsm-auditoria")({ component: ItsmAuditoria });
+export const Route = createFileRoute("/_authenticated/itsm-auditoria")({
+  head: () => ({ meta: [{ title: "Trilha de auditoria | Mundo Vem Service Desk" }, { name: "description", content: "Histórico de alterações e eventos registrados nos módulos do Service Desk." }, { property: "og:title", content: "Trilha de auditoria | Mundo Vem Service Desk" }, { property: "og:description", content: "Histórico de alterações e eventos registrados nos módulos do Service Desk." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }, { name: "robots", content: "noindex, follow" }] }), component: ItsmAuditoria });
 
 type Audit = { id: string; entidade: string; entidade_id: string | null; acao: string; usuario_id: string | null; antes: unknown; depois: unknown; criado_em: string };
 

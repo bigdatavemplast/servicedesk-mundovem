@@ -13,7 +13,8 @@ import { ArrowRightLeft, Plus, X, Eye, Pencil, Trash2, UserRound, CheckCircle2, 
 const LABELS: Record<string, string> = { normal: "Normal", emergencia: "Emergência", padrao: "Padrão", rascunho: "Rascunho", aguardando_aprovacao: "Aguardando aprovação", aprovado: "Aprovado", rejeitado: "Rejeitado", agendado: "Agendado", em_execucao: "Em execução", concluido: "Concluído", cancelado: "Cancelado", baixo: "Baixo", medio: "Médio", alto: "Alto", critico: "Crítico" };
 const FLOW: Record<string, string[]> = { rascunho: ["rascunho", "aguardando_aprovacao", "cancelado"], aguardando_aprovacao: ["aguardando_aprovacao", "aprovado", "rejeitado", "cancelado"], aprovado: ["aprovado", "agendado", "em_execucao", "cancelado"], agendado: ["agendado", "em_execucao", "cancelado"], em_execucao: ["em_execucao", "concluido"], rejeitado: ["rejeitado", "rascunho"], concluido: ["concluido"], cancelado: ["cancelado"] };
 
-export const Route = createFileRoute("/_authenticated/itsm-mudancas")({ component: ItsmMudancas });
+export const Route = createFileRoute("/_authenticated/itsm-mudancas")({
+  head: () => ({ meta: [{ title: "Gestão de mudanças | Mundo Vem Service Desk" }, { name: "description", content: "Planeje, aprove e acompanhe mudanças técnicas com janelas e planos de retorno." }, { property: "og:title", content: "Gestão de mudanças | Mundo Vem Service Desk" }, { property: "og:description", content: "Planeje, aprove e acompanhe mudanças técnicas com janelas e planos de retorno." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }, { name: "robots", content: "noindex, follow" }] }), component: ItsmMudancas });
 
 function ItsmMudancas() {
   const queryClient = useQueryClient();

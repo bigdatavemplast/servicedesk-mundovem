@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle, GitBranch, Monitor, Network, BookOpen, ShieldCheck, Scale, ClipboardList } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/itsm-avancado")({
+  head: () => ({ meta: [{ title: "Módulos ITSM avançados | Mundo Vem Service Desk" }, { name: "description", content: "Acesso consolidado aos recursos avançados de ITSM do Service Desk da Mundo Vem." }, { property: "og:title", content: "Módulos ITSM avançados | Mundo Vem Service Desk" }, { property: "og:description", content: "Acesso consolidado aos recursos avançados de ITSM do Service Desk da Mundo Vem." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }, { name: "robots", content: "noindex, follow" }] }),
   beforeLoad: async ({ context }) => {
     const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", context.user.id);
     if ((roles ?? []).some((r) => r.role === "admin")) return;

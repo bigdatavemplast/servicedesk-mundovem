@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Monitor, Plus, X, Eye, Pencil, Trash2 } from "lucide-react";
 
 const STATUS: Record<string,string> = { ativo:"Ativo", inativo:"Inativo", manutencao:"Em manutenção", descartado:"Descartado" };
-export const Route = createFileRoute("/_authenticated/itsm-ativos")({ component: ItsmAtivos });
+export const Route = createFileRoute("/_authenticated/itsm-ativos")({
+  head: () => ({ meta: [{ title: "Inventário de ativos | Mundo Vem Service Desk" }, { name: "description", content: "Controle equipamentos, garantias, localização e responsáveis pelos ativos de TI da Mundo Vem." }, { property: "og:title", content: "Inventário de ativos | Mundo Vem Service Desk" }, { property: "og:description", content: "Controle equipamentos, garantias, localização e responsáveis pelos ativos de TI da Mundo Vem." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }, { name: "robots", content: "noindex, follow" }] }), component: ItsmAtivos });
 function ItsmAtivos() {
  const qc=useQueryClient(); const [open,setOpen]=useState(false),[selected,setSelected]=useState<any>(null),[editing,setEditing]=useState(false),[saving,setSaving]=useState(false),[formError,setFormError]=useState<string|null>(null);
  const [form,setForm]=useState({codigo_patrimonio:"",nome:"",tipo:"",status:"ativo",fabricante:"",modelo:"",numero_serie:"",ambiente:"",localizacao:"",responsavel_nome:"",valor:"",data_aquisicao:"",fim_garantia:"",dados_tecnicos:""});

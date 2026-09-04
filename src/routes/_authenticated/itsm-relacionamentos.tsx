@@ -22,7 +22,8 @@ const RELACOES = [
 type Registro = { id: string; nome: string; tipo: string; detalhe?: string };
 type Relacionamento = { id: string; origem_tipo: string; origem_id: string; relacao: string; destino_tipo: string; destino_id: string; criado_em: string };
 
-export const Route = createFileRoute("/_authenticated/itsm-relacionamentos")({ component: ItsmRelacionamentos });
+export const Route = createFileRoute("/_authenticated/itsm-relacionamentos")({
+  head: () => ({ meta: [{ title: "Relacionamentos entre itens | Mundo Vem Service Desk" }, { name: "description", content: "Mapeie dependências entre chamados, serviços, ativos, problemas e mudanças." }, { property: "og:title", content: "Relacionamentos entre itens | Mundo Vem Service Desk" }, { property: "og:description", content: "Mapeie dependências entre chamados, serviços, ativos, problemas e mudanças." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }, { name: "robots", content: "noindex, follow" }] }), component: ItsmRelacionamentos });
 
 function ItsmRelacionamentos() {
   const qc = useQueryClient();

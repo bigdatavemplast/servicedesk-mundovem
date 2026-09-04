@@ -15,7 +15,8 @@ import { AnexoDropzone } from "@/components/anexos/AnexoDropzone";
 import { enviarAnexo, validarAnexo } from "@/lib/anexos";
 import { criarChamadoComCatalogo } from "@/lib/chamado-catalogo.functions";
 
-export const Route = createFileRoute("/_authenticated/chamados/novo")({ component: NovoChamadoPage });
+export const Route = createFileRoute("/_authenticated/chamados/novo")({
+  head: () => ({ meta: [{ title: "Abrir novo chamado | Mundo Vem Service Desk" }, { name: "description", content: "Registre uma solicitação ou incidente com categoria, prioridade e anexos no Service Desk da Mundo Vem." }, { property: "og:title", content: "Abrir novo chamado | Mundo Vem Service Desk" }, { property: "og:description", content: "Registre uma solicitação ou incidente com categoria, prioridade e anexos no Service Desk da Mundo Vem." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }, { name: "robots", content: "noindex, follow" }] }), component: NovoChamadoPage });
 
 type Prioridade = "baixa" | "media" | "alta" | "critica";
 type Impacto = "empresa" | "departamento" | "usuario" | "";

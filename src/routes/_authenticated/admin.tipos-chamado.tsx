@@ -13,6 +13,7 @@ import {
 import type { TipoChamado } from "@/lib/types/tipos-chamado";
 
 export const Route = createFileRoute("/_authenticated/admin/tipos-chamado")({
+  head: () => ({ meta: [{ title: "Tipos de chamado | Mundo Vem Service Desk" }, { name: "description", content: "Configure os tipos de chamado, campos e fluxos usados na abertura de solicitações." }, { property: "og:title", content: "Tipos de chamado | Mundo Vem Service Desk" }, { property: "og:description", content: "Configure os tipos de chamado, campos e fluxos usados na abertura de solicitações." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }, { name: "robots", content: "noindex, follow" }] }),
   component: TiposChamadoPage,
 });
 

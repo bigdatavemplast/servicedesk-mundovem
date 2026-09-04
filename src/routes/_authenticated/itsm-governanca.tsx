@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ClipboardCheck, Plus, Pencil, Eye, X, AlertTriangle, Trash2 } from "lucide-react";
 import { useItsmPermissions } from "@/lib/itsm-permissions";
 
-export const Route=createFileRoute("/_authenticated/itsm-governanca")({component:ItsmGovernanca});
+export const Route=createFileRoute("/_authenticated/itsm-governanca")({
+  head: () => ({ meta: [{ title: "Governança de TI | Mundo Vem Service Desk" }, { name: "description", content: "Políticas, vigências e indicadores de conformidade do Service Desk da Mundo Vem." }, { property: "og:title", content: "Governança de TI | Mundo Vem Service Desk" }, { property: "og:description", content: "Políticas, vigências e indicadores de conformidade do Service Desk da Mundo Vem." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }, { name: "robots", content: "noindex, follow" }] }),component:ItsmGovernanca});
 type Policy={id:string;nome:string;descricao:string|null;tipo:string;status:string;responsavel_id:string|null;aprovador_id:string|null;vigencia_inicio:string|null;vigencia_fim:string|null;periodicidade_revisao:string|null;evidencias:unknown;criado_em:string;atualizado_em:string};
 type Summary={total_chamados:number;chamados_abertos:number;problemas_abertos:number;mudancas_pendentes:number;ativos_ativos:number;servicos_ativos:number;relacionamentos:number;artigos_publicados:number;eventos_auditoria:number;politicas_vigentes:number};
 const statusLabel:Record<string,string>={rascunho:"Rascunho",em_revisao:"Em revisão",aprovado:"Aprovado",vigente:"Vigente",encerrado:"Encerrado"};

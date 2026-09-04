@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Loader2, ListChecks, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 
-export const Route = createFileRoute("/_authenticated/catalogo")({ component: CatalogoPage });
+export const Route = createFileRoute("/_authenticated/catalogo")({
+  head: () => ({ meta: [{ title: "Catálogo de serviços | Mundo Vem Service Desk" }, { name: "description", content: "Consulte o catálogo de serviços da Mundo Vem e abra chamados a partir dos itens disponíveis por área." }, { property: "og:title", content: "Catálogo de serviços | Mundo Vem Service Desk" }, { property: "og:description", content: "Consulte o catálogo de serviços da Mundo Vem e abra chamados a partir dos itens disponíveis por área." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }, { name: "robots", content: "noindex, follow" }] }), component: CatalogoPage });
 
 type CatalogoItem = {
   id: string;

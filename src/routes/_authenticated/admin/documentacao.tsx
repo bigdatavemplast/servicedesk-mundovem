@@ -12,6 +12,7 @@ import { BookOpen, Pencil, Plus, Save, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin/documentacao")({
+  head: () => ({ meta: [{ title: "Documentação interna | Mundo Vem Service Desk" }, { name: "description", content: "Documentação técnica e operacional do Service Desk da Mundo Vem para administradores." }, { property: "og:title", content: "Documentação interna | Mundo Vem Service Desk" }, { property: "og:description", content: "Documentação técnica e operacional do Service Desk da Mundo Vem para administradores." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }, { name: "robots", content: "noindex, follow" }] }),
   beforeLoad: async ({ context }) => {
     const { data } = await supabase.from("user_roles").select("role").eq("user_id", context.user.id);
     if (!(data ?? []).some((r) => r.role === "admin")) throw redirect({ to: "/dashboard" });
