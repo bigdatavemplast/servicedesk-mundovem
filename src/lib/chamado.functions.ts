@@ -119,7 +119,7 @@ export const avaliarChamado = createServerFn({ method: "POST" }).middleware([req
   if (ticket.solicitante_id !== context.userId) throw new Error("Somente o solicitante pode avaliar o chamado.");
   if (ticket.status !== "resolvido") throw new Error("O chamado precisa estar resolvido para ser avaliado.");
   if (ticket.avaliacao_nota != null) throw new Error("Este chamado já foi avaliado.");
-  const { error: rpcError } = await admin.rpc("avaliar_chamado", { _chamado_id: data.chamadoId, _nota: data.nota, _comentario: data.comentario ?? null });
+  const { error: rpcError } = await (context.supabase as any).rpc("avaliar_chamado", { _chamado_id: data.chamadoId, _nota: data.nota, _comentario: data.comentario ?? null });
   if (rpcError) throw new Error(rpcError.message);
   return { ok: true, status: "fechado" };
 });
