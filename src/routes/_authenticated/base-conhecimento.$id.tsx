@@ -18,7 +18,29 @@ export const Route = createFileRoute("/_authenticated/base-conhecimento/$id")({
     const nome = loaderData?.titulo ?? `Artigo ${String(params.id).slice(0, 8)}`;
     const titulo = `${nome} | Base de conhecimento Mundo Vem`;
     const descricao = loaderData?.resumo && loaderData.resumo.length >= 50 ? loaderData.resumo : `Procedimento "${nome}" publicado pela equipe do Service Desk da Mundo Vem.`;
-    return { meta: [{ title: titulo }, { name: "description", content: descricao }, { property: "og:title", content: titulo }, { property: "og:description", content: descricao }, { property: "og:type", content: "article" }, { name: "robots", content: "noindex, follow" }] };
+    const url = `https://servicedesk-mundovem.lovable.app/base-conhecimento/${params.id}`;
+    return {
+      meta: [{ title: titulo }, { name: "description", content: descricao }, { property: "og:title", content: titulo }, { property: "og:description", content: descricao }, { property: "og:type", content: "article" }, { property: "og:url", content: url }, { name: "twitter:card", content: "summary" }, { name: "twitter:title", content: titulo }, { name: "twitter:description", content: descricao }, { name: "robots", content: "noindex, follow" }],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: serializarJsonLd({
+            "@context": "https://schema.org",
+            "@graph": [
+              { "@type": "Article", headline: nome, description: descricao, inLanguage: "pt-BR", url, author: { "@type": "Organization", name: "Mundo Vem" }, publisher: { "@type": "Organization", name: "Mundo Vem" } },
+              {
+                "@type": "BreadcrumbList",
+                itemListElement: [
+                  { "@type": "ListItem", position: 1, name: "Início", item: "https://servicedesk-mundovem.lovable.app/" },
+                  { "@type": "ListItem", position: 2, name: "Base de conhecimento", item: "https://servicedesk-mundovem.lovable.app/base-conhecimento" },
+                  { "@type": "ListItem", position: 3, name: nome, item: url },
+                ],
+              },
+            ],
+          }),
+        },
+      ],
+    };
   },
   component: DetalhePage,
 });

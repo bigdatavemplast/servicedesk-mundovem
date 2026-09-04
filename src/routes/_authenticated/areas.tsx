@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Building2, ChevronRight, Loader2, LogOut } from "lucide-react";
 
-export const Route = createFileRoute("/_authenticated/areas")({ ssr: false, component: AreasPage });
+export const Route = createFileRoute("/_authenticated/areas")({
+  head: () => ({ meta: [{ title: "Áreas de atendimento | Mundo Vem Service Desk" }, { name: "description", content: "Escolha a área responsável — TI, RH, Financeiro, Projetos e outras — para abrir seu chamado na Mundo Vem." }, { property: "og:title", content: "Áreas de atendimento | Mundo Vem Service Desk" }, { property: "og:description", content: "Escolha a área responsável — TI, RH, Financeiro, Projetos e outras — para abrir seu chamado na Mundo Vem." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }, { name: "robots", content: "noindex, follow" }] }), ssr: false, component: AreasPage });
 type Segmento = { id: string; nome: string; ativo: boolean; ordem: number };
 const descricoes: Record<string, string> = { TI: "Sistemas, infraestrutura, acessos, equipamentos e suporte de tecnologia.", RH: "Pessoas, benefícios, férias, folha e processos de Recursos Humanos.", Financeiro: "Pagamentos, notas, processos e serviços financeiros.", Projetos: "Projetos, demandas e serviços relacionados às iniciativas da empresa.", Outros: "Serviços e solicitações de outras áreas da empresa." };
 function AreasPage() {

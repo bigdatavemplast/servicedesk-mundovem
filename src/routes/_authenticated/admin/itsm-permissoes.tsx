@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShieldCheck } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/itsm-permissoes")({
+  head: () => ({ meta: [{ title: "Permissões ITSM | Mundo Vem Service Desk" }, { name: "description", content: "Defina quais perfis acessam cada módulo de ITSM do Service Desk." }, { property: "og:title", content: "Permissões ITSM | Mundo Vem Service Desk" }, { property: "og:description", content: "Defina quais perfis acessam cada módulo de ITSM do Service Desk." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }, { name: "robots", content: "noindex, follow" }] }),
   component: ItsmPermissoesPage,
 });
 

@@ -11,7 +11,7 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/forgot-password")({
   ssr: false,
-  head: () => ({ meta: [{ title: "Recuperar senha — Vemplast Support Hub" }, { name: "robots", content: "noindex, follow" }] }),
+  head: () => ({ meta: [{ title: "Recuperar senha | Mundo Vem Service Desk" }, { name: "description", content: "Receba um link por e-mail para recuperar o acesso ao Service Desk da Mundo Vem." }, { property: "og:title", content: "Recuperar senha | Mundo Vem Service Desk" }, { property: "og:description", content: "Receba um link por e-mail para recuperar o acesso ao Service Desk da Mundo Vem." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }, { name: "robots", content: "noindex, follow" }] }),
   component: ForgotPasswordPage,
 });
 

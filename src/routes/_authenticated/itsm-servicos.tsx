@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/itsm-servicos")({
+  head: () => ({ meta: [{ title: "Catálogo técnico de serviços | Mundo Vem Service Desk" }, { name: "description", content: "Gerencie serviços de TI, responsáveis e níveis de criticidade no módulo ITSM da Mundo Vem." }, { property: "og:title", content: "Catálogo técnico de serviços | Mundo Vem Service Desk" }, { property: "og:description", content: "Gerencie serviços de TI, responsáveis e níveis de criticidade no módulo ITSM da Mundo Vem." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }, { name: "robots", content: "noindex, follow" }] }),
   component: ItsmServicos,
 });
 
