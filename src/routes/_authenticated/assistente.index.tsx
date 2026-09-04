@@ -77,9 +77,9 @@ function EntradaAssistente() {
         </div>
       ) : conversas.length > 0 ? (
         <section aria-label="Histórico de conversas">
-          <h3 className="mb-2 px-1 text-sm font-semibold text-muted-foreground">
+          <h2 className="mb-2 px-1 text-sm font-semibold text-muted-foreground">
             Suas conversas anteriores
-          </h3>
+          </h2>
           <div className="divide-y overflow-hidden rounded-lg border bg-background">
             {conversas.map((c) => {
               const dataRef = c.updated_at ?? c.created_at;
