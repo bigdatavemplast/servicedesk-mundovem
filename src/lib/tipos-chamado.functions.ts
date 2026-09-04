@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { supabase } from "@/integrations/supabase/client";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { hasPermission, type Role } from "@/lib/permissions";
 import type { TipoChamado, TipoChamadoInsert, TipoChamadoUpdate } from "@/lib/types/tipos-chamado";
 
@@ -14,32 +15,12 @@ const tipoSchema = z.object({
 
 const idSchema = z.object({ id: z.string().uuid() });
 
-function assertCanManage(role: Role) {
-  if (!hasPermission(role, "service_desk.manage")) {
-    throw new Error("Você não tem permissão para gerenciar tipos de chamado.");
-  }
-}
-
-async function requireManager() {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Usuário não autenticado.");
-
-  const { data, error } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", user.id);
-
+/** Revalida a permissão de gestão usando o cliente derivado do token da requisição. */
+async function requireManager(client: any, userId: string) {
+  const { data, error } = await client.from("user_roles").select("role").eq("user_id", userId);
   if (error) throw new Error(`Não foi possível verificar as permissões: ${error.message}`);
 
-  const allowed = (data ?? []).some(({ role }) => {
-    try {
-      assertCanManage(role as Role);
-      return true;
-    } catch {
-      return false;
-    }
-  });
-
+  const allowed = (data ?? []).some(({ role }: { role: Role }) => hasPermission(role, "service_desk.manage"));
   if (!allowed) throw new Error("Você não tem permissão para gerenciar tipos de chamado.");
 }
 
@@ -55,10 +36,11 @@ export const listarTiposChamado = createServerFn({ method: "GET" }).handler(asyn
 });
 
 export const criarTipoChamado = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(tipoSchema)
-  .handler(async ({ data }): Promise<TipoChamado> => {
-    await requireManager();
-    const { data: created, error } = await supabase
+  .handler(async ({ data, context }): Promise<TipoChamado> => {
+    await requireManager(context.supabase, context.userId);
+    const { data: created, error } = await (context.supabase as any)
       .from("tipos_chamado")
       .insert(data as TipoChamadoInsert)
       .select("id, nome, descricao, ativo, ordem, criado_em, atualizado_em")
@@ -69,11 +51,12 @@ export const criarTipoChamado = createServerFn({ method: "POST" })
   });
 
 export const atualizarTipoChamado = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(idSchema.merge(tipoSchema.partial()))
-  .handler(async ({ data }): Promise<TipoChamado> => {
-    await requireManager();
+  .handler(async ({ data, context }): Promise<TipoChamado> => {
+    await requireManager(context.supabase, context.userId);
     const { id, ...changes } = data;
-    const { data: updated, error } = await supabase
+    const { data: updated, error } = await (context.supabase as any)
       .from("tipos_chamado")
       .update(changes as TipoChamadoUpdate)
       .eq("id", id)
@@ -85,10 +68,11 @@ export const atualizarTipoChamado = createServerFn({ method: "POST" })
   });
 
 export const alterarAtivoTipoChamado = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(idSchema.extend({ ativo: z.boolean() }))
-  .handler(async ({ data }): Promise<TipoChamado> => {
-    await requireManager();
-    const { data: updated, error } = await supabase
+  .handler(async ({ data, context }): Promise<TipoChamado> => {
+    await requireManager(context.supabase, context.userId);
+    const { data: updated, error } = await (context.supabase as any)
       .from("tipos_chamado")
       .update({ ativo: data.ativo })
       .eq("id", data.id)
@@ -100,10 +84,11 @@ export const alterarAtivoTipoChamado = createServerFn({ method: "POST" })
   });
 
 export const excluirTipoChamado = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(idSchema)
-  .handler(async ({ data }): Promise<void> => {
-    await requireManager();
-    const { count, error: countError } = await supabase
+  .handler(async ({ data, context }): Promise<void> => {
+    await requireManager(context.supabase, context.userId);
+    const { count, error: countError } = await (context.supabase as any)
       .from("chamados")
       .select("id", { count: "exact", head: true })
       .eq("tipo_chamado_id", data.id);
@@ -113,6 +98,7 @@ export const excluirTipoChamado = createServerFn({ method: "POST" })
       throw new Error("Não é possível excluir este tipo porque existem chamados vinculados. Desative-o para impedir novos usos.");
     }
 
-    const { error } = await supabase.from("tipos_chamado").delete().eq("id", data.id);
+    const { error } = await (context.supabase as any).from("tipos_chamado").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
   });
+
