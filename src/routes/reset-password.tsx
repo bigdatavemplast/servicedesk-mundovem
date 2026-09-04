@@ -13,7 +13,12 @@ export const Route = createFileRoute("/reset-password")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Redefinir senha — Vemplast Support Hub" },
+      { title: "Redefinir senha | Mundo Vem Service Desk" },
+      { name: "description", content: "Defina uma nova senha para acessar o Service Desk da Mundo Vem." },
+      { property: "og:title", content: "Redefinir senha | Mundo Vem Service Desk" },
+      { property: "og:description", content: "Defina uma nova senha para acessar o Service Desk da Mundo Vem." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex, follow" },
     ],
   }),
