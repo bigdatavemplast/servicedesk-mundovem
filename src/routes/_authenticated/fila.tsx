@@ -157,11 +157,13 @@ function FilaPage() {
   useEffect(() => { if (segmentoSelecionado !== "todos" && !segmentoIdsPermitidos.has(segmentoSelecionado)) setSegmentoSelecionado("todos"); }, [segmentoSelecionado, segmentoIdsPermitidos]);
 
   const { data: chamados = [], isLoading: loadingChamados } = useQuery({
-    queryKey: ["fila", status, prioridade, segmentoSelecionado, contexto?.userId, contexto?.role, contexto?.departamento, [...segmentoIdsPermitidos]],
+    queryKey: ["fila", status, prioridade, segmentoSelecionado, somenteMeus, contexto?.userId, contexto?.role, contexto?.departamento, [...segmentoIdsPermitidos]],
     enabled: !!contexto && !loadingSegmentos,
     queryFn: async () => {
-      let q = supabase.from("chamados").select(`id,numero,titulo,status,prioridade,aberto_em,prazo_resolucao,sla_regra_id,sla_pausado,sla_tempo_restante_segundos,sla_resolucao_violado,segmento_id,tipo:tipos_chamado(id,nome),categoria:categorias(nome),solicitante:profiles!chamados_solicitante_profile_fkey(nome,departamento,area_id),atendente:profiles!chamados_atendente_profile_fkey(nome)`).order("aberto_em", { ascending: false }).limit(200);
-      if (status) q = q.eq("status", status as any); if (prioridade !== "__all__") q = q.eq("prioridade", prioridade as any); if (segmentoSelecionado !== "todos") q = q.eq("segmento_id", segmentoSelecionado);
+      let q = supabase.from("chamados").select(`id,numero,titulo,status,prioridade,aberto_em,prazo_resolucao,sla_regra_id,sla_pausado,sla_tempo_restante_segundos,sla_resolucao_violado,segmento_id,atendente_id,tipo:tipos_chamado(id,nome),categoria:categorias(nome),solicitante:profiles!chamados_solicitante_profile_fkey(nome,departamento,area_id),atendente:profiles!chamados_atendente_profile_fkey(nome)`).order("aberto_em", { ascending: false }).limit(200);
+      if (status) q = q.eq("status", status as any); if (prioridade !== "__all__") q = q.eq("prioridade", prioridade as any);
+      if (somenteMeus && contexto?.userId) q = q.eq("atendente_id", contexto.userId);
+      else if (segmentoSelecionado !== "todos") q = q.eq("segmento_id", segmentoSelecionado);
       else if (contexto?.role === "atendente") {
         // O atendente vê as filas dos seus grupos E, sempre, os chamados atribuídos
         // diretamente a ele — inclusive quando estão fora dessas filas ou quando
