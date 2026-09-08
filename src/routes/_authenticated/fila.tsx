@@ -86,12 +86,7 @@ function businessSecondsBetween(startMs: number, endMs: number, horarios: Horari
 }
 function slaInfo(c: any, now: number, regras: Map<string, Regra>, horarios: Horario[]) {
   const regra = c.sla_regra_id ? regras.get(c.sla_regra_id) : undefined;
-
-  // A própria regra é a fonte de verdade. Projeto, Triagem ou qualquer outro
-  // fluxo sem SLA operacional deve permanecer sem SLA, mesmo que o nome do tipo
-  // contenha a palavra "Projeto".
   if (!regra || !regra.usa_sla_resolucao) return { status: "sem_sla", seconds: null };
-
   if (c.sla_pausado) return { status: "pausado", seconds: Math.max(0, Number(c.sla_tempo_restante_segundos ?? 0)) };
   if (!c.prazo_resolucao) return { status: "sem_sla", seconds: null };
   const calendarioHorarios = regra.calendario_id ? horarios.filter(h => h.calendario_id === regra.calendario_id) : [];
@@ -163,15 +158,24 @@ function FilaPage() {
       let q = supabase.from("chamados").select(`id,numero,titulo,status,prioridade,aberto_em,prazo_resolucao,sla_regra_id,sla_pausado,sla_tempo_restante_segundos,sla_resolucao_violado,segmento_id,atendente_id,tipo:tipos_chamado(id,nome),categoria:categorias(nome),solicitante:profiles!chamados_solicitante_profile_fkey(nome,departamento,area_id),atendente:profiles!chamados_atendente_profile_fkey(nome)`).order("aberto_em", { ascending: false }).limit(200);
       if (status) q = q.eq("status", status as any); if (prioridade !== "__all__") q = q.eq("prioridade", prioridade as any);
       if (somenteMeus && contexto?.userId) q = q.eq("atendente_id", contexto.userId);
-      else if (segmentoSelecionado !== "todos") q = q.eq("segmento_id", segmentoSelecionado);
+      else if (segmentoSelecionado !== "todos" && contexto?.role !== "atendente") q = q.eq("segmento_id", segmentoSelecionado);
       else if (contexto?.role === "atendente") {
-        // O atendente vê as filas dos seus grupos E, sempre, os chamados atribuídos
-        // diretamente a ele — inclusive quando estão fora dessas filas ou quando
-        // ele ainda não pertence a nenhum grupo ativo.
+        // Atribuição direta é uma condição independente da fila/segmento.
+        // Assim um chamado atribuído pelo admin nunca some da conta do atendente,
+        // mesmo que o filtro de segmento esteja selecionado ou o chamado esteja
+        // fora do grupo atual do atendente.
         const ids = [...segmentoIdsPermitidos];
-        q = ids.length
-          ? q.or(`segmento_id.in.(${ids.join(",")}),atendente_id.eq.${contexto.userId}`)
-          : q.eq("atendente_id", contexto.userId);
+        if (segmentoSelecionado !== "todos") {
+          q = ids.length
+            ? q.or(`segmento_id.eq.${segmentoSelecionado},atendente_id.eq.${contexto.userId}`)
+            : q.eq("atendente_id", contexto.userId);
+        } else {
+          q = ids.length
+            ? q.or(`segmento_id.in.(${ids.join(",")}),atendente_id.eq.${contexto.userId}`)
+            : q.eq("atendente_id", contexto.userId);
+        }
+      } else if (segmentoSelecionado !== "todos") {
+        q = q.eq("segmento_id", segmentoSelecionado);
       }
       if (contexto?.role === "gestor" && contexto.departamento) q = q.eq("solicitante.departamento", contexto.departamento);
       const { data, error } = await q; if (error) throw error;
@@ -190,22 +194,25 @@ function FilaPage() {
     queryFn: async () => { const { data, error } = await supabase.from("sla_calendario_horarios").select("calendario_id,dia_semana,hora_inicio,hora_fim").in("calendario_id", calendarioIds).eq("ativo", true); if (error) throw error; return (data ?? []) as Horario[]; },
   });
   const regraMap = useMemo(() => new Map(regras.map(r => [r.id, r])), [regras]);
-  const selectedName = segmentoSelecionado === "todos" ? "Todos os segmentos" : segmentos.find(s => s.id === segmentoSelecionado)?.nome ?? "Segmento";
+  const selectedName = segmentoSelecionado === "todos" ? "Todos" : segmentos.find(s => s.id === segmentoSelecionado)?.nome ?? "Todos";
 
-  return <div className="space-y-4">
-    <div><h1 className="text-2xl font-bold">Fila de atendimento</h1><p className="text-sm text-muted-foreground">Chamados disponíveis conforme a permissão do usuário.</p></div>
-    <Card><CardContent className="p-4">
-      <div className="mb-3 flex items-center justify-between gap-3"><div><h2 className="text-sm font-semibold">Filas por segmento</h2><p className="text-xs text-muted-foreground">Selecione a fila que deseja acompanhar.</p></div><span className="text-xs text-muted-foreground">{selectedName}</span></div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-        <button type="button" onClick={() => setSegmentoSelecionado("todos")} className={`rounded-lg border p-3 text-left transition hover:bg-muted/50 ${segmentoSelecionado === "todos" ? "border-primary bg-primary/5 ring-1 ring-primary" : ""}`}><div className="text-sm font-semibold">Todos</div><div className="mt-1 text-xs text-muted-foreground">Todas as filas permitidas</div></button>
-        {segmentos.map(s => <button key={s.id} type="button" onClick={() => setSegmentoSelecionado(s.id)} className={`rounded-lg border p-3 text-left transition hover:bg-muted/50 ${segmentoSelecionado === s.id ? "border-primary bg-primary/5 ring-1 ring-primary" : ""}`}><div className="text-sm font-semibold">{s.nome}</div><div className="mt-1 text-xs text-muted-foreground">Fila {s.nome}</div></button>)}
-      </div>{loadingSegmentos && <div className="pt-3 text-xs text-muted-foreground">Carregando segmentos…</div>}
-    </CardContent></Card>
-    <div className="flex flex-wrap items-center gap-2"><div className="flex flex-wrap gap-1">{STATUS.map(o => <Button key={o.v || "all"} size="sm" variant={status === o.v ? "default" : "outline"} className="h-8" onClick={() => setStatus(o.v)}>{o.l}</Button>)}</div><Button size="sm" variant={somenteMeus ? "default" : "outline"} className="h-8" onClick={() => setSomenteMeus(v => !v)}>Atribuídos a mim</Button><div className="ml-auto w-48"><Select value={prioridade} onValueChange={setPrioridade}><SelectTrigger className="h-9"><SelectValue /></SelectTrigger><SelectContent>{PRIOS.map(o => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}</SelectContent></Select></div></div>
-    <Card><CardContent className="p-0 overflow-x-auto"><table className="w-full min-w-[1200px] text-sm"><thead className="border-b bg-muted/40 text-xs uppercase text-muted-foreground"><tr className="text-left"><th className="px-4 py-2">#</th><th className="px-4 py-2">Título</th><th className="px-4 py-2">Solicitante</th><th className="px-4 py-2">Área / Departamento</th><th className="px-4 py-2">Atendente</th><th className="px-4 py-2">Tipo</th><th className="px-4 py-2">Categoria</th><th className="px-4 py-2">Prioridade</th><th className="px-4 py-2">Status</th><th className="px-4 py-2">Aberto em</th><th className="px-4 py-2">SLA</th></tr></thead><tbody>
-      {(loadingContexto || loadingChamados) && <tr><td colSpan={11} className="py-8 text-center text-muted-foreground">Carregando…</td></tr>}
-      {!loadingContexto && !loadingChamados && chamados.length === 0 && <tr><td colSpan={11} className="py-8 text-center text-muted-foreground">Nenhum chamado encontrado.</td></tr>}
-      {chamados.map((c: any) => { const sla = slaInfo(c, now, regraMap, horarios); return <tr key={c.id} onClick={() => navigate({ to: "/chamados/$id", params: { id: c.id } })} className="cursor-pointer border-b last:border-0 hover:bg-muted/40"><td className="px-4 py-2 font-mono text-xs text-muted-foreground">{c.numero}</td><td className="px-4 py-2 font-medium">{c.titulo}</td><td className="px-4 py-2">{c.solicitante?.nome ?? "—"}</td><td className="px-4 py-2 text-muted-foreground">{c.solicitante?.departamento ?? "—"}</td><td className="px-4 py-2">{c.atendente?.nome ?? "Sem atendente"}</td><td className="px-4 py-2 text-muted-foreground">{c.tipo?.nome ?? "—"}</td><td className="px-4 py-2 text-muted-foreground">{c.categoria?.nome ?? "—"}</td><td className="px-4 py-2"><span className={`rounded-full px-2 py-0.5 text-xs ${prioStyle(c.prioridade)}`}>{c.prioridade}</span></td><td className="px-4 py-2"><span className={`rounded-full px-2 py-0.5 text-xs ${statusStyle(c.status)}`}>{c.status}</span></td><td className="px-4 py-2 text-xs text-muted-foreground">{new Date(c.aberto_em).toLocaleString("pt-BR")}</td><td className="px-4 py-2 text-xs"><span className={slaClass(sla.status)}>{sla.status === "vencido" ? "Vencido" : sla.status === "vencendo" ? "Vencendo" : sla.status === "pausado" ? `Pausado · ${duration(sla.seconds)}` : `OK · ${duration(sla.seconds)}`}</span></td></tr>; })}
-    </tbody></table></CardContent></Card>
-  </div>;
+  if (loadingContexto || loadingSegmentos || loadingChamados) return <div className="p-8 text-center text-sm text-muted-foreground">Carregando fila…</div>;
+
+  return (<div className="space-y-4 p-6">
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <div><h1 className="text-2xl font-bold">Fila de atendimento</h1><p className="text-sm text-muted-foreground">{selectedName} · {chamados.length} chamado(s)</p></div>
+      <div className="flex flex-wrap gap-2">
+        <Select value={status} onValueChange={setStatus}><SelectTrigger className="w-[170px]"><SelectValue placeholder="Status" /></SelectTrigger><SelectContent>{STATUS.map(s => <SelectItem key={s.v || "all"} value={s.v}>{s.l}</SelectItem>)}</SelectContent></Select>
+        <Select value={prioridade} onValueChange={setPrioridade}><SelectTrigger className="w-[190px]"><SelectValue /></SelectTrigger><SelectContent>{PRIOS.map(p => <SelectItem key={p.v} value={p.v}>{p.l}</SelectItem>)}</SelectContent></Select>
+        {contexto?.role !== "colaborador" && <Select value={segmentoSelecionado} onValueChange={setSegmentoSelecionado}><SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos">Todos os segmentos</SelectItem>{segmentos.map(s => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}</SelectContent></Select>}
+        {contexto?.role === "atendente" && <Button variant={somenteMeus ? "default" : "outline"} onClick={() => setSomenteMeus(v => !v)}>Somente meus</Button>}
+      </div>
+    </div>
+    <div className="grid gap-3">
+      {chamados.length === 0 ? <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">Nenhum chamado encontrado.</CardContent></Card> : chamados.map((c: any) => {
+        const sla = slaInfo(c, now, regraMap, horarios);
+        return <Card key={c.id} className="cursor-pointer hover:bg-muted/30" onClick={() => navigate({ to: "/chamados/$id", params: { id: c.id } })}><CardContent className="flex flex-wrap items-center justify-between gap-3 p-4"><div className="min-w-0 flex-1"><div className="font-mono text-xs text-muted-foreground">{c.numero}</div><div className="font-medium truncate">{c.titulo}</div><div className="mt-1 text-xs text-muted-foreground">Solicitante: {c.solicitante?.nome ?? "—"} · Responsável: {c.atendente?.nome ?? "Não atribuído"}</div></div><div className="flex items-center gap-2"><span className={`rounded-full px-2 py-1 text-xs ${prioStyle(c.prioridade)}`}>{c.prioridade}</span><span className={`rounded-full px-2 py-1 text-xs ${statusStyle(c.status)}`}>{c.status}</span><span className={`text-xs ${slaClass(sla.status)}`}>{sla.status === "sem_sla" ? "Sem SLA" : sla.status === "pausado" ? `Pausado · ${duration(sla.seconds)}` : duration(sla.seconds)}</span></div></CardContent></Card>;
+      })}
+    </div>
+  </div>);
 }
