@@ -72,7 +72,11 @@ export const comentarChamado = createServerFn({ method: "POST" }).middleware([re
   // Comentários seguem a mesma regra de edição do chamado: somente admin,
   // atendente responsável ou atendente de chamado sem responsável podem interagir.
   // Solicitantes, gestores e outros atendentes permanecem somente leitura.
-  if (!(await canEditFilaTicket(supabase, context.userId, ticket))) throw new Error("Somente o admin, o atendente responsável ou um atendente de um chamado sem responsável pode comentar neste chamado.");
+  const isRequester = ticket.solicitante_id === context.userId;
+  const canInteract = isRequester || await canEditFilaTicket(supabase, context.userId, ticket);
+  if (!canInteract) throw new Error("Somente o solicitante, o admin, o atendente responsável ou um atendente de um chamado sem responsável pode comentar neste chamado.");
+  if (data.interno && !isRequester && !(await hasPermission(supabase, context.userId, "ticket.comment.internal"))) throw new Error("Nota interna disponível somente para atendimento.");
+  if (data.interno && isRequester) throw new Error("Solicitantes não podem adicionar notas internas.");
   if (data.interno && !(await hasPermission(supabase, context.userId, "ticket.comment.internal"))) throw new Error("Nota interna disponível somente para atendimento.");
   const { data: inserted, error } = await admin.from("comentarios_chamado").insert({ chamado_id: data.chamadoId, autor_id: context.userId, conteudo: data.conteudo, interno: data.interno } as never).select("id,conteudo,interno,criado_em").single();
   if (error || !inserted) throw new Error(error?.message ?? "Falha ao registrar comentário");

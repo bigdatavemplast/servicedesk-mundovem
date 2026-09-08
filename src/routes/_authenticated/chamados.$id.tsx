@@ -132,7 +132,7 @@ function DetalheChamadoPage() {
   const jaAvaliado = chamado.avaliacao_nota != null; const fechadoEmMs = chamado.fechado_em ? new Date(chamado.fechado_em).getTime() : 0; const prazoReaberturaMs = fechadoEmMs + 48 * 60 * 60 * 1000;
   const podeReabrir = chamado.solicitante_id === user.id && chamado.status === "fechado" && fechadoEmMs > 0 && now <= prazoReaberturaMs; const sla = slaInfo(chamado as any, now);
   const podeAlterarChamado = roles.includes("admin") || (isAttendant && (!chamado.atendente_id || chamado.atendente_id === user.id));
-  const paginaSomenteLeitura = !podeAlterarChamado;
+  const paginaSomenteLeitura = !podeAlterarChamado && chamado.solicitante_id !== user.id;
 
   return (<div className="space-y-4">
     <Button variant="ghost" size="sm" onClick={() => navigate({ to: isStaff ? "/fila" : "/chamados" })}><ArrowLeft className="mr-2 h-4 w-4" />{isStaff ? "Fila de atendimento" : "Meus chamados"}</Button>
