@@ -10,9 +10,6 @@ import {
 import { hasAnyRolePermission } from "@/lib/permissions";
 import type { Role } from "@/types/roles";
 
-const prioridadeEnum = z.enum(["baixa", "media", "alta", "critica"]);
-const statusEnum = z.enum(["aberto", "em_andamento", "aguardando_usuario", "aguardando_terceiro", "resolvido", "fechado", "reaberto", "cancelado"]);
-
 async function getAdminClient(fallback: any) {
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return fallback;
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -50,7 +47,7 @@ async function canAccessTicket(supabase: any, userId: string, ticket: any) {
 }
 
 export const criarChamado = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((d) => z.object({
-  titulo: z.string().trim().min(1).max(250), descricao: z.string().trim().min(1), prioridade: prioridadeEnum,
+  titulo: z.string().trim().min(1).max(250), descricao: z.string().trim().min(1), prioridade: z.enum(["baixa", "media", "alta", "critica"]),
   tipoChamadoId: z.string().uuid(), categoriaId: z.string().uuid().nullable(), subcategoriaId: z.string().uuid().nullable(),
 }).parse(d)).handler(async ({ data, context }) => {
   if (!(await hasPermission(context.supabase, context.userId, "ticket.create"))) throw new Error("Você não tem permissão para criar chamados.");
@@ -73,7 +70,7 @@ export const comentarChamado = createServerFn({ method: "POST" }).middleware([re
 });
 
 export const atualizarChamado = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((d) => z.object({
-  chamadoId: z.string().uuid(), status: statusEnum.optional(), prioridade: prioridadeEnum.optional(), atendenteId: z.string().uuid().nullable().optional(), tipoChamadoId: z.string().uuid().optional(),
+  chamadoId: z.string().uuid(), status: z.enum(["aberto", "em_andamento", "aguardando_usuario", "aguardando_terceiro", "resolvido", "fechado", "reaberto", "cancelado"]).optional(), prioridade: z.enum(["baixa", "media", "alta", "critica"]).optional(), atendenteId: z.string().uuid().nullable().optional(), tipoChamadoId: z.string().uuid().optional(),
 }).parse(d)).handler(async ({ data, context }) => {
   const supabase = context.supabase as any; const admin = await getAdminClient(supabase);
   const { data: ticket, error: ticketError } = await admin.from("chamados").select("*").eq("id", data.chamadoId).maybeSingle();
@@ -107,14 +104,16 @@ export const atualizarChamado = createServerFn({ method: "POST" }).middleware([r
   if (data.tipoChamadoId !== undefined && data.tipoChamadoId !== ticket.tipo_chamado_id) { patch.tipo_chamado_id = data.tipoChamadoId; historico.push({ chamado_id: data.chamadoId, autor_id: context.userId, acao: "tipo_chamado_alterado", de: ticket.tipo_chamado_id ?? "", para: data.tipoChamadoId }); }
   if (!Object.keys(patch).length) return { ok: true, chamado: ticket };
 
-  // A gravação da atribuição usa service role para não depender de RLS do cliente.
-  // A função já validou a permissão do usuário que executou a ação e o perfil do destinatário.
-  // Isso também mantém compatibilidade com triggers de banco existentes.
-  const { data: updated, error: updateError } = await admin.from("chamados").update(patch as never).eq("id", data.chamadoId).select("*").single();
+  // Atribuição deve passar pelo cliente autenticado para que os triggers de segurança
+  // consigam identificar o usuário que realmente executou a ação via auth.uid().
+  // O update de status/prioridade/tipo permanece com service role para compatibilidade
+  // com as regras históricas de RLS e triggers do projeto.
+  const updateClient = data.atendenteId !== undefined ? supabase : admin;
+  const { data: updated, error: updateError } = await updateClient.from("chamados").update(patch as never).eq("id", data.chamadoId).select("*").single();
   if (updateError || !updated) throw new Error(updateError?.message ?? "Falha ao atualizar chamado");
 
-  if (data.atendenteId !== undefined) {
-    if (updated.atendente_id !== data.atendenteId) throw new Error("A atribuição não foi persistida no chamado.");
+  if (data.atendenteId !== undefined && updated.atendente_id !== data.atendenteId) {
+    throw new Error("A atribuição não foi persistida no chamado.");
   }
   if (historico.length) { const { error: histError } = await admin.from("historico_chamado").insert(historico as never); if (histError) throw new Error(histError.message); }
   return { ok: true, chamado: updated };
