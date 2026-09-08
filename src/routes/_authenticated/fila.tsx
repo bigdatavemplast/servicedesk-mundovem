@@ -161,7 +161,15 @@ function FilaPage() {
     queryFn: async () => {
       let q = supabase.from("chamados").select(`id,numero,titulo,status,prioridade,aberto_em,prazo_resolucao,sla_regra_id,sla_pausado,sla_tempo_restante_segundos,sla_resolucao_violado,segmento_id,tipo:tipos_chamado(id,nome),categoria:categorias(nome),solicitante:profiles!chamados_solicitante_profile_fkey(nome,departamento,area_id),atendente:profiles!chamados_atendente_profile_fkey(nome)`).order("aberto_em", { ascending: false }).limit(200);
       if (status) q = q.eq("status", status as any); if (prioridade !== "__all__") q = q.eq("prioridade", prioridade as any); if (segmentoSelecionado !== "todos") q = q.eq("segmento_id", segmentoSelecionado);
-      else if (contexto?.role === "atendente") { const ids = [...segmentoIdsPermitidos]; if (!ids.length) return []; q = q.in("segmento_id", ids); }
+      else if (contexto?.role === "atendente") {
+        // O atendente vê as filas dos seus grupos E, sempre, os chamados atribuídos
+        // diretamente a ele — inclusive quando estão fora dessas filas ou quando
+        // ele ainda não pertence a nenhum grupo ativo.
+        const ids = [...segmentoIdsPermitidos];
+        q = ids.length
+          ? q.or(`segmento_id.in.(${ids.join(",")}),atendente_id.eq.${contexto.userId}`)
+          : q.eq("atendente_id", contexto.userId);
+      }
       if (contexto?.role === "gestor" && contexto.departamento) q = q.eq("solicitante.departamento", contexto.departamento);
       const { data, error } = await q; if (error) throw error;
       return data ?? [];
