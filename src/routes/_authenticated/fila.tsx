@@ -117,6 +117,7 @@ function FilaPage() {
   const [status, setStatus] = useState("");
   const [prioridade, setPrioridade] = useState("__all__");
   const [segmentoSelecionado, setSegmentoSelecionado] = useState("todos");
+  const [somenteMeus, setSomenteMeus] = useState(false);
   const [now, setNow] = useState(Date.now());
   useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 30000); return () => window.clearInterval(timer); }, []);
 
