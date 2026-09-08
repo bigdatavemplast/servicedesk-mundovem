@@ -117,6 +117,7 @@ function FilaPage() {
   const [status, setStatus] = useState("");
   const [prioridade, setPrioridade] = useState("__all__");
   const [segmentoSelecionado, setSegmentoSelecionado] = useState("todos");
+  const [somenteMeus, setSomenteMeus] = useState(false);
   const [now, setNow] = useState(Date.now());
   useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 30000); return () => window.clearInterval(timer); }, []);
 
@@ -156,12 +157,22 @@ function FilaPage() {
   useEffect(() => { if (segmentoSelecionado !== "todos" && !segmentoIdsPermitidos.has(segmentoSelecionado)) setSegmentoSelecionado("todos"); }, [segmentoSelecionado, segmentoIdsPermitidos]);
 
   const { data: chamados = [], isLoading: loadingChamados } = useQuery({
-    queryKey: ["fila", status, prioridade, segmentoSelecionado, contexto?.role, contexto?.departamento, [...segmentoIdsPermitidos]],
+    queryKey: ["fila", status, prioridade, segmentoSelecionado, somenteMeus, contexto?.userId, contexto?.role, contexto?.departamento, [...segmentoIdsPermitidos]],
     enabled: !!contexto && !loadingSegmentos,
     queryFn: async () => {
-      let q = supabase.from("chamados").select(`id,numero,titulo,status,prioridade,aberto_em,prazo_resolucao,sla_regra_id,sla_pausado,sla_tempo_restante_segundos,sla_resolucao_violado,segmento_id,tipo:tipos_chamado(id,nome),categoria:categorias(nome),solicitante:profiles!chamados_solicitante_profile_fkey(nome,departamento,area_id),atendente:profiles!chamados_atendente_profile_fkey(nome)`).order("aberto_em", { ascending: false }).limit(200);
-      if (status) q = q.eq("status", status as any); if (prioridade !== "__all__") q = q.eq("prioridade", prioridade as any); if (segmentoSelecionado !== "todos") q = q.eq("segmento_id", segmentoSelecionado);
-      else if (contexto?.role === "atendente") { const ids = [...segmentoIdsPermitidos]; if (!ids.length) return []; q = q.in("segmento_id", ids); }
+      let q = supabase.from("chamados").select(`id,numero,titulo,status,prioridade,aberto_em,prazo_resolucao,sla_regra_id,sla_pausado,sla_tempo_restante_segundos,sla_resolucao_violado,segmento_id,atendente_id,tipo:tipos_chamado(id,nome),categoria:categorias(nome),solicitante:profiles!chamados_solicitante_profile_fkey(nome,departamento,area_id),atendente:profiles!chamados_atendente_profile_fkey(nome)`).order("aberto_em", { ascending: false }).limit(200);
+      if (status) q = q.eq("status", status as any); if (prioridade !== "__all__") q = q.eq("prioridade", prioridade as any);
+      if (somenteMeus && contexto?.userId) q = q.eq("atendente_id", contexto.userId);
+      else if (segmentoSelecionado !== "todos") q = q.eq("segmento_id", segmentoSelecionado);
+      else if (contexto?.role === "atendente") {
+        // O atendente vê as filas dos seus grupos E, sempre, os chamados atribuídos
+        // diretamente a ele — inclusive quando estão fora dessas filas ou quando
+        // ele ainda não pertence a nenhum grupo ativo.
+        const ids = [...segmentoIdsPermitidos];
+        q = ids.length
+          ? q.or(`segmento_id.in.(${ids.join(",")}),atendente_id.eq.${contexto.userId}`)
+          : q.eq("atendente_id", contexto.userId);
+      }
       if (contexto?.role === "gestor" && contexto.departamento) q = q.eq("solicitante.departamento", contexto.departamento);
       const { data, error } = await q; if (error) throw error;
       return data ?? [];
@@ -190,7 +201,7 @@ function FilaPage() {
         {segmentos.map(s => <button key={s.id} type="button" onClick={() => setSegmentoSelecionado(s.id)} className={`rounded-lg border p-3 text-left transition hover:bg-muted/50 ${segmentoSelecionado === s.id ? "border-primary bg-primary/5 ring-1 ring-primary" : ""}`}><div className="text-sm font-semibold">{s.nome}</div><div className="mt-1 text-xs text-muted-foreground">Fila {s.nome}</div></button>)}
       </div>{loadingSegmentos && <div className="pt-3 text-xs text-muted-foreground">Carregando segmentos…</div>}
     </CardContent></Card>
-    <div className="flex flex-wrap items-center gap-2"><div className="flex flex-wrap gap-1">{STATUS.map(o => <Button key={o.v || "all"} size="sm" variant={status === o.v ? "default" : "outline"} className="h-8" onClick={() => setStatus(o.v)}>{o.l}</Button>)}</div><div className="ml-auto w-48"><Select value={prioridade} onValueChange={setPrioridade}><SelectTrigger className="h-9"><SelectValue /></SelectTrigger><SelectContent>{PRIOS.map(o => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}</SelectContent></Select></div></div>
+    <div className="flex flex-wrap items-center gap-2"><div className="flex flex-wrap gap-1">{STATUS.map(o => <Button key={o.v || "all"} size="sm" variant={status === o.v ? "default" : "outline"} className="h-8" onClick={() => setStatus(o.v)}>{o.l}</Button>)}</div><Button size="sm" variant={somenteMeus ? "default" : "outline"} className="h-8" onClick={() => setSomenteMeus(v => !v)}>Atribuídos a mim</Button><div className="ml-auto w-48"><Select value={prioridade} onValueChange={setPrioridade}><SelectTrigger className="h-9"><SelectValue /></SelectTrigger><SelectContent>{PRIOS.map(o => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}</SelectContent></Select></div></div>
     <Card><CardContent className="p-0 overflow-x-auto"><table className="w-full min-w-[1200px] text-sm"><thead className="border-b bg-muted/40 text-xs uppercase text-muted-foreground"><tr className="text-left"><th className="px-4 py-2">#</th><th className="px-4 py-2">Título</th><th className="px-4 py-2">Solicitante</th><th className="px-4 py-2">Área / Departamento</th><th className="px-4 py-2">Atendente</th><th className="px-4 py-2">Tipo</th><th className="px-4 py-2">Categoria</th><th className="px-4 py-2">Prioridade</th><th className="px-4 py-2">Status</th><th className="px-4 py-2">Aberto em</th><th className="px-4 py-2">SLA</th></tr></thead><tbody>
       {(loadingContexto || loadingChamados) && <tr><td colSpan={11} className="py-8 text-center text-muted-foreground">Carregando…</td></tr>}
       {!loadingContexto && !loadingChamados && chamados.length === 0 && <tr><td colSpan={11} className="py-8 text-center text-muted-foreground">Nenhum chamado encontrado.</td></tr>}
