@@ -104,17 +104,30 @@ export const atualizarChamado = createServerFn({ method: "POST" }).middleware([r
   if (data.tipoChamadoId !== undefined && data.tipoChamadoId !== ticket.tipo_chamado_id) { patch.tipo_chamado_id = data.tipoChamadoId; historico.push({ chamado_id: data.chamadoId, autor_id: context.userId, acao: "tipo_chamado_alterado", de: ticket.tipo_chamado_id ?? "", para: data.tipoChamadoId }); }
   if (!Object.keys(patch).length) return { ok: true, chamado: ticket };
 
-  // Atribuição deve passar pelo cliente autenticado para que os triggers de segurança
-  // consigam identificar o usuário que realmente executou a ação via auth.uid().
-  // O update de status/prioridade/tipo permanece com service role para compatibilidade
-  // com as regras históricas de RLS e triggers do projeto.
-  const updateClient = data.atendenteId !== undefined ? supabase : admin;
-  const { data: updated, error: updateError } = await updateClient.from("chamados").update(patch as never).eq("id", data.chamadoId).select("*").single();
-  if (updateError || !updated) throw new Error(updateError?.message ?? "Falha ao atualizar chamado");
+  let updated: any;
+  if (data.atendenteId !== undefined) {
+    const { data: assigned, error: assignError } = await supabase.rpc("atribuir_chamado", {
+      _chamado_id: data.chamadoId,
+      _atendente_id: data.atendenteId,
+    });
+    if (assignError || !assigned) throw new Error(assignError?.message ?? "Falha ao atribuir chamado");
+    updated = assigned;
 
-  if (data.atendenteId !== undefined && updated.atendente_id !== data.atendenteId) {
-    throw new Error("A atribuição não foi persistida no chamado.");
+    // Se a atribuição vier junto com outras alterações, aplica as demais separadamente.
+    const otherPatch = { ...patch };
+    delete otherPatch.atendente_id;
+    if (Object.keys(otherPatch).length) {
+      const { data: restUpdated, error: restError } = await admin.from("chamados").update(otherPatch as never).eq("id", data.chamadoId).select("*").single();
+      if (restError || !restUpdated) throw new Error(restError?.message ?? "Falha ao atualizar chamado");
+      updated = restUpdated;
+    }
+  } else {
+    const { data: restUpdated, error: updateError } = await admin.from("chamados").update(patch as never).eq("id", data.chamadoId).select("*").single();
+    if (updateError || !restUpdated) throw new Error(updateError?.message ?? "Falha ao atualizar chamado");
+    updated = restUpdated;
   }
+
+  if (data.atendenteId !== undefined && updated.atendente_id !== data.atendenteId) throw new Error("A atribuição não foi persistida no chamado.");
   if (historico.length) { const { error: histError } = await admin.from("historico_chamado").insert(historico as never); if (histError) throw new Error(histError.message); }
   return { ok: true, chamado: updated };
 });
