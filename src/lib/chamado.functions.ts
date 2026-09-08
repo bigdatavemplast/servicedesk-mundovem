@@ -46,6 +46,13 @@ async function canAccessTicket(supabase: any, userId: string, ticket: any) {
   return ticket.solicitante_id === userId;
 }
 
+async function canEditFilaTicket(supabase: any, userId: string, ticket: any) {
+  const roles = await getRoles(supabase, userId);
+  if (roles.includes("admin")) return true;
+  if (!roles.includes("atendente")) return false;
+  return ticket.atendente_id == null || ticket.atendente_id === userId;
+}
+
 export const criarChamado = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((d) => z.object({
   titulo: z.string().trim().min(1).max(250), descricao: z.string().trim().min(1), prioridade: z.enum(["baixa", "media", "alta", "critica"]),
   tipoChamadoId: z.string().uuid(), categoriaId: z.string().uuid().nullable(), subcategoriaId: z.string().uuid().nullable(),
@@ -76,9 +83,26 @@ export const atualizarChamado = createServerFn({ method: "POST" }).middleware([r
   const { data: ticket, error: ticketError } = await admin.from("chamados").select("*").eq("id", data.chamadoId).maybeSingle();
   if (ticketError || !ticket) throw new Error(ticketError?.message ?? "Chamado não encontrado");
   const isRequester = ticket.solicitante_id === context.userId;
+  const roles = await getRoles(supabase, context.userId);
+  const isAdmin = roles.includes("admin");
+  const canEditFila = await canEditFilaTicket(supabase, context.userId, ticket);
+
+  // Na fila de atendimento, somente o admin, o responsável atual ou qualquer
+  // atendente quando o chamado ainda está sem responsável podem alterar o chamado.
+  // Gestores e outros atendentes continuam podendo visualizar conforme as regras
+  // de acesso, mas não podem editar este chamado.
+  if (!isAdmin && !canEditFila) {
+    if (data.status === "reaberto" && isRequester) {
+      if (ticket.status !== "fechado" || !ticket.fechado_em) throw new Error("Somente chamados fechados podem ser reabertos.");
+      if (Date.now() - new Date(ticket.fechado_em).getTime() > 48 * 60 * 60 * 1000) throw new Error("O prazo de 2 dias para reabrir o chamado expirou.");
+    } else {
+      throw new Error("Somente o admin, o atendente responsável ou um atendente de um chamado sem responsável pode alterar este chamado.");
+    }
+  }
+
   if (!(await canAccessTicket(supabase, context.userId, ticket))) throw new Error("Você não tem permissão para alterar este chamado.");
   if (data.status === "reaberto") {
-    if (!isRequester) throw new Error("Somente o solicitante pode reabrir o chamado.");
+    if (!isRequester && !isAdmin) throw new Error("Somente o solicitante pode reabrir o chamado.");
     if (ticket.status !== "fechado" || !ticket.fechado_em) throw new Error("Somente chamados fechados podem ser reabertos.");
     if (Date.now() - new Date(ticket.fechado_em).getTime() > 48 * 60 * 60 * 1000) throw new Error("O prazo de 2 dias para reabrir o chamado expirou.");
   } else if (data.status !== undefined && !(await hasPermission(supabase, context.userId, "ticket.update.status"))) {
@@ -113,7 +137,6 @@ export const atualizarChamado = createServerFn({ method: "POST" }).middleware([r
     if (assignError || !assigned) throw new Error(assignError?.message ?? "Falha ao atribuir chamado");
     updated = assigned;
 
-    // Se a atribuição vier junto com outras alterações, aplica as demais separadamente.
     const otherPatch = { ...patch };
     delete otherPatch.atendente_id;
     if (Object.keys(otherPatch).length) {
