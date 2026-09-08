@@ -122,13 +122,6 @@ export const definirPapel = createServerFn({ method: "POST" })
       const { error } = await supabaseAdmin.from("user_roles").insert({ user_id: data.userId, role: data.role } as never);
       if (error && !String(error.message).toLowerCase().includes("duplicate")) throw new Error(error.message);
     } else {
-      if (data.userId === context.userId && data.role === "admin") throw new Error("Você não pode remover seu próprio papel de admin");
-      const { data: roles, error: rolesError } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", data.userId);
-      if (rolesError) throw new Error(rolesError.message);
-      const currentRoles = roles ?? [];
-      const hasRole = currentRoles.some((r: { role: Role }) => r.role === data.role);
-      if (!hasRole) return { ok: true };
-      if (currentRoles.length <= 1) throw new Error("O usuário precisa manter pelo menos um papel de acesso.");
       const { error } = await supabaseAdmin.from("user_roles").delete().eq("user_id", data.userId).eq("role", data.role as any);
       if (error) throw new Error(error.message);
     }
