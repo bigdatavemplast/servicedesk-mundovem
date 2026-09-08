@@ -83,7 +83,7 @@ export const atualizarChamado = createServerFn({ method: "POST" }).middleware([r
   if (data.status === "reaberto") {
     if (!isRequester) throw new Error("Somente o solicitante pode reabrir o chamado.");
     if (ticket.status !== "fechado" || !ticket.fechado_em) throw new Error("Somente chamados fechados podem ser reabertos.");
-    if (Date.now() - new Date(ticket.fechado_em).getTime() > 48 * 60 * 60 * 1000) throw new Error("O prazo de 2 dias para reabrir este chamado expirou.");
+    if (Date.now() - new Date(ticket.fechado_em).getTime() > 48 * 60 * 60 * 1000) throw new Error("O prazo de 2 dias para reabrir o chamado expirou.");
   } else if (data.status !== undefined && !(await hasPermission(supabase, context.userId, "ticket.update.status"))) {
     throw new Error("Somente a equipe de atendimento pode alterar o status do chamado.");
   }
@@ -106,7 +106,12 @@ export const atualizarChamado = createServerFn({ method: "POST" }).middleware([r
   if (data.atendenteId !== undefined && data.atendenteId !== ticket.atendente_id) { patch.atendente_id = data.atendenteId; historico.push({ chamado_id: data.chamadoId, autor_id: context.userId, acao: "atendente_alterado", de: ticket.atendente_id ?? "", para: data.atendenteId ?? "" }); }
   if (data.tipoChamadoId !== undefined && data.tipoChamadoId !== ticket.tipo_chamado_id) { patch.tipo_chamado_id = data.tipoChamadoId; historico.push({ chamado_id: data.chamadoId, autor_id: context.userId, acao: "tipo_chamado_alterado", de: ticket.tipo_chamado_id ?? "", para: data.tipoChamadoId }); }
   if (!Object.keys(patch).length) return { ok: true, chamado: ticket };
-  const { data: updated, error: updateError } = await admin.from("chamados").update(patch as never).eq("id", data.chamadoId).select("*").single();
+
+  // Atribuição precisa ser executada com o cliente autenticado, não com service role.
+  // Assim o trigger consegue identificar o admin que fez a atribuição via auth.uid().
+  // As demais atualizações continuam usando o admin client como antes.
+  const updateClient = data.atendenteId !== undefined ? supabase : admin;
+  const { data: updated, error: updateError } = await updateClient.from("chamados").update(patch as never).eq("id", data.chamadoId).select("*").single();
   if (updateError || !updated) throw new Error(updateError?.message ?? "Falha ao atualizar chamado");
   if (historico.length) { const { error: histError } = await admin.from("historico_chamado").insert(historico as never); if (histError) throw new Error(histError.message); }
   return { ok: true, chamado: updated };
