@@ -27,8 +27,6 @@ type Segmento = { id: string; nome: string; ativo: boolean };
 type Horario = { calendario_id: string; dia_semana: number; hora_inicio: string; hora_fim: string };
 type Regra = { id: string; calendario_id: string | null; usa_sla_resolucao: boolean };
 
-type Profile = { id: string; nome: string | null; departamento: string | null; area_id: string | null };
-
 function statusStyle(s: string) {
   if (s === "aberto") return "bg-sky-100 text-sky-700";
   if (s === "em_andamento") return "bg-amber-100 text-amber-700";
@@ -157,39 +155,26 @@ function FilaPage() {
     queryKey: ["fila", status, prioridade, segmentoSelecionado, somenteMeus, contexto?.userId, contexto?.role, contexto?.departamento, [...segmentoIdsPermitidos]],
     enabled: !!contexto && !loadingSegmentos,
     queryFn: async () => {
-      let q = supabase.from("chamados").select("id,numero,titulo,status,prioridade,aberto_em,prazo_resolucao,sla_regra_id,sla_pausado,sla_tempo_restante_segundos,sla_resolucao_violado,segmento_id,atendente_id,solicitante_id,tipo:tipos_chamado(id,nome),categoria:categorias(nome)").order("aberto_em", { ascending: false }).limit(200);
+      let q = supabase.from("chamados").select(`id,numero,titulo,status,prioridade,aberto_em,prazo_resolucao,sla_regra_id,sla_pausado,sla_tempo_restante_segundos,sla_resolucao_violado,segmento_id,atendente_id,tipo:tipos_chamado(id,nome),categoria:categorias(nome),solicitante:profiles!chamados_solicitante_profile_fkey(nome,departamento,area_id),atendente:profiles!chamados_atendente_profile_fkey(nome)`).order("aberto_em", { ascending: false }).limit(200);
       if (status) q = q.eq("status", status as any);
       if (prioridade !== "__all__") q = q.eq("prioridade", prioridade as any);
 
       if (somenteMeus && contexto?.userId) {
         q = q.eq("atendente_id", contexto.userId);
       } else if (contexto?.role === "atendente") {
-        // A RLS de chamados permite a leitura; filtramos a fila operacional no cliente.
+        // Não usamos OR do PostgREST aqui: essa combinação estava fazendo a página
+        // inteira da fila falhar em alguns ambientes. A RLS de chamados já permite
+        // leitura para atendentes; filtramos a fila operacional no cliente e sempre
+        // preservamos o chamado atribuído diretamente ao usuário.
       } else if (segmentoSelecionado !== "todos") {
         q = q.eq("segmento_id", segmentoSelecionado);
       }
 
+      if (contexto?.role === "gestor" && contexto.departamento) q = q.eq("solicitante.departamento", contexto.departamento);
       const { data, error } = await q;
       if (error) throw error;
 
       let rows = data ?? [];
-      const profileIds = [...new Set(rows.flatMap((c: any) => [c.solicitante_id, c.atendente_id]).filter(Boolean))];
-      const profileMap = new Map<string, Profile>();
-      if (profileIds.length) {
-        const { data: profiles, error: profilesError } = await supabase.from("profiles").select("id,nome,departamento,area_id").in("id", profileIds);
-        if (profilesError) throw profilesError;
-        for (const profile of (profiles ?? []) as Profile[]) profileMap.set(profile.id, profile);
-      }
-
-      rows = rows.map((c: any) => ({
-        ...c,
-        solicitante: c.solicitante_id ? profileMap.get(c.solicitante_id) ?? null : null,
-        atendente: c.atendente_id ? profileMap.get(c.atendente_id) ?? null : null,
-      }));
-
-      if (contexto?.role === "gestor" && contexto.departamento) {
-        rows = rows.filter((c: any) => c.solicitante?.departamento === contexto.departamento);
-      }
       if (contexto?.role === "atendente" && !somenteMeus) {
         rows = rows.filter((c: any) => c.atendente_id === contexto.userId || segmentoIdsPermitidos.has(c.segmento_id));
         if (segmentoSelecionado !== "todos") {
