@@ -156,30 +156,32 @@ function FilaPage() {
     enabled: !!contexto && !loadingSegmentos,
     queryFn: async () => {
       let q = supabase.from("chamados").select(`id,numero,titulo,status,prioridade,aberto_em,prazo_resolucao,sla_regra_id,sla_pausado,sla_tempo_restante_segundos,sla_resolucao_violado,segmento_id,atendente_id,tipo:tipos_chamado(id,nome),categoria:categorias(nome),solicitante:profiles!chamados_solicitante_profile_fkey(nome,departamento,area_id),atendente:profiles!chamados_atendente_profile_fkey(nome)`).order("aberto_em", { ascending: false }).limit(200);
-      if (status) q = q.eq("status", status as any); if (prioridade !== "__all__") q = q.eq("prioridade", prioridade as any);
-      if (somenteMeus && contexto?.userId) q = q.eq("atendente_id", contexto.userId);
-      else if (segmentoSelecionado !== "todos" && contexto?.role !== "atendente") q = q.eq("segmento_id", segmentoSelecionado);
-      else if (contexto?.role === "atendente") {
-        // Atribuição direta é uma condição independente da fila/segmento.
-        // Assim um chamado atribuído pelo admin nunca some da conta do atendente,
-        // mesmo que o filtro de segmento esteja selecionado ou o chamado esteja
-        // fora do grupo atual do atendente.
-        const ids = [...segmentoIdsPermitidos];
-        if (segmentoSelecionado !== "todos") {
-          q = ids.length
-            ? q.or(`segmento_id.eq.${segmentoSelecionado},atendente_id.eq.${contexto.userId}`)
-            : q.eq("atendente_id", contexto.userId);
-        } else {
-          q = ids.length
-            ? q.or(`segmento_id.in.(${ids.join(",")}),atendente_id.eq.${contexto.userId}`)
-            : q.eq("atendente_id", contexto.userId);
-        }
+      if (status) q = q.eq("status", status as any);
+      if (prioridade !== "__all__") q = q.eq("prioridade", prioridade as any);
+
+      if (somenteMeus && contexto?.userId) {
+        q = q.eq("atendente_id", contexto.userId);
+      } else if (contexto?.role === "atendente") {
+        // Não usamos OR do PostgREST aqui: essa combinação estava fazendo a página
+        // inteira da fila falhar em alguns ambientes. A RLS de chamados já permite
+        // leitura para atendentes; filtramos a fila operacional no cliente e sempre
+        // preservamos o chamado atribuído diretamente ao usuário.
       } else if (segmentoSelecionado !== "todos") {
         q = q.eq("segmento_id", segmentoSelecionado);
       }
+
       if (contexto?.role === "gestor" && contexto.departamento) q = q.eq("solicitante.departamento", contexto.departamento);
-      const { data, error } = await q; if (error) throw error;
-      return data ?? [];
+      const { data, error } = await q;
+      if (error) throw error;
+
+      let rows = data ?? [];
+      if (contexto?.role === "atendente" && !somenteMeus) {
+        rows = rows.filter((c: any) => c.atendente_id === contexto.userId || segmentoIdsPermitidos.has(c.segmento_id));
+        if (segmentoSelecionado !== "todos") {
+          rows = rows.filter((c: any) => c.atendente_id === contexto.userId || c.segmento_id === segmentoSelecionado);
+        }
+      }
+      return rows;
     },
   });
 
