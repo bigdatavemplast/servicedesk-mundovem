@@ -13,26 +13,48 @@ async function assertPermission(supabase: any, userId: string, permission: Param
 
 const roleEnum = z.enum(["colaborador", "atendente", "gestor", "admin"]);
 
+async function resolveOrganizacao(supabaseAdmin: any, departamento: string | null | undefined, areaId: string | null | undefined) {
+  let departamentoNome = departamento?.trim() || null;
+  let departamentoId: string | null = null;
+  let area: { id: string; nome: string; departamento_id?: string | null } | null = null;
+
+  if (areaId) {
+    const { data, error } = await supabaseAdmin.from("areas").select("id,nome,departamento_id").eq("id", areaId).maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!data) throw new Error("Área selecionada não encontrada.");
+    area = data;
+  }
+
+  if (departamentoNome) {
+    const { data, error } = await supabaseAdmin.from("departamentos").upsert({ nome: departamentoNome, ativo: true }, { onConflict: "nome" }).select("id,nome").single();
+    if (error) throw new Error(error.message);
+    departamentoId = data.id;
+    departamentoNome = data.nome;
+  } else if (area?.departamento_id) {
+    const { data, error } = await supabaseAdmin.from("departamentos").select("id,nome").eq("id", area.departamento_id).maybeSingle();
+    if (error) throw new Error(error.message);
+    departamentoId = data?.id ?? null;
+    departamentoNome = data?.nome ?? null;
+  }
+
+  if (area?.departamento_id && departamentoId && area.departamento_id !== departamentoId) {
+    throw new Error("A área selecionada não pertence ao departamento informado.");
+  }
+
+  return { departamentoNome, departamentoId, area };
+}
+
 export const criarUsuario = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ nome: z.string().trim().min(1).max(120), email: z.string().trim().email().max(255), senha: z.string().min(6).max(128), departamento: z.string().trim().max(120).optional().nullable(), areaId: z.string().uuid().optional().nullable(), role: roleEnum }).parse(d))
   .handler(async ({ data, context }) => {
     await assertPermission(context.supabase, context.userId, "users.manage");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const organizacao = await resolveOrganizacao(supabaseAdmin, data.departamento, data.areaId);
     const { data: created, error } = await supabaseAdmin.auth.admin.createUser({ email: data.email, password: data.senha, email_confirm: true, user_metadata: { nome: data.nome } });
     if (error || !created.user) throw new Error(error?.message ?? "Falha ao criar usuário");
     const uid = created.user.id;
-    let departamento = data.departamento ?? null;
-    let areaId = data.areaId ?? null;
-    if (!areaId && departamento) {
-      const { data: area } = await (supabaseAdmin as any).from("areas").upsert({ nome: departamento.trim(), ativo: true }, { onConflict: "nome" }).select("id,nome").single();
-      areaId = area?.id ?? null;
-    }
-    if (areaId) {
-      const { data: area } = await (supabaseAdmin as any).from("areas").select("nome").eq("id", areaId).maybeSingle();
-      if (area?.nome) departamento = area.nome;
-    }
-    const { error: pErr } = await supabaseAdmin.from("profiles").upsert({ id: uid, nome: data.nome, email: data.email, departamento, area_id: areaId, ativo: true } as never);
+    const { error: pErr } = await supabaseAdmin.from("profiles").upsert({ id: uid, nome: data.nome, email: data.email, departamento: organizacao.departamentoNome, departamento_id: organizacao.departamentoId, area_id: data.areaId ?? null, ativo: true } as never);
     if (pErr) throw new Error(pErr.message);
     const { error: rErr } = await supabaseAdmin.from("user_roles").insert({ user_id: uid, role: data.role } as never);
     if (rErr) throw new Error(rErr.message);
@@ -52,12 +74,25 @@ export const atualizarUsuario = createServerFn({ method: "POST" })
       const { error } = await supabaseAdmin.auth.admin.updateUserById(data.id, authUpdate);
       if (error) throw new Error(error.message);
     }
+
+    let organizacao: Awaited<ReturnType<typeof resolveOrganizacao>> | null = null;
+    if (data.departamento !== undefined || data.areaId !== undefined) {
+      const current = await supabaseAdmin.from("profiles").select("departamento,departamento_id,area_id").eq("id", data.id).maybeSingle();
+      if (current.error) throw new Error(current.error.message);
+      const departamento = data.departamento !== undefined ? data.departamento : current.data?.departamento ?? null;
+      const areaId = data.areaId !== undefined ? data.areaId : current.data?.area_id ?? null;
+      organizacao = await resolveOrganizacao(supabaseAdmin, departamento, areaId);
+    }
+
     const profUpdate: any = {};
     if (data.nome !== undefined) profUpdate.nome = data.nome;
     if (data.email !== undefined) profUpdate.email = data.email;
-    if (data.departamento !== undefined) profUpdate.departamento = data.departamento;
-    if (data.areaId !== undefined) profUpdate.area_id = data.areaId;
     if (data.ativo !== undefined) profUpdate.ativo = data.ativo;
+    if (organizacao) {
+      profUpdate.departamento = organizacao.departamentoNome;
+      profUpdate.departamento_id = organizacao.departamentoId;
+      profUpdate.area_id = data.areaId !== undefined ? data.areaId : organizacao.area?.id ?? null;
+    }
     if (Object.keys(profUpdate).length) {
       const { error } = await supabaseAdmin.from("profiles").update(profUpdate as never).eq("id", data.id);
       if (error) throw new Error(error.message);
