@@ -15,7 +15,7 @@ export const Route = createFileRoute("/_authenticated/fila")({
 });
 
 const STATUS = [
-  { v: "", l: "Todos" }, { v: "aberto", l: "Abertos" }, { v: "em_andamento", l: "Em andamento" },
+  { v: "__all_status__", l: "Todos" }, { v: "aberto", l: "Abertos" }, { v: "em_andamento", l: "Em andamento" },
   { v: "aguardando_usuario", l: "Aguardando usuário" }, { v: "resolvido", l: "Resolvidos" },
 ];
 const PRIOS = [
@@ -109,7 +109,7 @@ function slaClass(status: string) {
 
 function FilaPage() {
   const navigate = useNavigate();
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState("__all_status__");
   const [prioridade, setPrioridade] = useState("__all__");
   const [segmentoSelecionado, setSegmentoSelecionado] = useState("todos");
   const [somenteMeus, setSomenteMeus] = useState(false);
@@ -156,7 +156,7 @@ function FilaPage() {
     enabled: !!contexto && !loadingSegmentos,
     queryFn: async () => {
       let q = supabase.from("chamados").select(`id,numero,titulo,status,prioridade,aberto_em,prazo_resolucao,sla_regra_id,sla_pausado,sla_tempo_restante_segundos,sla_resolucao_violado,segmento_id,atendente_id,tipo:tipos_chamado(id,nome),categoria:categorias(nome),solicitante:profiles!chamados_solicitante_profile_fkey(nome,departamento,area_id),atendente:profiles!chamados_atendente_profile_fkey(nome)`).order("aberto_em", { ascending: false }).limit(200);
-      if (status) q = q.eq("status", status as any);
+      if (status !== "__all_status__") q = q.eq("status", status as any);
       if (prioridade !== "__all__") q = q.eq("prioridade", prioridade as any);
 
       if (somenteMeus && contexto?.userId) {
@@ -204,7 +204,7 @@ function FilaPage() {
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div><h1 className="text-2xl font-bold">Fila de atendimento</h1><p className="text-sm text-muted-foreground">{selectedName} · {chamados.length} chamado(s)</p></div>
       <div className="flex flex-wrap gap-2">
-        <Select value={status} onValueChange={setStatus}><SelectTrigger className="w-[170px]"><SelectValue placeholder="Status" /></SelectTrigger><SelectContent>{STATUS.map(s => <SelectItem key={s.v || "all"} value={s.v}>{s.l}</SelectItem>)}</SelectContent></Select>
+        <Select value={status} onValueChange={setStatus}><SelectTrigger className="w-[170px]"><SelectValue placeholder="Status" /></SelectTrigger><SelectContent>{STATUS.map(s => <SelectItem key={s.v} value={s.v}>{s.l}</SelectItem>)}</SelectContent></Select>
         <Select value={prioridade} onValueChange={setPrioridade}><SelectTrigger className="w-[190px]"><SelectValue /></SelectTrigger><SelectContent>{PRIOS.map(p => <SelectItem key={p.v} value={p.v}>{p.l}</SelectItem>)}</SelectContent></Select>
         {contexto?.role !== "colaborador" && <Select value={segmentoSelecionado} onValueChange={setSegmentoSelecionado}><SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos">Todos os segmentos</SelectItem>{segmentos.map(s => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}</SelectContent></Select>}
         {contexto?.role === "atendente" && <Button variant={somenteMeus ? "default" : "outline"} onClick={() => setSomenteMeus(v => !v)}>Somente meus</Button>}
