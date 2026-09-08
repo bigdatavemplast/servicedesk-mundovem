@@ -107,12 +107,15 @@ export const atualizarChamado = createServerFn({ method: "POST" }).middleware([r
   if (data.tipoChamadoId !== undefined && data.tipoChamadoId !== ticket.tipo_chamado_id) { patch.tipo_chamado_id = data.tipoChamadoId; historico.push({ chamado_id: data.chamadoId, autor_id: context.userId, acao: "tipo_chamado_alterado", de: ticket.tipo_chamado_id ?? "", para: data.tipoChamadoId }); }
   if (!Object.keys(patch).length) return { ok: true, chamado: ticket };
 
-  // Atribuição precisa ser executada com o cliente autenticado, não com service role.
-  // Assim o trigger consegue identificar o admin que fez a atribuição via auth.uid().
-  // As demais atualizações continuam usando o admin client como antes.
-  const updateClient = data.atendenteId !== undefined ? supabase : admin;
-  const { data: updated, error: updateError } = await updateClient.from("chamados").update(patch as never).eq("id", data.chamadoId).select("*").single();
+  // A gravação da atribuição usa service role para não depender de RLS do cliente.
+  // A função já validou a permissão do usuário que executou a ação e o perfil do destinatário.
+  // Isso também mantém compatibilidade com triggers de banco existentes.
+  const { data: updated, error: updateError } = await admin.from("chamados").update(patch as never).eq("id", data.chamadoId).select("*").single();
   if (updateError || !updated) throw new Error(updateError?.message ?? "Falha ao atualizar chamado");
+
+  if (data.atendenteId !== undefined) {
+    if (updated.atendente_id !== data.atendenteId) throw new Error("A atribuição não foi persistida no chamado.");
+  }
   if (historico.length) { const { error: histError } = await admin.from("historico_chamado").insert(historico as never); if (histError) throw new Error(histError.message); }
   return { ok: true, chamado: updated };
 });
