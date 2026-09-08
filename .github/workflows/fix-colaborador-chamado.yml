@@ -1,0 +1,54 @@
+name: Fix colaborador chamado
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Corrigir permissões do solicitante
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          ui = Path('src/routes/_authenticated/chamados.$id.tsx')
+          text = ui.read_text()
+          old = 'const paginaSomenteLeitura = !podeAlterarChamado;'
+          new = 'const paginaSomenteLeitura = !podeAlterarChamado && chamado.solicitante_id !== user.id;'
+          if old not in text:
+              raise SystemExit('regra da paginaSomenteLeitura não encontrada')
+          ui.write_text(text.replace(old, new, 1))
+
+          fn = Path('src/lib/chamado.functions.ts')
+          text = fn.read_text()
+          old = '''if (!(await canEditFilaTicket(supabase, context.userId, ticket))) throw new Error("Somente o admin, o atendente responsável ou um atendente de um chamado sem responsável pode comentar neste chamado.");'''
+          new = '''const isRequester = ticket.solicitante_id === context.userId;
+  const canInteract = isRequester || await canEditFilaTicket(supabase, context.userId, ticket);
+  if (!canInteract) throw new Error("Somente o solicitante, o admin, o atendente responsável ou um atendente de um chamado sem responsável pode comentar neste chamado.");
+  if (data.interno && !isRequester && !(await hasPermission(supabase, context.userId, "ticket.comment.internal"))) throw new Error("Nota interna disponível somente para atendimento.");
+  if (data.interno && isRequester) throw new Error("Solicitantes não podem adicionar notas internas.");'''
+          if old not in text:
+              raise SystemExit('regra de comentário não encontrada')
+          fn.write_text(text.replace(old, new, 1))
+          PY
+
+      - name: Commitar correção
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/routes/_authenticated/chamados.\$id.tsx src/lib/chamado.functions.ts .github/workflows/fix-colaborador-chamado.yml
+          git rm .github/workflows/fix-colaborador-chamado.yml
+          git commit -m "fix: permitir colaborador interagir no próprio chamado" || exit 0
+          git push
