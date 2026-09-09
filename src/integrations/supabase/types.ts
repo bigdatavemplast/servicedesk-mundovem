@@ -266,22 +266,33 @@ export type Database = {
         Row: {
           ativo: boolean
           criado_em: string
+          departamento_id: string | null
           id: string
           nome: string
         }
         Insert: {
           ativo?: boolean
           criado_em?: string
+          departamento_id?: string | null
           id?: string
           nome: string
         }
         Update: {
           ativo?: boolean
           criado_em?: string
+          departamento_id?: string | null
           id?: string
           nome?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "areas_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       assistant_logs: {
         Row: {
@@ -838,6 +849,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      departamentos: {
+        Row: {
+          ativo: boolean
+          criado_em: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          ativo?: boolean
+          criado_em?: string
+          id?: string
+          nome: string
+        }
+        Update: {
+          ativo?: boolean
+          criado_em?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: []
       }
       documentacao_sistema: {
         Row: {
@@ -2341,6 +2373,7 @@ export type Database = {
           avatar_url: string | null
           criado_em: string
           departamento: string | null
+          departamento_id: string | null
           email: string
           id: string
           nome: string
@@ -2354,6 +2387,7 @@ export type Database = {
           avatar_url?: string | null
           criado_em?: string
           departamento?: string | null
+          departamento_id?: string | null
           email: string
           id: string
           nome: string
@@ -2367,6 +2401,7 @@ export type Database = {
           avatar_url?: string | null
           criado_em?: string
           departamento?: string | null
+          departamento_id?: string | null
           email?: string
           id?: string
           nome?: string
@@ -2379,6 +2414,13 @@ export type Database = {
             columns: ["area_id"]
             isOneToOne: false
             referencedRelation: "areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
             referencedColumns: ["id"]
           },
         ]
@@ -2838,6 +2880,68 @@ export type Database = {
       }
     }
     Functions: {
+      atribuir_chamado: {
+        Args: { _atendente_id: string; _chamado_id: string }
+        Returns: {
+          aberto_em: string
+          atendente_id: string | null
+          atendimento_abandonado: boolean
+          atualizado_em: string
+          avaliacao_comentario: string | null
+          avaliacao_nota: number | null
+          categoria_id: string | null
+          criado_em: string
+          custo_atendimento: number | null
+          descricao: string
+          embedding: string | null
+          escalonado: boolean
+          escalonado_em: string | null
+          escalonamento_nivel: number
+          fechado_em: string | null
+          grupo_atendimento_id: string | null
+          id: string
+          impacto: string | null
+          numero: string
+          prazo_resolucao: string | null
+          prazo_resposta: string | null
+          primeira_chamada_resolvida: boolean | null
+          primeira_resposta_em: string | null
+          primeiro_atendimento_em: string | null
+          prioridade: Database["public"]["Enums"]["prioridade_chamado"]
+          reaberto_em: string | null
+          resolvido_em: string | null
+          respondido_em: string | null
+          segmento_id: string | null
+          sla_id: string | null
+          sla_pausado: boolean
+          sla_pausado_em: string | null
+          sla_regra_id: string | null
+          sla_resolucao_violado: boolean
+          sla_resposta_violado: boolean
+          sla_tempo_pausado_segundos: number
+          sla_tempo_resolucao_segundos: number | null
+          sla_tempo_resposta_segundos: number | null
+          sla_tempo_restante_segundos: number | null
+          solicitante_id: string
+          status: Database["public"]["Enums"]["status_chamado"]
+          subcategoria_id: string | null
+          tags: string[] | null
+          tempo_atendimento_minutos: number | null
+          tipo_chamado_id: string | null
+          tipo_fluxo: string | null
+          titulo: string
+          triagem_em: string | null
+          triagem_por: string | null
+          ultima_acao_atendimento_em: string | null
+          urgencia: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "chamados"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       avaliar_artigo_base_conhecimento: {
         Args: { p_artigo_id: string; p_util: boolean }
         Returns: undefined
