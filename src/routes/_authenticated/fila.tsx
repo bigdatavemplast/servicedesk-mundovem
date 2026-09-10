@@ -127,12 +127,18 @@ function FilaPage() {
       if (rolesError) throw rolesError; if (profileError) throw profileError;
       const roleList = ((roles ?? []).map((r: any) => r.role) as Role[]);
       const role: Role = roleList.includes("admin") ? "admin" : roleList.includes("gestor") ? "gestor" : roleList.includes("atendente") ? "atendente" : "colaborador";
+      let isGestorTI = false;
+      if (role === "gestor" && profile?.area_id) {
+        const { data: area, error: areaError } = await supabase.from("areas").select("nome").eq("id", profile.area_id).maybeSingle();
+        if (areaError) throw areaError;
+        isGestorTI = (area?.nome ?? "").toLowerCase().replace(/[^a-z0-9]/g, "") === "ti";
+      }
       let grupoIds: string[] = [];
       if (role === "atendente") {
         const { data, error } = await supabase.from("grupo_atendentes").select("grupo_id").eq("usuario_id", userId).eq("ativo", true);
         if (error) throw error; grupoIds = (data ?? []).map((m: any) => m.grupo_id);
       }
-      return { userId, role, departamento: profile?.departamento ?? null, areaId: profile?.area_id ?? null, grupoIds };
+      return { userId, role, departamento: profile?.departamento ?? null, areaId: profile?.area_id ?? null, isGestorTI, grupoIds };
     },
   });
 
@@ -152,7 +158,7 @@ function FilaPage() {
   useEffect(() => { if (segmentoSelecionado !== "todos" && !segmentoIdsPermitidos.has(segmentoSelecionado)) setSegmentoSelecionado("todos"); }, [segmentoSelecionado, segmentoIdsPermitidos]);
 
   const { data: chamados = [], isLoading: loadingChamados } = useQuery({
-    queryKey: ["fila", status, prioridade, segmentoSelecionado, somenteMeus, contexto?.userId, contexto?.role, contexto?.departamento, contexto?.areaId, [...segmentoIdsPermitidos]],
+    queryKey: ["fila", status, prioridade, segmentoSelecionado, somenteMeus, contexto?.userId, contexto?.role, contexto?.departamento, contexto?.areaId, contexto?.isGestorTI, [...segmentoIdsPermitidos]],
     enabled: !!contexto && !loadingSegmentos,
     queryFn: async () => {
       let q = supabase.from("chamados").select(`id,numero,titulo,status,prioridade,aberto_em,prazo_resolucao,sla_regra_id,sla_pausado,sla_tempo_restante_segundos,sla_resolucao_violado,segmento_id,atendente_id,tipo:tipos_chamado(id,nome),categoria:categorias(nome),solicitante:profiles!chamados_solicitante_profile_fkey(nome,departamento,area_id),atendente:profiles!chamados_atendente_profile_fkey(nome)`).order("aberto_em", { ascending: false }).limit(200);
@@ -170,10 +176,9 @@ function FilaPage() {
         q = q.eq("segmento_id", segmentoSelecionado);
       }
 
-      // Gestor enxerga e opera somente chamados de solicitantes da própria área.
-      // Departamento não é escopo de segurança: uma mesma área pode conter pessoas
-      // de departamentos diferentes e um mesmo departamento pode ter mais de uma área.
-      if (contexto?.role === "gestor") {
+      // Gestores comuns continuam limitados à própria área.
+      // O gestor de T.I. é a única exceção e pode consultar qualquer área.
+      if (contexto?.role === "gestor" && !contexto.isGestorTI) {
         if (contexto.areaId) q = q.eq("solicitante.area_id", contexto.areaId);
         else return [];
       }
@@ -205,7 +210,7 @@ function FilaPage() {
   const regrasMap = useMemo(() => new Map(regras.map(r => [r.id, r])), [regras]);
   const displayRows = useMemo(() => chamados.map((c: any) => ({ ...c, sla: slaInfo(c, now, regrasMap, horarios) })), [chamados, now, regrasMap, horarios]);
 
-  return <div className="space-y-6"><div><h1 className="text-2xl font-bold">Fila de atendimento</h1><p className="text-sm text-muted-foreground">{contexto?.role === "gestor" ? "Chamados da sua área." : "Acompanhe chamados pendentes, prioridade e SLA."}</p></div>
+  return <div className="space-y-6"><div><h1 className="text-2xl font-bold">Fila de atendimento</h1><p className="text-sm text-muted-foreground">{contexto?.role === "gestor" && !contexto?.isGestorTI ? "Chamados da sua área." : "Acompanhe chamados pendentes, prioridade e SLA."}</p></div>
     <div className="flex flex-wrap gap-2"><Select value={status} onValueChange={setStatus}><SelectTrigger className="w-44"><SelectValue /></SelectTrigger><SelectContent>{STATUS.map(x => <SelectItem key={x.v} value={x.v}>{x.l}</SelectItem>)}</SelectContent></Select><Select value={prioridade} onValueChange={setPrioridade}><SelectTrigger className="w-52"><SelectValue /></SelectTrigger><SelectContent>{PRIOS.map(x => <SelectItem key={x.v} value={x.v}>{x.l}</SelectItem>)}</SelectContent></Select>{segmentos.length > 1 && <Select value={segmentoSelecionado} onValueChange={setSegmentoSelecionado}><SelectTrigger className="w-52"><SelectValue placeholder="Segmento" /></SelectTrigger><SelectContent><SelectItem value="todos">Todos os segmentos</SelectItem>{segmentos.map(s => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}</SelectContent></Select>} {contexto?.role !== "gestor" && <Button variant={somenteMeus ? "default" : "outline"} onClick={() => setSomenteMeus(v => !v)}>{somenteMeus ? "Meus chamados" : "Somente meus"}</Button>}</div>
     <Card><CardContent className="p-0">{loadingContexto || loadingChamados ? <div className="p-8 text-center text-sm text-muted-foreground">Carregando…</div> : !displayRows.length ? <div className="p-8 text-center text-sm text-muted-foreground">Nenhum chamado encontrado.</div> : <div className="divide-y">{displayRows.map((c: any) => <button key={c.id} type="button" onClick={() => navigate({ to: "/chamados/$id", params: { id: c.id } })} className="flex w-full items-center justify-between gap-4 p-4 text-left hover:bg-muted/40"><div className="min-w-0"><div className="flex items-center gap-2"><span className="font-mono text-xs text-muted-foreground">{c.numero}</span><span className={`rounded px-2 py-0.5 text-xs ${prioStyle(c.prioridade)}`}>{c.prioridade}</span></div><div className="truncate font-medium">{c.titulo}</div><div className="text-xs text-muted-foreground">Solicitante: {c.solicitante?.nome ?? "—"} · Atendente: {c.atendente?.nome ?? "Não atribuído"}</div></div><div className="flex shrink-0 flex-col items-end gap-1"><span className={`rounded px-2 py-0.5 text-xs ${statusStyle(c.status)}`}>{STATUS.find(s => s.v === c.status)?.l ?? c.status}</span><span className={`text-xs ${slaClass(c.sla.status)}`}>{c.sla.status === "sem_sla" ? "Sem SLA" : c.sla.status === "pausado" ? `Pausado · ${duration(c.sla.seconds)}` : `${c.sla.status === "vencido" ? "Vencido" : "SLA"} · ${duration(c.sla.seconds)}`}</span></div></button>)}</div>}</CardContent></Card>
   </div>;
