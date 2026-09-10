@@ -14,10 +14,13 @@ DECLARE
   v_agora TIMESTAMPTZ := NOW();
   v_restante BIGINT;
   v_prazo_retomado TIMESTAMPTZ;
+  v_autor UUID := auth.uid();
 BEGIN
-  IF TG_OP <> 'UPDATE' OR NEW.status IS NOT DISTINCT FROM OLD.status THEN
-    -- Enquanto permanecer aguardando, preserva o estado congelado mesmo
-    -- que outro campo do chamado seja alterado.
+  IF TG_OP <> 'UPDATE' THEN
+    RETURN NEW;
+  END IF;
+
+  IF NEW.status IS NOT DISTINCT FROM OLD.status THEN
     IF NEW.status IN ('aguardando_usuario', 'aguardando_terceiro')
        AND OLD.status IN ('aguardando_usuario', 'aguardando_terceiro')
        AND OLD.sla_pausado THEN
@@ -29,57 +32,33 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  -- Entrada em Aguardando Usuário/Terceiro: congela o restante do SLA.
   IF NEW.status IN ('aguardando_usuario', 'aguardando_terceiro')
      AND OLD.status NOT IN ('aguardando_usuario', 'aguardando_terceiro') THEN
     v_restante := GREATEST(
       0,
       FLOOR(EXTRACT(EPOCH FROM (COALESCE(OLD.prazo_resolucao, v_agora) - v_agora)))::BIGINT
     );
-
     NEW.sla_pausado := TRUE;
     NEW.sla_pausado_em := v_agora;
     NEW.sla_tempo_restante_segundos := v_restante;
     NEW.prazo_resolucao := OLD.prazo_resolucao;
-
-    INSERT INTO public.historico_sla_chamado (
-      chamado_id, tipo, autor_id, criado_em, tempo_restante_segundos,
-      prazo_anterior, novo_prazo, observacao
-    ) VALUES (
-      NEW.id, 'pausa', NULL, v_agora, v_restante,
-      OLD.prazo_resolucao, OLD.prazo_resolucao,
-      CASE NEW.status
-        WHEN 'aguardando_usuario' THEN 'SLA pausado ao entrar em Aguardando Usuário.'
-        ELSE 'SLA pausado ao entrar em Aguardando Terceiro.'
-      END
-    );
-
+    INSERT INTO public.historico_sla_chamado (chamado_id, tipo, autor_id, criado_em, tempo_restante_segundos, prazo_anterior, novo_prazo, observacao)
+    VALUES (NEW.id, 'pausa', v_autor, v_agora, v_restante, OLD.prazo_resolucao, OLD.prazo_resolucao,
+      CASE NEW.status WHEN 'aguardando_usuario' THEN 'SLA pausado ao entrar em Aguardando Usuário.' ELSE 'SLA pausado ao entrar em Aguardando Terceiro.' END);
     RETURN NEW;
   END IF;
 
-  -- Saída de Aguardando para atendimento ativo: retoma exatamente
-  -- do tempo congelado, sem contabilizar o período de espera.
   IF OLD.status IN ('aguardando_usuario', 'aguardando_terceiro')
      AND NEW.status IN ('aberto', 'em_andamento', 'reaberto') THEN
-    v_restante := GREATEST(
-      0,
-      COALESCE(OLD.sla_tempo_restante_segundos, 0)
-    );
+    v_restante := GREATEST(0, COALESCE(OLD.sla_tempo_restante_segundos, 0));
     v_prazo_retomado := v_agora + make_interval(secs => v_restante);
-
     NEW.sla_pausado := FALSE;
     NEW.sla_pausado_em := NULL;
     NEW.sla_tempo_restante_segundos := NULL;
     NEW.prazo_resolucao := v_prazo_retomado;
-
-    INSERT INTO public.historico_sla_chamado (
-      chamado_id, tipo, autor_id, criado_em, tempo_restante_segundos,
-      prazo_anterior, novo_prazo, observacao
-    ) VALUES (
-      NEW.id, 'retomada', NULL, v_agora, v_restante,
-      OLD.prazo_resolucao, v_prazo_retomado,
-      'SLA retomado ao voltar para um status de atendimento ativo.'
-    );
+    INSERT INTO public.historico_sla_chamado (chamado_id, tipo, autor_id, criado_em, tempo_restante_segundos, prazo_anterior, novo_prazo, observacao)
+    VALUES (NEW.id, 'retomada', v_autor, v_agora, v_restante, OLD.prazo_resolucao, v_prazo_retomado,
+      'SLA retomado ao voltar para um status de atendimento ativo.');
   END IF;
 
   RETURN NEW;
