@@ -127,61 +127,33 @@ function FilaPage() {
       if (rolesError) throw rolesError; if (profileError) throw profileError;
       const roleList = ((roles ?? []).map((r: any) => r.role) as Role[]);
       const role: Role = roleList.includes("admin") ? "admin" : roleList.includes("gestor") ? "gestor" : roleList.includes("atendente") ? "atendente" : "colaborador";
-      let grupoIds: string[] = [];
-      if (role === "atendente") {
-        const { data, error } = await supabase.from("grupo_atendentes").select("grupo_id").eq("usuario_id", userId).eq("ativo", true);
-        if (error) throw error; grupoIds = (data ?? []).map((m: any) => m.grupo_id);
-      }
-      return { userId, role, departamento: profile?.departamento ?? null, grupoIds };
+      return { userId, role, departamento: profile?.departamento ?? null };
     },
   });
 
   const { data: segmentos = [], isLoading: loadingSegmentos } = useQuery({
-    queryKey: ["fila-segmentos-operacional", contexto?.role, contexto?.grupoIds], enabled: !!contexto,
+    queryKey: ["fila-segmentos-operacional"], enabled: !!contexto,
     queryFn: async () => {
-      let q = supabase.from("segmentos").select("id,nome,ativo").eq("ativo", true).order("nome");
-      if (contexto?.role === "atendente") {
-        if (!contexto.grupoIds.length) return [] as Segmento[];
-        const { data: grupos, error } = await supabase.from("grupos_atendimento").select("segmento_id").in("id", contexto.grupoIds).eq("ativo", true);
-        if (error) throw error; const ids = [...new Set((grupos ?? []).map((g: any) => g.segmento_id).filter(Boolean))]; if (!ids.length) return [] as Segmento[]; q = q.in("id", ids);
-      }
-      const { data, error } = await q; if (error) throw error; return (data ?? []) as Segmento[];
+      const { data, error } = await supabase.from("segmentos").select("id,nome,ativo").eq("ativo", true).order("nome");
+      if (error) throw error; return (data ?? []) as Segmento[];
     },
   });
   const segmentoIdsPermitidos = useMemo(() => new Set(segmentos.map(s => s.id)), [segmentos]);
   useEffect(() => { if (segmentoSelecionado !== "todos" && !segmentoIdsPermitidos.has(segmentoSelecionado)) setSegmentoSelecionado("todos"); }, [segmentoSelecionado, segmentoIdsPermitidos]);
 
   const { data: chamados = [], isLoading: loadingChamados } = useQuery({
-    queryKey: ["fila", status, prioridade, segmentoSelecionado, somenteMeus, contexto?.userId, contexto?.role, contexto?.departamento, [...segmentoIdsPermitidos]],
+    queryKey: ["fila", status, prioridade, segmentoSelecionado, somenteMeus, contexto?.userId, contexto?.role, contexto?.departamento],
     enabled: !!contexto && !loadingSegmentos,
     queryFn: async () => {
       let q = supabase.from("chamados").select(`id,numero,titulo,status,prioridade,aberto_em,prazo_resolucao,sla_regra_id,sla_pausado,sla_tempo_restante_segundos,sla_resolucao_violado,segmento_id,atendente_id,tipo:tipos_chamado(id,nome),categoria:categorias(nome),solicitante:profiles!chamados_solicitante_profile_fkey(nome,departamento,area_id),atendente:profiles!chamados_atendente_profile_fkey(nome)`).order("aberto_em", { ascending: false }).limit(200);
       if (status !== "__all_status__") q = q.eq("status", status as any);
       if (prioridade !== "__all__") q = q.eq("prioridade", prioridade as any);
-
-      if (somenteMeus && contexto?.userId) {
-        q = q.eq("atendente_id", contexto.userId);
-      } else if (contexto?.role === "atendente") {
-        // Não usamos OR do PostgREST aqui: essa combinação estava fazendo a página
-        // inteira da fila falhar em alguns ambientes. A RLS de chamados já permite
-        // leitura para atendentes; filtramos a fila operacional no cliente e sempre
-        // preservamos o chamado atribuído diretamente ao usuário.
-      } else if (segmentoSelecionado !== "todos") {
-        q = q.eq("segmento_id", segmentoSelecionado);
-      }
-
+      if (somenteMeus && contexto?.userId) q = q.eq("atendente_id", contexto.userId);
+      else if (segmentoSelecionado !== "todos") q = q.eq("segmento_id", segmentoSelecionado);
       if (contexto?.role === "gestor" && contexto.departamento) q = q.eq("solicitante.departamento", contexto.departamento);
       const { data, error } = await q;
       if (error) throw error;
-
-      let rows = data ?? [];
-      if (contexto?.role === "atendente" && !somenteMeus) {
-        rows = rows.filter((c: any) => c.atendente_id === contexto.userId || segmentoIdsPermitidos.has(c.segmento_id));
-        if (segmentoSelecionado !== "todos") {
-          rows = rows.filter((c: any) => c.atendente_id === contexto.userId || c.segmento_id === segmentoSelecionado);
-        }
-      }
-      return rows;
+      return data ?? [];
     },
   });
 
