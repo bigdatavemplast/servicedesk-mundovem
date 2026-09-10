@@ -39,6 +39,14 @@ async function canAccessTicket(supabase: any, userId: string, ticket: any) {
   if (roles.includes("admin")) return true;
   if (roles.includes("atendente")) return hasAnyRolePermission(roles, "ticket.view.queue");
   if (roles.includes("gestor")) {
+    const { data: perfil, error: perfilError } = await supabase.from("profiles").select("area_id").eq("id", userId).maybeSingle();
+    if (perfilError) throw new Error(perfilError.message);
+    if (perfil?.area_id) {
+      const { data: area, error: areaError } = await supabase.from("areas").select("nome").eq("id", perfil.area_id).maybeSingle();
+      if (areaError) throw new Error(areaError.message);
+      const areaNome = String(area?.nome ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (areaNome === "ti") return true;
+    }
     const { data: ok, error } = await supabase.rpc("gestor_mesma_area", { _gestor_id: userId, _colaborador_id: ticket.solicitante_id });
     if (error) throw new Error(error.message);
     return !!ok;
@@ -49,6 +57,7 @@ async function canAccessTicket(supabase: any, userId: string, ticket: any) {
 async function canEditFilaTicket(supabase: any, userId: string, ticket: any) {
   const roles = await getRoles(supabase, userId);
   if (roles.includes("admin")) return true;
+  if (roles.includes("gestor")) return canAccessTicket(supabase, userId, ticket);
   if (!roles.includes("atendente")) return false;
   return ticket.atendente_id == null || ticket.atendente_id === userId;
 }
@@ -69,12 +78,9 @@ export const comentarChamado = createServerFn({ method: "POST" }).middleware([re
   const supabase = context.supabase as any; const admin = await getAdminClient(supabase);
   const { data: ticket, error: ticketError } = await admin.from("chamados").select("id,numero,titulo,status,prioridade,prazo_resolucao,sla_pausado,solicitante_id,atendente_id").eq("id", data.chamadoId).maybeSingle();
   if (ticketError || !ticket) throw new Error(ticketError?.message ?? "Chamado não encontrado");
-  // Comentários seguem a mesma regra de edição do chamado: somente admin,
-  // atendente responsável ou atendente de chamado sem responsável podem interagir.
-  // Solicitantes, gestores e outros atendentes permanecem somente leitura.
   const isRequester = ticket.solicitante_id === context.userId;
   const canInteract = isRequester || await canEditFilaTicket(supabase, context.userId, ticket);
-  if (!canInteract) throw new Error("Somente o solicitante, o admin, o atendente responsável ou um atendente de um chamado sem responsável pode comentar neste chamado.");
+  if (!canInteract) throw new Error("Somente o solicitante, o admin, o gestor com acesso ao chamado ou o atendente autorizado pode comentar neste chamado.");
   if (data.interno && !isRequester && !(await hasPermission(supabase, context.userId, "ticket.comment.internal"))) throw new Error("Nota interna disponível somente para atendimento.");
   if (data.interno && isRequester) throw new Error("Solicitantes não podem adicionar notas internas.");
   if (data.interno && !(await hasPermission(supabase, context.userId, "ticket.comment.internal"))) throw new Error("Nota interna disponível somente para atendimento.");
@@ -92,18 +98,15 @@ export const atualizarChamado = createServerFn({ method: "POST" }).middleware([r
   const isRequester = ticket.solicitante_id === context.userId;
   const roles = await getRoles(supabase, context.userId);
   const isAdmin = roles.includes("admin");
+  const isGestor = roles.includes("gestor");
   const canEditFila = await canEditFilaTicket(supabase, context.userId, ticket);
 
-  // Na fila de atendimento, somente o admin, o responsável atual ou qualquer
-  // atendente quando o chamado ainda está sem responsável podem alterar o chamado.
-  // Gestores e outros atendentes continuam podendo visualizar conforme as regras
-  // de acesso, mas não podem editar este chamado.
-  if (!isAdmin && !canEditFila) {
+  if (!isAdmin && !isGestor && !canEditFila) {
     if (data.status === "reaberto" && isRequester) {
       if (ticket.status !== "fechado" || !ticket.fechado_em) throw new Error("Somente chamados fechados podem ser reabertos.");
       if (Date.now() - new Date(ticket.fechado_em).getTime() > 48 * 60 * 60 * 1000) throw new Error("O prazo de 2 dias para reabrir o chamado expirou.");
     } else {
-      throw new Error("Somente o admin, o atendente responsável ou um atendente de um chamado sem responsável pode alterar este chamado.");
+      throw new Error("Somente o admin, o gestor com acesso ao chamado ou o atendente autorizado pode alterar este chamado.");
     }
   }
 
@@ -112,12 +115,12 @@ export const atualizarChamado = createServerFn({ method: "POST" }).middleware([r
     if (!isRequester && !isAdmin) throw new Error("Somente o solicitante pode reabrir o chamado.");
     if (ticket.status !== "fechado" || !ticket.fechado_em) throw new Error("Somente chamados fechados podem ser reabertos.");
     if (Date.now() - new Date(ticket.fechado_em).getTime() > 48 * 60 * 60 * 1000) throw new Error("O prazo de 2 dias para reabrir o chamado expirou.");
-  } else if (data.status !== undefined && !(await hasPermission(supabase, context.userId, "ticket.update.status"))) {
+  } else if (data.status !== undefined && !isGestor && !(await hasPermission(supabase, context.userId, "ticket.update.status"))) {
     throw new Error("Somente a equipe de atendimento pode alterar o status do chamado.");
   }
-  if (data.prioridade !== undefined && !(await hasPermission(supabase, context.userId, "ticket.update.priority"))) throw new Error("Você não tem permissão para alterar a prioridade.");
-  if (data.atendenteId !== undefined && !(await hasPermission(supabase, context.userId, "ticket.assign"))) throw new Error("Você não tem permissão para atribuir o chamado.");
-  if (data.tipoChamadoId !== undefined && !(await hasPermission(supabase, context.userId, "ticket.update.status"))) throw new Error("Você não tem permissão para alterar o tipo de chamado.");
+  if (data.prioridade !== undefined && !isGestor && !(await hasPermission(supabase, context.userId, "ticket.update.priority"))) throw new Error("Você não tem permissão para alterar a prioridade.");
+  if (data.atendenteId !== undefined && !isGestor && !(await hasPermission(supabase, context.userId, "ticket.assign"))) throw new Error("Você não tem permissão para atribuir o chamado.");
+  if (data.tipoChamadoId !== undefined && !isGestor && !(await hasPermission(supabase, context.userId, "ticket.update.status"))) throw new Error("Você não tem permissão para alterar o tipo de chamado.");
   if (data.atendenteId !== undefined && data.atendenteId !== null) {
     const { data: targetRoles, error: targetError } = await admin.from("user_roles").select("role").eq("user_id", data.atendenteId);
     if (targetError) throw new Error(targetError.message);
@@ -136,7 +139,7 @@ export const atualizarChamado = createServerFn({ method: "POST" }).middleware([r
   if (!Object.keys(patch).length) return { ok: true, chamado: ticket };
 
   let updated: any;
-  if (data.atendenteId !== undefined) {
+  if (data.atendenteId !== undefined && !isGestor) {
     const { data: assigned, error: assignError } = await supabase.rpc("atribuir_chamado", {
       _chamado_id: data.chamadoId,
       _atendente_id: data.atendenteId,
