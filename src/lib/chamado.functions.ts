@@ -37,7 +37,8 @@ async function criarNotificacao(admin: any, args: { destinatarioId: string; tipo
 async function canAccessTicket(supabase: any, userId: string, ticket: any) {
   const roles = await getRoles(supabase, userId);
   if (roles.includes("admin")) return true;
-  if (roles.includes("atendente")) return hasAnyRolePermission(roles, "ticket.view.queue");
+  // Gestor tem precedência sobre atendente: gestor comum fica na própria área,
+  // enquanto gestor de T.I. tem acesso global.
   if (roles.includes("gestor")) {
     const { data: perfil, error: perfilError } = await supabase.from("profiles").select("area_id").eq("id", userId).maybeSingle();
     if (perfilError) throw new Error(perfilError.message);
@@ -51,6 +52,7 @@ async function canAccessTicket(supabase: any, userId: string, ticket: any) {
     if (error) throw new Error(error.message);
     return !!ok;
   }
+  if (roles.includes("atendente")) return hasAnyRolePermission(roles, "ticket.view.queue");
   return ticket.solicitante_id === userId;
 }
 
@@ -166,13 +168,11 @@ export const atualizarChamado = createServerFn({ method: "POST" }).middleware([r
 });
 
 export const avaliarChamado = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((d) => z.object({ chamadoId: z.string().uuid(), nota: z.number().int().min(1).max(5), comentario: z.string().nullable().optional() }).parse(d)).handler(async ({ data, context }) => {
-  const admin = await getAdminClient(context.supabase as any);
-  const { data: ticket, error } = await admin.from("chamados").select("id,numero,titulo,status,solicitante_id,avaliacao_nota").eq("id", data.chamadoId).maybeSingle();
-  if (error || !ticket) throw new Error(error?.message ?? "Chamado não encontrado");
-  if (ticket.solicitante_id !== context.userId) throw new Error("Somente o solicitante pode avaliar o chamado.");
-  if (ticket.status !== "resolvido") throw new Error("O chamado precisa estar resolvido para ser avaliado.");
-  if (ticket.avaliacao_nota != null) throw new Error("Este chamado já foi avaliado.");
-  const { error: rpcError } = await (context.supabase as any).rpc("avaliar_chamado", { _chamado_id: data.chamadoId, _nota: data.nota, _comentario: data.comentario ?? null });
-  if (rpcError) throw new Error(rpcError.message);
-  return { ok: true, status: "fechado" };
+  const admin = await getAdminClient(context.supabase);
+  const { data: ticket, error: ticketError } = await admin.from("chamados").select("id,solicitante_id,status").eq("id", data.chamadoId).maybeSingle();
+  if (ticketError || !ticket) throw new Error(ticketError?.message ?? "Chamado não encontrado");
+  if (ticket.solicitante_id !== context.userId || ticket.status !== "resolvido") throw new Error("Somente o solicitante pode avaliar um chamado resolvido.");
+  const { data: updated, error } = await admin.from("chamados").update({ avaliacao_nota: data.nota, avaliacao_comentario: data.comentario ?? null } as never).eq("id", data.chamadoId).select("id,avaliacao_nota,avaliacao_comentario").single();
+  if (error || !updated) throw new Error(error?.message ?? "Falha ao registrar avaliação");
+  return updated;
 });
