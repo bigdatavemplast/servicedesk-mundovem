@@ -62,12 +62,13 @@ function DetalheChamadoPage() {
   const isStaff = roles.some((r) => ["atendente", "gestor", "admin"].includes(r));
   const isAttendant = roles.includes("atendente") && !roles.includes("gestor") && !roles.includes("admin");
   const isManager = roles.includes("gestor") && !roles.includes("admin");
+  const { data: meuPerfil } = useQuery({ queryKey: ["meu-perfil-area", user.id], queryFn: async () => { const { data, error } = await supabase.from("profiles").select("area_id").eq("id", user.id).maybeSingle(); if (error) throw error; return data; } });
 
   const { data: chamado, isLoading } = useQuery({
     queryKey: ["chamado", id],
     queryFn: async () => {
       const { data, error } = await supabase.from("chamados").select(`*,
-          solicitante:profiles!chamados_solicitante_profile_fkey(id,nome,email,departamento),
+          solicitante:profiles!chamados_solicitante_profile_fkey(id,nome,email,departamento,area_id),
           atendente:profiles!chamados_atendente_profile_fkey(id,nome,email),
           tipo:tipos_chamado(id,nome), categoria:categorias(id,nome), subcategoria:subcategorias(id,nome),
           sla:slas(prioridade,tempo_resposta_h,tempo_resolucao_h)`).eq("id", id).maybeSingle();
@@ -144,7 +145,8 @@ function DetalheChamadoPage() {
   const podeAvaliar = chamado.solicitante_id === user.id && chamado.status === "resolvido" && !chamado.avaliacao_nota;
   const jaAvaliado = chamado.avaliacao_nota != null; const fechadoEmMs = chamado.fechado_em ? new Date(chamado.fechado_em).getTime() : 0; const prazoReaberturaMs = fechadoEmMs + 48 * 60 * 60 * 1000;
   const podeReabrir = chamado.solicitante_id === user.id && chamado.status === "fechado" && fechadoEmMs > 0 && now <= prazoReaberturaMs; const sla = slaInfo(chamado as any, now);
-  const podeAlterarChamado = roles.includes("admin") || isManager || (isAttendant && (!chamado.atendente_id || chamado.atendente_id === user.id));
+  const gestorDaArea = isManager && !!meuPerfil?.area_id && !!(chamado.solicitante as any)?.area_id && meuPerfil.area_id === (chamado.solicitante as any).area_id;
+  const podeAlterarChamado = roles.includes("admin") || gestorDaArea || (isAttendant && (!chamado.atendente_id || chamado.atendente_id === user.id));
   const paginaSomenteLeitura = !podeAlterarChamado && chamado.solicitante_id !== user.id;
 
   return (<div className="space-y-4">
@@ -160,7 +162,7 @@ function DetalheChamadoPage() {
         {jaAvaliado && (<Card><CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Star className="h-4 w-4 text-amber-500" />Avaliação</CardTitle></CardHeader><CardContent className="space-y-2"><div className="flex gap-1">{[1,2,3,4,5].map((n) => (<Star key={n} className={`h-5 w-5 ${n <= (chamado.avaliacao_nota ?? 0) ? "fill-amber-400 text-amber-400" : "text-muted-foreground"}`} />))}</div>{chamado.avaliacao_comentario && <p className="text-sm text-muted-foreground">"{chamado.avaliacao_comentario}"</p>}</CardContent></Card>)}
         {isStaff && (<Card><CardHeader className="pb-2"><CardTitle className="text-sm">Ações do atendimento</CardTitle></CardHeader><CardContent className="flex flex-wrap gap-3">
           <div className="min-w-[180px] space-y-1"><label className="text-xs text-muted-foreground">Status</label><Select disabled={!podeAlterarChamado} value={chamado.status} onValueChange={(v) => { const item = STATUS.find((x) => x.v === v); if (v !== chamado.status) setConfirmacao({ campo: "status", valor: v, label: item?.l ?? v, atual: chamado.status, atualLabel: STATUS.find((x) => x.v === chamado.status)?.l ?? chamado.status }); }}><SelectTrigger className="h-9"><SelectValue /></SelectTrigger><SelectContent>{STATUS.map((s) => <SelectItem key={s.v} value={s.v}>{s.l}</SelectItem>)}</SelectContent></Select></div>
-          <div className="min-w-[160px] space-y-1"><label className="text-xs text-muted-foreground">Prioridade</label><Select disabled={!podeAlterarChamado} value={chamado.prioridade} onValueChange={(v) => { const item = PRIOS.find((x) => x.v === v); if (v !== chamado.prioridade) setConfirmacao({ campo: "prioridade", valor: v, label: item?.l ?? v, atual: chamado.prioridade, atualLabel: PRIOS.find((x) => x.v === chamado.prioridade)?.l ?? chamado.prioridade }); }}><SelectTrigger className="h-9"><SelectValue /></SelectTrigger><SelectContent>{PRIOS.map((s) => <SelectItem key={s.v} value={s.v}>{s.l}</SelectItem>)}</SelectContent></Select></div>
+          <div className="min-w-[160px] space-y-1"><label className="text-xs text-muted-foreground">Prioridade</label><Select disabled={!podeAlterarChamado} value={chamado.prioridade} onValueChange={(v) => { const item = PRIOS.find((x) => x.v === v); if (v !== chamado.prioridade) setConfirmacao({ campo: "prioridade", valor: v, label: item?.l ?? v, atual: chamado.prioridade, atualLabel: PRIOS.find((x) => x.v === chamado.prioridade)?.l ?? chamado.prioridade }); }}><SelectTrigger className="h-9"><SelectValue /></SelectTrigger><SelectContent>{PRIOS.map((s) => <SelectItem key={s.v} value={s.v}>{s.l}</SelectItem>)}</Select></Content></Select></div>
           <div className="min-w-[220px] flex-1 space-y-1"><label className="text-xs text-muted-foreground">Atendente</label><Select disabled={!podeAlterarChamado} value={chamado.atendente_id ?? "__none__"} onValueChange={(v) => { const value = v === "__none__" ? null : v; const tecnico = value ? tecnicos.find((t: any) => t.id === value) : null; if (value !== (chamado.atendente_id ?? null)) setConfirmacao({ campo: "atendente", valor: value, label: tecnico?.nome ?? "Não atribuído", atual: chamado.atendente_id ?? "", atualLabel: (chamado.atendente as any)?.nome ?? "Não atribuído" }); }}><SelectTrigger className="h-9"><SelectValue placeholder="Não atribuído" /></SelectTrigger><SelectContent><SelectItem value="__none__">Não atribuído</SelectItem>{tecnicos.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)}</SelectContent></Select></div>
           <div className="min-w-[220px] flex-1 space-y-1"><label className="text-xs text-muted-foreground">Tipo de Chamado</label><Select disabled={!podeAlterarChamado} value={chamado.tipo_chamado_id ?? "__none__"} onValueChange={(v) => { const tipo = tiposChamado.find((t: any) => t.id === v); if (v !== (chamado.tipo_chamado_id ?? null) && v !== "__none__") setConfirmacao({ campo: "tipo", valor: v, label: tipo?.nome ?? v, atual: chamado.tipo_chamado_id ?? "", atualLabel: (chamado.tipo as any)?.nome ?? "Sem tipo definido" }); }}><SelectTrigger className="h-9"><SelectValue placeholder="Selecione o tipo" /></SelectTrigger><SelectContent>{tiposChamado.map((tipo: any) => <SelectItem key={tipo.id} value={tipo.id}>{tipo.nome}</SelectItem>)}</SelectContent></Select></div>
           {chamado.atendente_id !== user.id && (<Button variant="outline" size="sm" className="self-end" disabled={!podeAlterarChamado} onClick={() => setConfirmacao({ campo: "atendente", valor: user.id, label: "Você", atual: chamado.atendente_id ?? "", atualLabel: (chamado.atendente as any)?.nome ?? "Não atribuído" })}>Atribuir a mim</Button>)}
@@ -174,4 +176,4 @@ function DetalheChamadoPage() {
   </div>);
 }
 
-function Info({ label, value }: { label: string; value?: string | null }) { return (<div><div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</div><div className="mt-0.5">{value || "—"}</div></div>); }
+function Info({ label, value }: { label: string; value?: string | null }) { return (<div><div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</div><div className="mt-0.5">{value || "—"}</div></div> }
