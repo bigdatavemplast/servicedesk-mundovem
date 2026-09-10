@@ -122,12 +122,18 @@ function FilaPage() {
       const userId = (await supabase.auth.getUser()).data.user?.id ?? "";
       const [{ data: roles, error: rolesError }, { data: profile, error: profileError }] = await Promise.all([
         supabase.from("user_roles").select("role").eq("user_id", userId),
-        supabase.from("profiles").select("departamento").eq("id", userId).maybeSingle(),
+        supabase.from("profiles").select("departamento,area_id").eq("id", userId).maybeSingle(),
       ]);
       if (rolesError) throw rolesError; if (profileError) throw profileError;
       const roleList = ((roles ?? []).map((r: any) => r.role) as Role[]);
       const role: Role = roleList.includes("admin") ? "admin" : roleList.includes("gestor") ? "gestor" : roleList.includes("atendente") ? "atendente" : "colaborador";
-      return { userId, role, departamento: profile?.departamento ?? null };
+      let isGestorTI = false;
+      if (role === "gestor" && profile?.area_id) {
+        const { data: area, error: areaError } = await supabase.from("areas").select("nome").eq("id", profile.area_id).maybeSingle();
+        if (areaError) throw areaError;
+        isGestorTI = (area?.nome ?? "").toLowerCase().replace(/[^a-z0-9]/g, "") === "ti";
+      }
+      return { userId, role, departamento: profile?.departamento ?? null, isGestorTI };
     },
   });
 
@@ -142,7 +148,7 @@ function FilaPage() {
   useEffect(() => { if (segmentoSelecionado !== "todos" && !segmentoIdsPermitidos.has(segmentoSelecionado)) setSegmentoSelecionado("todos"); }, [segmentoSelecionado, segmentoIdsPermitidos]);
 
   const { data: chamados = [], isLoading: loadingChamados } = useQuery({
-    queryKey: ["fila", status, prioridade, segmentoSelecionado, somenteMeus, contexto?.userId, contexto?.role, contexto?.departamento],
+    queryKey: ["fila", status, prioridade, segmentoSelecionado, somenteMeus, contexto?.userId, contexto?.role, contexto?.departamento, contexto?.isGestorTI],
     enabled: !!contexto && !loadingSegmentos,
     queryFn: async () => {
       let q = supabase.from("chamados").select(`id,numero,titulo,status,prioridade,aberto_em,prazo_resolucao,sla_regra_id,sla_pausado,sla_tempo_restante_segundos,sla_resolucao_violado,segmento_id,atendente_id,tipo:tipos_chamado(id,nome),categoria:categorias(nome),solicitante:profiles!chamados_solicitante_profile_fkey(nome,departamento,area_id),atendente:profiles!chamados_atendente_profile_fkey(nome)`).order("aberto_em", { ascending: false }).limit(200);
@@ -150,7 +156,8 @@ function FilaPage() {
       if (prioridade !== "__all__") q = q.eq("prioridade", prioridade as any);
       if (somenteMeus && contexto?.userId) q = q.eq("atendente_id", contexto.userId);
       else if (segmentoSelecionado !== "todos") q = q.eq("segmento_id", segmentoSelecionado);
-      if (contexto?.role === "gestor" && contexto.departamento) q = q.eq("solicitante.departamento", contexto.departamento);
+      if (contexto?.role === "colaborador" && contexto.userId) q = q.eq("solicitante_id", contexto.userId);
+      if (contexto?.role === "gestor" && !contexto.isGestorTI && contexto.departamento) q = q.eq("solicitante.departamento", contexto.departamento);
       const { data, error } = await q;
       if (error) throw error;
       return data ?? [];
