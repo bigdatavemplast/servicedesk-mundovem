@@ -49,6 +49,11 @@ async function canAccessTicket(supabase: any, userId: string, ticket: any) {
 async function canEditFilaTicket(supabase: any, userId: string, ticket: any) {
   const roles = await getRoles(supabase, userId);
   if (roles.includes("admin")) return true;
+  if (roles.includes("gestor")) {
+    const { data: ok, error } = await supabase.rpc("gestor_mesma_area", { _gestor_id: userId, _colaborador_id: ticket.solicitante_id });
+    if (error) throw new Error(error.message);
+    return !!ok;
+  }
   if (!roles.includes("atendente")) return false;
   return ticket.atendente_id == null || ticket.atendente_id === userId;
 }
@@ -69,12 +74,9 @@ export const comentarChamado = createServerFn({ method: "POST" }).middleware([re
   const supabase = context.supabase as any; const admin = await getAdminClient(supabase);
   const { data: ticket, error: ticketError } = await admin.from("chamados").select("id,numero,titulo,status,prioridade,prazo_resolucao,sla_pausado,solicitante_id,atendente_id").eq("id", data.chamadoId).maybeSingle();
   if (ticketError || !ticket) throw new Error(ticketError?.message ?? "Chamado não encontrado");
-  // Comentários seguem a mesma regra de edição do chamado: somente admin,
-  // atendente responsável ou atendente de chamado sem responsável podem interagir.
-  // Solicitantes, gestores e outros atendentes permanecem somente leitura.
   const isRequester = ticket.solicitante_id === context.userId;
   const canInteract = isRequester || await canEditFilaTicket(supabase, context.userId, ticket);
-  if (!canInteract) throw new Error("Somente o solicitante, o admin, o atendente responsável ou um atendente de um chamado sem responsável pode comentar neste chamado.");
+  if (!canInteract) throw new Error("Somente o solicitante, o admin, o gestor da área, o atendente responsável ou um atendente de um chamado sem responsável pode comentar neste chamado.");
   if (data.interno && !isRequester && !(await hasPermission(supabase, context.userId, "ticket.comment.internal"))) throw new Error("Nota interna disponível somente para atendimento.");
   if (data.interno && isRequester) throw new Error("Solicitantes não podem adicionar notas internas.");
   if (data.interno && !(await hasPermission(supabase, context.userId, "ticket.comment.internal"))) throw new Error("Nota interna disponível somente para atendimento.");
@@ -92,18 +94,15 @@ export const atualizarChamado = createServerFn({ method: "POST" }).middleware([r
   const isRequester = ticket.solicitante_id === context.userId;
   const roles = await getRoles(supabase, context.userId);
   const isAdmin = roles.includes("admin");
+  const isGestor = roles.includes("gestor");
   const canEditFila = await canEditFilaTicket(supabase, context.userId, ticket);
 
-  // Na fila de atendimento, somente o admin, o responsável atual ou qualquer
-  // atendente quando o chamado ainda está sem responsável podem alterar o chamado.
-  // Gestores e outros atendentes continuam podendo visualizar conforme as regras
-  // de acesso, mas não podem editar este chamado.
   if (!isAdmin && !canEditFila) {
     if (data.status === "reaberto" && isRequester) {
       if (ticket.status !== "fechado" || !ticket.fechado_em) throw new Error("Somente chamados fechados podem ser reabertos.");
       if (Date.now() - new Date(ticket.fechado_em).getTime() > 48 * 60 * 60 * 1000) throw new Error("O prazo de 2 dias para reabrir o chamado expirou.");
     } else {
-      throw new Error("Somente o admin, o atendente responsável ou um atendente de um chamado sem responsável pode alterar este chamado.");
+      throw new Error("Somente o admin, o gestor da área, o atendente responsável ou um atendente de um chamado sem responsável pode alterar este chamado.");
     }
   }
 

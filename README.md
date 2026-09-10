@@ -25,5 +25,3 @@ cd <repository-name>
 npm i
 npm run dev
 ```
-
-<!-- sync-check: 2026-09-10 -->
