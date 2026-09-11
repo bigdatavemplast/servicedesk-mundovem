@@ -28,15 +28,34 @@ type Horario = { calendario_id: string; dia_semana: number; hora_inicio: string;
 type Regra = { id: string; calendario_id: string | null; usa_sla_resolucao: boolean };
 
 function statusStyle(s: string) {
-  if (s === "aberto") return "bg-sky-100 text-sky-700";
-  if (s === "em_andamento") return "bg-amber-100 text-amber-700";
-  if (s.startsWith("aguardando")) return "bg-orange-100 text-orange-700";
-  if (s === "resolvido") return "bg-emerald-100 text-emerald-700";
-  if (s === "fechado") return "bg-violet-100 text-violet-700";
-  return "bg-muted text-muted-foreground";
+  if (s === "aberto") return "bg-sky-100 text-sky-700 border border-sky-200";
+  if (s === "em_andamento") return "bg-violet-100 text-violet-700 border border-violet-200";
+  if (s === "aguardando_usuario") return "bg-orange-100 text-orange-700 border border-orange-200";
+  if (s === "aguardando_terceiro") return "bg-amber-100 text-amber-800 border border-amber-200";
+  if (s === "resolvido") return "bg-emerald-100 text-emerald-700 border border-emerald-200";
+  if (s === "fechado") return "bg-slate-100 text-slate-700 border border-slate-200";
+  if (s === "cancelado") return "bg-red-100 text-red-700 border border-red-200";
+  return "bg-muted text-muted-foreground border border-border";
+}
+function statusLabel(s: string) {
+  if (s === "aberto") return "Aberto";
+  if (s === "em_andamento") return "Em andamento";
+  if (s === "aguardando_usuario") return "Aguardando usuário";
+  if (s === "aguardando_terceiro") return "Aguardando terceiro";
+  if (s === "resolvido") return "Resolvido";
+  if (s === "fechado") return "Fechado";
+  if (s === "cancelado") return "Cancelado";
+  return s;
 }
 function prioStyle(p: string) {
-  return p === "critica" ? "bg-red-100 text-red-700" : p === "alta" ? "bg-amber-100 text-amber-700" : p === "media" ? "bg-blue-100 text-blue-700" : "bg-emerald-100 text-emerald-700";
+  return p === "critica" ? "bg-red-100 text-red-700 border border-red-200" : p === "alta" ? "bg-orange-100 text-orange-700 border border-orange-200" : p === "media" ? "bg-yellow-100 text-yellow-800 border border-yellow-200" : "bg-emerald-100 text-emerald-700 border border-emerald-200";
+}
+function prioLabel(p: string) {
+  if (p === "critica") return "Crítica";
+  if (p === "alta") return "Alta";
+  if (p === "media") return "Média";
+  if (p === "baixa") return "Baixa";
+  return p;
 }
 function timeParts(value: string) {
   const [h, m, s] = value.split(":").map(Number);
@@ -130,5 +149,5 @@ function FilaPage() {
   const { data: horarios = [] } = useQuery({ queryKey: ["fila-sla-horarios", calendarioIds], enabled: calendarioIds.length > 0, queryFn: async () => { const { data, error } = await supabase.from("sla_calendario_horarios").select("calendario_id,dia_semana,hora_inicio,hora_fim").in("calendario_id", calendarioIds).eq("ativo", true); if (error) throw error; return (data ?? []) as Horario[]; } });
   const regraMap = useMemo(() => new Map(regras.map(r => [r.id, r])), [regras]); const selectedName = segmentoSelecionado === "todos" ? "Todos" : segmentos.find(s => s.id === segmentoSelecionado)?.nome ?? "Todos";
   if (loadingContexto || loadingSegmentos || loadingChamados) return <div className="p-8 text-center text-sm text-muted-foreground">Carregando fila…</div>;
-  return (<div className="space-y-4 p-6"><div className="flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-2xl font-bold">Fila de atendimento</h1><p className="text-sm text-muted-foreground">{selectedName} · {chamados.length} chamado(s)</p></div><div className="flex flex-wrap gap-2"><Select value={status} onValueChange={setStatus}><SelectTrigger className="w-[170px]"><SelectValue placeholder="Status" /></SelectTrigger><SelectContent>{STATUS.map(s => <SelectItem key={s.v} value={s.v}>{s.l}</SelectItem>)}</SelectContent></Select><Select value={prioridade} onValueChange={setPrioridade}><SelectTrigger className="w-[190px]"><SelectValue /></SelectTrigger><SelectContent>{PRIOS.map(p => <SelectItem key={p.v} value={p.v}>{p.l}</SelectItem>)}</SelectContent></Select>{contexto?.role !== "colaborador" && <Select value={segmentoSelecionado} onValueChange={setSegmentoSelecionado}><SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos">Todos os segmentos</SelectItem>{segmentos.map(s => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}</SelectContent></Select>}{contexto?.role === "atendente" && <Button variant={somenteMeus ? "default" : "outline"} onClick={() => setSomenteMeus(v => !v)}>Somente meus</Button>}</div></div><div className="grid gap-3">{chamados.length === 0 ? <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">Nenhum chamado encontrado.</CardContent></Card> : chamados.map((c: any) => { const sla = slaInfo(c, now, regraMap, horarios); return <Card key={c.id} className="cursor-pointer hover:bg-muted/30" onClick={() => navigate({ to: "/chamados/$id", params: { id: c.id } })}><CardContent className="flex flex-wrap items-center justify-between gap-3 p-4"><div className="min-w-0 flex-1"><div className="font-mono text-xs text-muted-foreground">{c.numero}</div><div className="font-medium truncate">{c.titulo}</div><div className="mt-1 text-xs text-muted-foreground">Solicitante: {c.solicitante?.nome ?? "—"} · Responsável: {c.atendente?.nome ?? "Não atribuído"}</div></div><div className="flex items-center gap-2"><span className={`rounded-full px-2 py-1 text-xs ${prioStyle(c.prioridade)}`}>{c.prioridade}</span><span className={`rounded-full px-2 py-1 text-xs ${statusStyle(c.status)}`}>{c.status}</span><span className={`text-xs ${slaClass(sla.status)}`}>{sla.status === "sem_sla" ? "Sem SLA" : sla.status === "pausado" ? `Pausado · ${duration(sla.seconds)}` : duration(sla.seconds)}</span></div></CardContent></Card>; })}</div></div>);
+  return (<div className="space-y-4 p-6"><div className="flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-2xl font-bold">Fila de atendimento</h1><p className="text-sm text-muted-foreground">{selectedName} · {chamados.length} chamado(s)</p></div><div className="flex flex-wrap gap-2"><Select value={status} onValueChange={setStatus}><SelectTrigger className="w-[170px]"><SelectValue placeholder="Status" /></SelectTrigger><SelectContent>{STATUS.map(s => <SelectItem key={s.v} value={s.v}>{s.l}</SelectItem>)}</SelectContent></Select><Select value={prioridade} onValueChange={setPrioridade}><SelectTrigger className="w-[190px]"><SelectValue /></SelectTrigger><SelectContent>{PRIOS.map(p => <SelectItem key={p.v} value={p.v}>{p.l}</SelectItem>)}</SelectContent></Select>{contexto?.role !== "colaborador" && <Select value={segmentoSelecionado} onValueChange={setSegmentoSelecionado}><SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos">Todos os segmentos</SelectItem>{segmentos.map(s => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}</SelectContent></Select>}{contexto?.role === "atendente" && <Button variant={somenteMeus ? "default" : "outline"} onClick={() => setSomenteMeus(v => !v)}>Somente meus</Button>}</div></div><div className="grid gap-3">{chamados.length === 0 ? <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">Nenhum chamado encontrado.</CardContent></Card> : chamados.map((c: any) => { const sla = slaInfo(c, now, regraMap, horarios); return <Card key={c.id} className="cursor-pointer hover:bg-muted/30" onClick={() => navigate({ to: "/chamados/$id", params: { id: c.id } })}><CardContent className="flex flex-wrap items-center justify-between gap-3 p-4"><div className="min-w-0 flex-1"><div className="font-mono text-xs text-muted-foreground">{c.numero}</div><div className="font-medium truncate">{c.titulo}</div><div className="mt-1 text-xs text-muted-foreground">Solicitante: {c.solicitante?.nome ?? "—"} · Responsável: {c.atendente?.nome ?? "Não atribuído"}</div></div><div className="flex items-center gap-2"><span className={`rounded-full px-2 py-1 text-xs font-medium ${prioStyle(c.prioridade)}`}>{prioLabel(c.prioridade)}</span><span className={`rounded-full px-2 py-1 text-xs font-medium ${statusStyle(c.status)}`}>{statusLabel(c.status)}</span><span className={`text-xs ${slaClass(sla.status)}`}>{sla.status === "sem_sla" ? "Sem SLA" : sla.status === "pausado" ? `Pausado · ${duration(sla.seconds)}` : duration(sla.seconds)}</span></div></CardContent></Card>; })}</div></div>);
 }
