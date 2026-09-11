@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Paperclip, Download, Trash2, FileText, Loader2, Maximize2 } from "lucide-react";
+import { Paperclip, Download, Trash2, FileText, Loader2 } from "lucide-react";
 import { AnexoDropzone } from "./AnexoDropzone";
 import { ehImagem, enviarAnexo, formatarTamanho, urlAssinada } from "@/lib/anexos";
 
@@ -52,7 +52,6 @@ function PreviewImagem({ anexo, onAmpliar }: { anexo: Anexo; onAmpliar: (url: st
           loading="lazy"
         />
         <span className="pointer-events-none absolute bottom-2 right-2 inline-flex cursor-default items-center gap-1.5 rounded-full bg-black/55 px-2 py-1 text-[11px] font-medium text-white opacity-0 shadow-sm backdrop-blur-sm transition-opacity duration-200 group-hover:opacity-100">
-          <Maximize2 className="h-3 w-3" aria-hidden="true" />
           Ampliar
         </span>
       </button>
