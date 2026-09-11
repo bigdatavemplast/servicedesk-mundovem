@@ -106,6 +106,9 @@ export const atualizarChamado = createServerFn({ method: "POST" }).middleware([r
   if (data.status === "cancelado" && !isAdmin && !isGestor) {
     throw new Error("Somente administradores ou gestores podem cancelar chamados.");
   }
+  if (data.status === "fechado" && ticket.avaliacao_nota == null) {
+    throw new Error("O chamado só pode ser fechado após a avaliação do colaborador.");
+  }
 
   if (!isAdmin && !isGestor && !canEditFila) {
     if (data.status === "reaberto" && isRequester) {
@@ -173,9 +176,11 @@ export const atualizarChamado = createServerFn({ method: "POST" }).middleware([r
 
 export const avaliarChamado = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((d) => z.object({ chamadoId: z.string().uuid(), nota: z.number().int().min(1).max(5), comentario: z.string().nullable().optional() }).parse(d)).handler(async ({ data, context }) => {
   const admin = await getAdminClient(context.supabase);
-  const { data: ticket, error: ticketError } = await admin.from("chamados").select("id,solicitante_id,status").eq("id", data.chamadoId).maybeSingle();
+  const { data: ticket, error: ticketError } = await admin.from("chamados").select("id,solicitante_id,status,resolvido_em,avaliacao_nota").eq("id", data.chamadoId).maybeSingle();
   if (ticketError || !ticket) throw new Error(ticketError?.message ?? "Chamado não encontrado");
   if (ticket.solicitante_id !== context.userId || ticket.status !== "resolvido") throw new Error("Somente o solicitante pode avaliar um chamado resolvido.");
+  if (ticket.avaliacao_nota != null) throw new Error("Este chamado já possui uma avaliação.");
+  if (!ticket.resolvido_em || Date.now() - new Date(ticket.resolvido_em).getTime() > 48 * 60 * 60 * 1000) throw new Error("O prazo de 48 horas para avaliar o chamado expirou.");
   const { data: updated, error } = await admin.from("chamados").update({ avaliacao_nota: data.nota, avaliacao_comentario: data.comentario ?? null } as never).eq("id", data.chamadoId).select("id,avaliacao_nota,avaliacao_comentario").single();
   if (error || !updated) throw new Error(error?.message ?? "Falha ao registrar avaliação");
   return updated;
