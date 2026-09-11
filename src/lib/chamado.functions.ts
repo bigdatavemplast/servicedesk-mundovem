@@ -103,6 +103,10 @@ export const atualizarChamado = createServerFn({ method: "POST" }).middleware([r
   const isGestor = roles.includes("gestor");
   const canEditFila = await canEditFilaTicket(supabase, context.userId, ticket);
 
+  if (data.status === "cancelado" && !isAdmin && !isGestor) {
+    throw new Error("Somente administradores ou gestores podem cancelar chamados.");
+  }
+
   if (!isAdmin && !isGestor && !canEditFila) {
     if (data.status === "reaberto" && isRequester) {
       if (ticket.status !== "fechado" || !ticket.fechado_em) throw new Error("Somente chamados fechados podem ser reabertos.");
