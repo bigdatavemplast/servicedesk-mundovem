@@ -51,7 +51,7 @@ function PreviewImagem({ anexo, onAmpliar }: { anexo: Anexo; onAmpliar: (url: st
           className="max-h-[420px] min-h-[180px] w-full object-contain transition-transform duration-200 group-hover:scale-[1.01]"
           loading="lazy"
         />
-        <span className="pointer-events-none absolute bottom-2 right-2 inline-flex items-center gap-1.5 rounded-full bg-black/55 px-2 py-1 text-[11px] font-medium text-white opacity-0 shadow-sm backdrop-blur-sm transition-opacity duration-200 group-hover:opacity-100">
+        <span className="pointer-events-none absolute bottom-2 right-2 inline-flex cursor-default items-center gap-1.5 rounded-full bg-black/55 px-2 py-1 text-[11px] font-medium text-white opacity-0 shadow-sm backdrop-blur-sm transition-opacity duration-200 group-hover:opacity-100">
           <Maximize2 className="h-3 w-3" aria-hidden="true" />
           Ampliar
         </span>
