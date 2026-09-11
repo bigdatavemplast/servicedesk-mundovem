@@ -43,7 +43,7 @@ function PreviewImagem({ anexo, onAmpliar }: { anexo: Anexo; onAmpliar: (url: st
         type="button"
         onClick={() => onAmpliar(url)}
         aria-label={`Ampliar imagem ${anexo.nome_arquivo}`}
-        className="group relative block w-full overflow-hidden rounded-lg border bg-muted/20 text-left focus:outline-none focus:ring-2 focus:ring-ring"
+        className="group relative block w-full cursor-zoom-in overflow-hidden rounded-lg border bg-muted/20 text-left focus:outline-none focus:ring-2 focus:ring-ring"
       >
         <img
           src={url}
