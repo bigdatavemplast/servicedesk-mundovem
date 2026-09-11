@@ -51,9 +51,9 @@ function PreviewImagem({ anexo, onAmpliar }: { anexo: Anexo; onAmpliar: (url: st
           className="max-h-[420px] min-h-[180px] w-full object-contain transition-transform duration-200 group-hover:scale-[1.01]"
           loading="lazy"
         />
-        <span className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 rounded-md bg-background/90 px-2.5 py-1.5 text-xs font-medium shadow-sm backdrop-blur">
-          <Maximize2 className="h-3.5 w-3.5" aria-hidden="true" />
-          Clique para ampliar
+        <span className="pointer-events-none absolute bottom-2 right-2 inline-flex items-center gap-1.5 rounded-full bg-black/55 px-2 py-1 text-[11px] font-medium text-white opacity-0 shadow-sm backdrop-blur-sm transition-opacity duration-200 group-hover:opacity-100">
+          <Maximize2 className="h-3 w-3" aria-hidden="true" />
+          Ampliar
         </span>
       </button>
       <p className="truncate text-sm font-medium" title={anexo.nome_arquivo}>
