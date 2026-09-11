@@ -48,7 +48,7 @@ function PreviewImagem({ anexo, onAmpliar }: { anexo: Anexo; onAmpliar: (url: st
         <img
           src={url}
           alt={`Pré-visualização de ${anexo.nome_arquivo}`}
-          className="max-h-[420px] min-h-[180px] w-full cursor-zoom-in object-contain transition-transform duration-200 group-hover:scale-[1.01]"
+          className="max-h-[420px] min-h-[180px] w-full object-contain transition-transform duration-200 group-hover:scale-[1.01]"
           loading="lazy"
         />
         <span className="pointer-events-none absolute bottom-2 right-2 inline-flex items-center gap-1.5 rounded-full bg-black/55 px-2.5 py-1.5 text-[11px] font-medium text-white opacity-0 shadow-sm backdrop-blur-sm transition-all duration-200 group-hover:opacity-100">
