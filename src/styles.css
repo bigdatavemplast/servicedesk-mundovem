@@ -141,6 +141,10 @@
 }
 
 /* O histórico do chamado não deve herdar sublinhado nos valores alterados. */
-ul.space-y-2.text-sm > li > span.text-foreground {
+ul.space-y-2.text-sm > li,
+ul.space-y-2.text-sm > li * {
+  text-decoration-line: none !important;
   text-decoration: none !important;
+  text-decoration-thickness: 0 !important;
+  text-underline-offset: 0 !important;
 }
