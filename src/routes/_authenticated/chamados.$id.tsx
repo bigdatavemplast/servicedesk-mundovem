@@ -62,7 +62,7 @@ function DetalheChamadoPage() {
   const { data: roles = [] } = useQuery({ queryKey: ["my-roles", user.id], queryFn: async () => { const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id); return (data ?? []).map((r) => r.role as string); } });
   const isStaff = roles.some((r) => ["atendente", "gestor", "admin"].includes(r));
   const isAttendant = roles.includes("atendente") && !roles.includes("gestor") && !roles.includes("admin");
-  const isManager = roles.includes("gestor");
+  const isManager = roles.includes("gestor") && !roles.includes("admin");
 
   const { data: chamado, isLoading } = useQuery({
     queryKey: ["chamado", id],
@@ -164,17 +164,17 @@ function DetalheChamadoPage() {
   if (!chamado) return <div className="p-8 text-center text-sm text-muted-foreground">Chamado não encontrado.</div>;
   const jaAvaliado = chamado.avaliacao_nota != null;
   const prazoAvaliacaoMs = chamado.resolvido_em ? new Date(chamado.resolvido_em).getTime() + 48 * 60 * 60 * 1000 : 0;
-  const podeAvaliar = chamado.solicitante_id === user.id && chamado.status === "resolvido" && !jaAvaliado && prazoAvaliacaoMs > 0 && now <= prazoAvaliacaoMs;
+  const podeAvaliar = !isManager && chamado.solicitante_id === user.id && chamado.status === "resolvido" && !jaAvaliado && prazoAvaliacaoMs > 0 && now <= prazoAvaliacaoMs;
   const fechadoEmMs = chamado.fechado_em ? new Date(chamado.fechado_em).getTime() : 0; const prazoReaberturaMs = fechadoEmMs + 48 * 60 * 60 * 1000;
-  const podeReabrir = chamado.solicitante_id === user.id && chamado.status === "fechado" && fechadoEmMs > 0 && now <= prazoReaberturaMs; const sla = slaInfo(chamado as any, now);
-  const podeAlterarChamado = roles.includes("admin") || isManager || (isAttendant && (!chamado.atendente_id || chamado.atendente_id === user.id));
-  const podeCancelar = roles.includes("admin") || roles.includes("gestor");
+  const podeReabrir = !isManager && chamado.solicitante_id === user.id && chamado.status === "fechado" && fechadoEmMs > 0 && now <= prazoReaberturaMs; const sla = slaInfo(chamado as any, now);
+  const podeAlterarChamado = roles.includes("admin") || (isAttendant && (!chamado.atendente_id || chamado.atendente_id === user.id));
+  const podeCancelar = roles.includes("admin");
   const statusOptions = (podeCancelar ? STATUS : STATUS.filter((s) => s.v !== "cancelado")).filter((s) => s.v !== "fechado" || jaAvaliado || chamado.status === "fechado");
-  const paginaSomenteLeitura = !podeAlterarChamado && chamado.solicitante_id !== user.id;
+  const paginaSomenteLeitura = isManager || (!podeAlterarChamado && chamado.solicitante_id !== user.id);
 
   return (<div className="space-y-4">
     <Button variant="ghost" size="sm" onClick={() => navigate({ to: isStaff ? "/fila" : "/chamados" })}><ArrowLeft className="mr-2 h-4 w-4" />{isStaff ? "Fila de atendimento" : "Meus chamados"}</Button>
-    {paginaSomenteLeitura && (<div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">Este chamado está em modo somente leitura. Apenas o admin, o gestor com acesso ao chamado ou o atendente autorizado pode alterar o chamado.</div>)}
+    {paginaSomenteLeitura && (<div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">Este chamado está em modo somente leitura. Apenas o admin ou o atendente autorizado pode alterar o chamado.</div>)}
     <div className={paginaSomenteLeitura ? "pointer-events-none select-none opacity-75" : ""} aria-disabled={paginaSomenteLeitura}>
       <div className="flex flex-wrap items-start justify-between gap-3"><div><div className="font-mono text-xs text-muted-foreground">{chamado.numero}</div><h1 className="text-2xl font-bold">{chamado.titulo}</h1><div className="mt-1 text-sm text-muted-foreground">Solicitante: <strong>{(chamado.solicitante as any)?.nome ?? "—"}</strong></div></div><div className="flex gap-2"><span className={`rounded-full px-2 py-1 text-xs font-medium ${prioClass(chamado.prioridade)}`}>{chamado.prioridade}</span><span className={`rounded-full px-2 py-1 text-xs font-medium ${statusClass(chamado.status)}`} style={{ textDecoration: "none" }}>{STATUS.find((s) => s.v === chamado.status)?.l ?? chamado.status}</span></div></div>
       {podeReabrir && (<Card className="border-sky-200 bg-sky-50/50"><CardContent className="flex flex-wrap items-center justify-between gap-3 p-4"><div><div className="text-sm font-semibold">Precisa de mais atendimento?</div><div className="text-xs text-muted-foreground">Você pode reabrir este chamado até {fmt(new Date(prazoReaberturaMs).toISOString())}.</div></div><Button variant="outline" disabled={atualizar.isPending} onClick={() => setConfirmacao({ campo: "status", valor: "reaberto", label: "Reaberto", atual: "fechado", atualLabel: "Fechado" })}>{atualizar.isPending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}Reabrir chamado</Button></CardContent></Card>)}
