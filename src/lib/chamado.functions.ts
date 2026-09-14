@@ -186,7 +186,7 @@ export const avaliarChamado = createServerFn({ method: "POST" }).middleware([req
   const { data: updated, error } = await admin.from("chamados").update({ avaliacao_nota: data.nota, avaliacao_comentario: data.comentario ?? null } as never).eq("id", data.chamadoId).select("id,avaliacao_nota,avaliacao_comentario").single();
   if (error || !updated) throw new Error(error?.message ?? "Falha ao registrar avaliação");
   const valorAvaliacao = `${data.nota} estrelas${data.comentario?.trim() ? ` — ${data.comentario.trim()}` : ""}`;
-  const { error: historicoError } = await admin.from("historico_chamado").insert({ chamado_id: data.chamadoId, autor_id: context.userId, acao: "avaliacao_registrada", de: "", para: valorAvaliacao } as never);
+  const { error: historicoError } = await admin.from("historico_chamado").insert({ chamado_id: data.chamadoId, autor_id: context.userId, acao: "avaliacao_registrada", de: "\u200B", para: valorAvaliacao } as never);
   if (historicoError) throw new Error(historicoError.message);
   return updated;
 });
