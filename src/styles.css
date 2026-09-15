@@ -187,6 +187,27 @@ ul.space-y-2.text-sm > li * {
   color: var(--color-foreground);
 }
 
+/* Separadores de dia no histórico: deixam claro quando o atendimento atravessou a data. */
+.space-y-4 > :last-child .historico-dia {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: -0.05rem 0 0.55rem -1.1rem;
+  padding: 0.1rem 0 0.15rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+}
+
+.space-y-4 > :last-child .historico-dia::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: var(--color-border);
+}
+
 @media (min-width: 640px) {
   .space-y-4 > :last-child ul.space-y-2.text-sm > li {
     padding-right: 0.85rem;
