@@ -90,6 +90,10 @@ export function AnexosSecao({
     },
   });
 
+  function atualizarHistorico() {
+    void qc.invalidateQueries({ queryKey: ["chamado-historico", chamadoId] });
+  }
+
   async function subir(arquivos: File[]) {
     setEnviando((atual) => [...atual, ...arquivos]);
     for (const file of arquivos) {
@@ -101,6 +105,7 @@ export function AnexosSecao({
           onProgress: (pct) => setProgresso((p) => ({ ...p, [file.name]: pct })),
         });
         toast.success(`${file.name} enviado`);
+        atualizarHistorico();
       } catch (e) {
         toast.error(e instanceof Error ? e.message : `Falha ao enviar ${file.name}`);
       } finally {
@@ -137,6 +142,7 @@ export function AnexosSecao({
     onSuccess: () => {
       toast.success("Anexo removido");
       void qc.invalidateQueries({ queryKey: ["chamado-anexos", chamadoId] });
+      atualizarHistorico();
     },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Falha ao remover"),
   });
