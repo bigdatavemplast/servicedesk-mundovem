@@ -37,7 +37,6 @@ async function criarNotificacao(admin: any, args: { destinatarioId: string; tipo
 async function canAccessTicket(supabase: any, userId: string, ticket: any) {
   const roles = await getRoles(supabase, userId);
   if (roles.includes("admin")) return true;
-  // Gestor tem acesso somente para visualização dos chamados permitidos pela própria área.
   if (roles.includes("gestor")) {
     const { data: perfil, error: perfilError } = await supabase.from("profiles").select("area_id").eq("id", userId).maybeSingle();
     if (perfilError) throw new Error(perfilError.message);
@@ -61,6 +60,25 @@ async function canEditFilaTicket(supabase: any, userId: string, ticket: any) {
   if (!roles.includes("atendente") || roles.includes("gestor")) return false;
   return ticket.atendente_id == null || ticket.atendente_id === userId;
 }
+
+export const registrarHistoricoAnexo = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((d) => z.object({
+  chamadoId: z.string().uuid(),
+  acao: z.enum(["foto_adicionada", "foto_removida", "anexo_adicionado", "anexo_removido"]),
+  nomeArquivo: z.string().trim().min(1).max(500),
+}).parse(d)).handler(async ({ data, context }) => {
+  const admin = await getAdminClient(context.supabase);
+  const { data: ticket, error: ticketError } = await admin.from("chamados").select("id").eq("id", data.chamadoId).maybeSingle();
+  if (ticketError || !ticket) throw new Error(ticketError?.message ?? "Chamado não encontrado");
+  const { error } = await admin.from("historico_chamado").insert({
+    chamado_id: data.chamadoId,
+    autor_id: context.userId,
+    acao: data.acao,
+    de: "\u200B",
+    para: data.nomeArquivo,
+  } as never);
+  if (error) throw new Error(`Falha ao registrar histórico do anexo: ${error.message}`);
+  return { ok: true };
+});
 
 export const criarChamado = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((d) => z.object({
   titulo: z.string().trim().min(1).max(250), descricao: z.string().trim().min(1), prioridade: z.enum(["baixa", "media", "alta", "critica"]),
@@ -104,31 +122,20 @@ export const atualizarChamado = createServerFn({ method: "POST" }).middleware([r
   const isGestor = roles.includes("gestor");
   if (isGestor && !isAdmin) throw new Error("Gestores podem apenas visualizar chamados.");
   const canEditFila = await canEditFilaTicket(supabase, context.userId, ticket);
-
-  if (data.status === "cancelado" && !isAdmin) {
-    throw new Error("Somente administradores podem cancelar chamados.");
-  }
-  if (data.status === "fechado" && ticket.avaliacao_nota == null) {
-    throw new Error("O chamado só pode ser fechado após a avaliação do colaborador.");
-  }
-
+  if (data.status === "cancelado" && !isAdmin) throw new Error("Somente administradores podem cancelar chamados.");
+  if (data.status === "fechado" && ticket.avaliacao_nota == null) throw new Error("O chamado só pode ser fechado após a avaliação do colaborador.");
   if (!isAdmin && !canEditFila) {
     if (data.status === "reaberto" && isRequester) {
       if (ticket.status !== "fechado" || !ticket.fechado_em) throw new Error("Somente chamados fechados podem ser reabertos.");
       if (Date.now() - new Date(ticket.fechado_em).getTime() > 48 * 60 * 60 * 1000) throw new Error("O prazo de 2 dias para reabrir o chamado expirou.");
-    } else {
-      throw new Error("Somente o admin ou o atendente autorizado pode alterar este chamado.");
-    }
+    } else throw new Error("Somente o admin ou o atendente autorizado pode alterar este chamado.");
   }
-
   if (!(await canAccessTicket(supabase, context.userId, ticket))) throw new Error("Você não tem permissão para alterar este chamado.");
   if (data.status === "reaberto") {
     if (!isRequester && !isAdmin) throw new Error("Somente o solicitante pode reabrir o chamado.");
     if (ticket.status !== "fechado" || !ticket.fechado_em) throw new Error("Somente chamados fechados podem ser reabertos.");
     if (Date.now() - new Date(ticket.fechado_em).getTime() > 48 * 60 * 60 * 1000) throw new Error("O prazo de 2 dias para reabrir o chamado expirou.");
-  } else if (data.status !== undefined && !(await hasPermission(supabase, context.userId, "ticket.update.status"))) {
-    throw new Error("Somente a equipe de atendimento pode alterar o status do chamado.");
-  }
+  } else if (data.status !== undefined && !(await hasPermission(supabase, context.userId, "ticket.update.status"))) throw new Error("Somente a equipe de atendimento pode alterar o status do chamado.");
   if (data.prioridade !== undefined && !(await hasPermission(supabase, context.userId, "ticket.update.priority"))) throw new Error("Você não tem permissão para alterar a prioridade.");
   if (data.atendenteId !== undefined && !(await hasPermission(supabase, context.userId, "ticket.assign"))) throw new Error("Você não tem permissão para atribuir o chamado.");
   if (data.tipoChamadoId !== undefined && !(await hasPermission(supabase, context.userId, "ticket.update.status"))) throw new Error("Você não tem permissão para alterar o tipo de chamado.");
@@ -138,39 +145,22 @@ export const atualizarChamado = createServerFn({ method: "POST" }).middleware([r
     if (!(targetRoles ?? []).some((r: { role: Role }) => hasAnyRolePermission([r.role], "ticket.view.queue"))) throw new Error("O responsável selecionado não possui perfil de atendimento.");
   }
   const patch: Record<string, any> = {}; const historico: any[] = [];
-  if (data.status && data.status !== ticket.status) {
-    patch.status = data.status; historico.push({ chamado_id: data.chamadoId, autor_id: context.userId, acao: data.status === "reaberto" ? "chamado_reaberto" : "status_alterado", de: ticket.status, para: data.status });
-    if (data.status === "resolvido") patch.resolvido_em = new Date().toISOString();
-    if (data.status === "fechado") patch.fechado_em = new Date().toISOString();
-    if (data.status === "reaberto") { patch.reaberto_em = new Date().toISOString(); patch.sla_pausado = false; patch.atendente_id = ticket.atendente_id ?? null; }
-  }
+  if (data.status && data.status !== ticket.status) { patch.status = data.status; historico.push({ chamado_id: data.chamadoId, autor_id: context.userId, acao: data.status === "reaberto" ? "chamado_reaberto" : "status_alterado", de: ticket.status, para: data.status }); if (data.status === "resolvido") patch.resolvido_em = new Date().toISOString(); if (data.status === "fechado") patch.fechado_em = new Date().toISOString(); if (data.status === "reaberto") { patch.reaberto_em = new Date().toISOString(); patch.sla_pausado = false; patch.atendente_id = ticket.atendente_id ?? null; } }
   if (data.prioridade && data.prioridade !== ticket.prioridade) { patch.prioridade = data.prioridade; historico.push({ chamado_id: data.chamadoId, autor_id: context.userId, acao: "prioridade_alterada", de: ticket.prioridade, para: data.prioridade }); }
   if (data.atendenteId !== undefined && data.atendenteId !== ticket.atendente_id) { patch.atendente_id = data.atendenteId; historico.push({ chamado_id: data.chamadoId, autor_id: context.userId, acao: "atendente_alterado", de: ticket.atendente_id ?? "", para: data.atendenteId ?? "" }); }
   if (data.tipoChamadoId !== undefined && data.tipoChamadoId !== ticket.tipo_chamado_id) { patch.tipo_chamado_id = data.tipoChamadoId; historico.push({ chamado_id: data.chamadoId, autor_id: context.userId, acao: "tipo_chamado_alterado", de: ticket.tipo_chamado_id ?? "", para: data.tipoChamadoId }); }
   if (!Object.keys(patch).length) return { ok: true, chamado: ticket };
-
   let updated: any;
   if (data.atendenteId !== undefined) {
-    const { data: assigned, error: assignError } = await supabase.rpc("atribuir_chamado", {
-      _chamado_id: data.chamadoId,
-      _atendente_id: data.atendenteId,
-    });
+    const { data: assigned, error: assignError } = await supabase.rpc("atribuir_chamado", { _chamado_id: data.chamadoId, _atendente_id: data.atendenteId });
     if (assignError || !assigned) throw new Error(assignError?.message ?? "Falha ao atribuir chamado");
     updated = assigned;
-
-    const otherPatch = { ...patch };
-    delete otherPatch.atendente_id;
-    if (Object.keys(otherPatch).length) {
-      const { data: restUpdated, error: restError } = await admin.from("chamados").update(otherPatch as never).eq("id", data.chamadoId).select("*").single();
-      if (restError || !restUpdated) throw new Error(restError?.message ?? "Falha ao atualizar chamado");
-      updated = restUpdated;
-    }
+    const otherPatch = { ...patch }; delete otherPatch.atendente_id;
+    if (Object.keys(otherPatch).length) { const { data: restUpdated, error: restError } = await admin.from("chamados").update(otherPatch as never).eq("id", data.chamadoId).select("*").single(); if (restError || !restUpdated) throw new Error(restError?.message ?? "Falha ao atualizar chamado"); updated = restUpdated; }
   } else {
     const { data: restUpdated, error: updateError } = await admin.from("chamados").update(patch as never).eq("id", data.chamadoId).select("*").single();
-    if (updateError || !restUpdated) throw new Error(updateError?.message ?? "Falha ao atualizar chamado");
-    updated = restUpdated;
+    if (updateError || !restUpdated) throw new Error(updateError?.message ?? "Falha ao atualizar chamado"); updated = restUpdated;
   }
-
   if (data.atendenteId !== undefined && updated.atendente_id !== data.atendenteId) throw new Error("A atribuição não foi persistida no chamado.");
   if (historico.length) { const { error: histError } = await admin.from("historico_chamado").insert(historico as never); if (histError) throw new Error(histError.message); }
   return { ok: true, chamado: updated };
