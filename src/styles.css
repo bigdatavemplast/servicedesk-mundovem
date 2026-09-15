@@ -27,9 +27,9 @@
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
-  --color-accent-foreground: var(--foreground);
+  --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--primary-foreground);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -171,15 +171,6 @@ ul.space-y-2.text-sm > li * {
   left: 0.65rem;
   top: 0.72rem;
   margin: 0;
-}
-
-/* Quando a alteração inicia um novo dia, o título ocupa a primeira linha e o relógio desce. */
-.space-y-4 > :last-child ul.space-y-2.text-sm > li.historico-item-com-dia {
-  padding-top: 0.55rem;
-}
-
-.space-y-4 > :last-child ul.space-y-2.text-sm > li.historico-item-com-dia > svg {
-  top: 2.15rem;
 }
 
 .space-y-4 > :last-child ul.space-y-2.text-sm > li > .ml-2 {
