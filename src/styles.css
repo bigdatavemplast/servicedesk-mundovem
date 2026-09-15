@@ -148,3 +148,47 @@ ul.space-y-2.text-sm > li * {
   text-decoration-thickness: 0 !important;
   text-underline-offset: 0 !important;
 }
+
+/* Histórico do chamado: reduzir ruído visual sem esconder nenhuma informação. */
+.space-y-4 > :last-child ul.space-y-2.text-sm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.space-y-4 > :last-child ul.space-y-2.text-sm > li {
+  position: relative;
+  margin: 0;
+  padding: 0.55rem 0.65rem 0.55rem 1.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--color-muted) 38%, transparent);
+  line-height: 1.35;
+}
+
+.space-y-4 > :last-child ul.space-y-2.text-sm > li > svg {
+  position: absolute;
+  left: 0.65rem;
+  top: 0.72rem;
+  margin: 0;
+}
+
+.space-y-4 > :last-child ul.space-y-2.text-sm > li > .ml-2 {
+  display: block;
+  margin: 0.2rem 0 0;
+  padding-left: 0;
+  font-size: 0.68rem;
+  line-height: 1.2;
+  color: var(--color-muted-foreground);
+}
+
+.space-y-4 > :last-child ul.space-y-2.text-sm > li > .ml-2 strong {
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+
+@media (min-width: 640px) {
+  .space-y-4 > :last-child ul.space-y-2.text-sm > li {
+    padding-right: 0.85rem;
+  }
+}
