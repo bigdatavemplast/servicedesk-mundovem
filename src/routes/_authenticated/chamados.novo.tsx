@@ -63,7 +63,7 @@ function NovoChamadoPage() {
   const sugestao = useMemo(() => sugestaoAbertura(`${titulo} ${descricao}`), [titulo, descricao]);
 
   useEffect(() => { const item = lerItemCatalogoSelecionado(); if (!item) return; if (item.segmentoId && emModoColaborador) { const encontrada = areas.find((a) => a.id === item.segmentoId); if (encontrada) setArea(encontrada); } if (item.nome) setTitulo(item.nome); if (item.descricao) setDescricao(item.descricao); if (item.tipoChamadoId) setTipoChamadoId(item.tipoChamadoId); if (item.categoriaId) setCategoriaId(item.categoriaId); if (item.subcategoriaId) setSubcategoriaId(item.subcategoriaId); localStorage.removeItem("service_desk_catalogo_item"); }, [emModoColaborador, areas]);
-  useEffect(() => { if (!emModoColaborador && areaInicial) setArea(areaInicial); }, [emModoColaborador, areaInicial]);
+  useEffect(() => { if (!emModoColaborador && areaInicial && area?.id !== areaInicial.id) setArea(areaInicial); }, [emModoColaborador, areaInicial?.id, area?.id]);
   useEffect(() => { setCategoriaId(""); setSubcategoriaId(""); }, [area?.id]);
 
   const requisitos = { titulo: titulo.trim().length >= 5, descricao: descricao.trim().length >= 20, tipo: !!tipoChamadoId, categoria: !!categoriaId, incidente: !incidente || (!!impacto && !!urgencia) };
