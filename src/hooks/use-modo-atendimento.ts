@@ -47,11 +47,20 @@ export function useModoAtendimento(userId?: string, isAtendente = false) {
   const alterarModo = useCallback(async (next: ModoAtendimento) => {
     if (!isAtendente || !userId) return;
 
-    // Atualiza a interface imediatamente para os dois sentidos.
+    // Troca a interface imediatamente. O papel real do usuário não é alterado.
     setModo(next);
     localStorage.setItem(STORAGE_KEY, next);
 
-    const { error } = await supabase
+    // A RPC usa SECURITY DEFINER e é a forma oficial de persistir a alternância,
+    // evitando que diferenças de RLS/UPSERT impeçam a troca de contexto.
+    const { error: rpcError } = await supabase.rpc("alterar_modo_atendimento", {
+      _modo: next,
+    });
+
+    if (!rpcError) return;
+
+    // Compatibilidade com ambientes em que a função ainda não foi aplicada.
+    const { error: upsertError } = await supabase
       .from("preferencias_atendimento")
       .upsert(
         {
@@ -62,17 +71,18 @@ export function useModoAtendimento(userId?: string, isAtendente = false) {
         { onConflict: "usuario_id" },
       );
 
-    if (error) {
-      const { data: persisted } = await supabase
-        .from("preferencias_atendimento")
-        .select("modo_ativo")
-        .eq("usuario_id", userId)
-        .maybeSingle();
-      const fallback: ModoAtendimento = persisted?.modo_ativo === "colaborador" ? "colaborador" : "atendente";
-      setModo(fallback);
-      localStorage.setItem(STORAGE_KEY, fallback);
-      throw new Error(error.message);
-    }
+    if (!upsertError) return;
+
+    const { data: persisted } = await supabase
+      .from("preferencias_atendimento")
+      .select("modo_ativo")
+      .eq("usuario_id", userId)
+      .maybeSingle();
+
+    const fallback: ModoAtendimento = persisted?.modo_ativo === "colaborador" ? "colaborador" : "atendente";
+    setModo(fallback);
+    localStorage.setItem(STORAGE_KEY, fallback);
+    throw new Error(rpcError.message || upsertError.message);
   }, [isAtendente, userId]);
 
   return {
