@@ -11,7 +11,7 @@ function readStoredMode(): ModoAtendimento {
 }
 
 export function useModoAtendimento(userId?: string, isAtendente = false) {
-  const [modo, setModo] = useState<ModoAtendimento>("atendente");
+  const [modo, setModo] = useState<ModoAtendimento>(() => isAtendente ? readStoredMode() : "atendente");
 
   useEffect(() => {
     if (!userId || !isAtendente) {
@@ -47,19 +47,15 @@ export function useModoAtendimento(userId?: string, isAtendente = false) {
   const alterarModo = useCallback(async (next: ModoAtendimento) => {
     if (!isAtendente || !userId) return;
 
-    // Troca a interface imediatamente. O papel real do usuário não é alterado.
     setModo(next);
     localStorage.setItem(STORAGE_KEY, next);
 
-    // A RPC usa SECURITY DEFINER e é a forma oficial de persistir a alternância,
-    // evitando que diferenças de RLS/UPSERT impeçam a troca de contexto.
     const { error: rpcError } = await supabase.rpc("alterar_modo_atendimento", {
       _modo: next,
     });
 
     if (!rpcError) return;
 
-    // Compatibilidade com ambientes em que a função ainda não foi aplicada.
     const { error: upsertError } = await supabase
       .from("preferencias_atendimento")
       .upsert(
