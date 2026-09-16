@@ -30,8 +30,6 @@ export function useModoAtendimento(userId?: string, isAtendente = false) {
 
       if (!active) return;
 
-      // Se existir preferência salva no banco, ela é a fonte da verdade.
-      // O localStorage fica apenas como fallback para uma sessão ainda sem registro.
       const next: ModoAtendimento = error
         ? stored
         : data?.modo_ativo === "colaborador"
@@ -49,8 +47,10 @@ export function useModoAtendimento(userId?: string, isAtendente = false) {
   const alterarModo = useCallback(async (next: ModoAtendimento) => {
     if (!isAtendente || !userId) return;
 
-    // Persiste diretamente na tabela com RLS do próprio usuário.
-    // Isso evita depender do formato/retorno de RPC para atualizar a interface.
+    // Atualiza a interface imediatamente para os dois sentidos.
+    setModo(next);
+    localStorage.setItem(STORAGE_KEY, next);
+
     const { error } = await supabase
       .from("preferencias_atendimento")
       .upsert(
@@ -62,10 +62,17 @@ export function useModoAtendimento(userId?: string, isAtendente = false) {
         { onConflict: "usuario_id" },
       );
 
-    if (error) throw new Error(error.message);
-
-    localStorage.setItem(STORAGE_KEY, next);
-    setModo(next);
+    if (error) {
+      const { data: persisted } = await supabase
+        .from("preferencias_atendimento")
+        .select("modo_ativo")
+        .eq("usuario_id", userId)
+        .maybeSingle();
+      const fallback: ModoAtendimento = persisted?.modo_ativo === "colaborador" ? "colaborador" : "atendente";
+      setModo(fallback);
+      localStorage.setItem(STORAGE_KEY, fallback);
+      throw new Error(error.message);
+    }
   }, [isAtendente, userId]);
 
   return {
