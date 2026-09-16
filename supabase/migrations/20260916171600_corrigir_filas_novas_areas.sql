@@ -1,8 +1,8 @@
 -- ============================================================
 -- Service Desk - corrigir filas das novas áreas
 -- Mantém áreas já configuradas sem alteração.
--- Para FAB, EXP, ECOM e RH, garante uma fila utilizável quando
--- a área ainda não possui atendentes vinculados.
+-- Garante uma fila utilizável somente para segmentos ativos que
+-- ainda não possuem fila ou possuem fila sem nenhum atendente.
 -- ============================================================
 
 DO $$
@@ -14,7 +14,6 @@ BEGIN
     SELECT id, nome
     FROM public.segmentos
     WHERE ativo = TRUE
-      AND UPPER(TRIM(nome)) IN ('FAB', 'EXP', 'ECOM', 'RH')
   LOOP
     -- Só cria uma fila padrão se a área ainda não possuir nenhuma fila ativa.
     SELECT g.id
@@ -41,6 +40,7 @@ BEGIN
 
     -- Se a área possui fila, mas nenhuma pessoa está vinculada a ela,
     -- disponibiliza os perfis de atendimento existentes para a fila.
+    -- Filas que já possuem atendentes não são alteradas.
     IF NOT EXISTS (
       SELECT 1
       FROM public.grupo_atendentes ga
