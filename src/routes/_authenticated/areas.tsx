@@ -13,6 +13,7 @@ export const Route = createFileRoute("/_authenticated/areas")({
 
 type Segmento = { id: string; nome: string; ativo: boolean; ordem: number };
 type Perfil = { area_id: string | null };
+type Area = { id: string; nome: string; ativo: boolean };
 
 const descricoes: Record<string, string> = {
   TI: "Sistemas, infraestrutura, acessos, equipamentos e suporte de tecnologia.",
@@ -25,6 +26,13 @@ const descricoes: Record<string, string> = {
   "E-commerce": "Pedidos, produtos, integrações e operações do canal digital.",
   Fábrica: "Produção, operação, equipamentos e demandas da fábrica.",
 };
+
+const normalizarNome = (nome: string) =>
+  nome
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "");
 
 function AreasPage() {
   const navigate = useNavigate();
@@ -52,6 +60,20 @@ function AreasPage() {
     },
   });
 
+  const { data: areaAtribuida, isLoading: loadingArea, error: areaError } = useQuery({
+    queryKey: ["areas-current-assigned-area", perfil?.area_id],
+    enabled: !!perfil?.area_id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("areas")
+        .select("id,nome,ativo")
+        .eq("id", perfil!.area_id!)
+        .maybeSingle();
+      if (error) throw error;
+      return data as Area | null;
+    },
+  });
+
   const { data: segmentos = [], isLoading: loadingSegmentos, error: segmentosError } = useQuery({
     queryKey: ["areas-service-desk", user?.id, perfil?.area_id],
     enabled: !!user?.id && !!perfil,
@@ -67,8 +89,17 @@ function AreasPage() {
     },
   });
 
-  const isLoading = !user || loadingPerfil || loadingSegmentos;
-  const error = perfilError || segmentosError;
+  const segmentosVisiveis = perfil?.area_id
+    ? segmentos.filter(
+        (segmento) =>
+          !!areaAtribuida &&
+          areaAtribuida.ativo &&
+          normalizarNome(segmento.nome) === normalizarNome(areaAtribuida.nome),
+      )
+    : segmentos;
+
+  const isLoading = !user || loadingPerfil || loadingArea || loadingSegmentos;
+  const error = perfilError || areaError || segmentosError;
 
   const entrar = (segmento: Segmento) => {
     localStorage.setItem("service_desk_segmento", JSON.stringify({ id: segmento.id, nome: segmento.nome }));
@@ -95,8 +126,8 @@ function AreasPage() {
         {isLoading && <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}
         {error && <Card><CardContent className="py-8 text-center text-sm text-destructive">Não foi possível carregar as áreas disponíveis.</CardContent></Card>}
         {!isLoading && !error && !perfil?.area_id && <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">Nenhuma área foi atribuída ao seu usuário. Solicite ao administrador a definição da sua área.</CardContent></Card>}
-        {!isLoading && !error && perfil?.area_id && segmentos.length === 0 && <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">Nenhuma área está disponível para o seu usuário.</CardContent></Card>}
-        {!isLoading && !error && segmentos.length > 0 && <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{segmentos.map((segmento) => <Card key={segmento.id} className="group cursor-pointer transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-md" onClick={() => entrar(segmento)}><CardHeader><div className="flex items-center justify-between"><div className="grid h-10 w-10 place-items-center rounded-lg bg-primary/10 text-primary"><Building2 className="h-5 w-5" /></div><ChevronRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1" /></div><CardTitle className="pt-2">{segmento.nome}</CardTitle></CardHeader><CardContent><p className="text-sm text-muted-foreground">{descricoes[segmento.nome] ?? `Acesse os serviços e solicitações de ${segmento.nome}.`}</p><Button variant="ghost" className="mt-4 w-full justify-between px-0 hover:bg-transparent hover:text-primary">Acessar {segmento.nome}<ChevronRight className="h-4 w-4" /></Button></CardContent></Card>)}</div>}
+        {!isLoading && !error && perfil?.area_id && segmentosVisiveis.length === 0 && <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">Nenhuma área está disponível para o seu usuário.</CardContent></Card>}
+        {!isLoading && !error && segmentosVisiveis.length > 0 && <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{segmentosVisiveis.map((segmento) => <Card key={segmento.id} className="group cursor-pointer transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-md" onClick={() => entrar(segmento)}><CardHeader><div className="flex items-center justify-between"><div className="grid h-10 w-10 place-items-center rounded-lg bg-primary/10 text-primary"><Building2 className="h-5 w-5" /></div><ChevronRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1" /></div><CardTitle className="pt-2">{segmento.nome}</CardTitle></CardHeader><CardContent><p className="text-sm text-muted-foreground">{descricoes[segmento.nome] ?? `Acesse os serviços e solicitações de ${segmento.nome}.`}</p><Button variant="ghost" className="mt-4 w-full justify-between px-0 hover:bg-transparent hover:text-primary">Acessar {segmento.nome}<ChevronRight className="h-4 w-4" /></Button></CardContent></Card>)}</div>}
       </div>
     </div>
   );
