@@ -149,7 +149,9 @@ function AdminUsuariosPage() {
     setEditing(u); setENome(u.nome ?? ""); setEEmail(u.email ?? ""); setEDep(u.departamento ?? ""); setEAreaId(u.area_id ?? ""); setERole(u.roles[0] ?? "colaborador"); setESenha("");
   }
 
-  const areasCadastro = areas.filter((a: any) => AREAS_CADASTRO.includes(a.nome?.trim()));
+  const areasCadastro = AREAS_CADASTRO
+    .map((nome) => areas.find((a: any) => a.nome?.trim() === nome))
+    .filter(Boolean);
 
   return (
     <div className="space-y-4">
@@ -163,7 +165,7 @@ function AdminUsuariosPage() {
             <div className="space-y-1"><Label>Senha de Acesso</Label><Input type="password" placeholder="••••••••" value={fSenha} onChange={(e) => setFSenha(e.target.value)} /></div>
             <div className="space-y-1"><Label>Nível de Permissão (Papel)</Label><Select value={fRole} onValueChange={(v) => setFRole(v as any)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{ROLES.map((r) => <SelectItem key={r.v} value={r.v}>{r.l}</SelectItem>)}</SelectContent></Select></div>
             <div className="space-y-1"><Label>Departamento</Label><Input placeholder="Ex: RH, Financeiro, TI" value={fDep} onChange={(e) => setFDep(e.target.value)} /></div>
-            <div className="space-y-1"><Label>Área</Label><Select value={fAreaId || "__none__"} onValueChange={(v) => setFAreaId(v === "__none__" ? "" : v)}><SelectTrigger><SelectValue placeholder="Selecione a área" /></SelectTrigger><SelectContent><SelectItem value="__none__">Sem área</SelectItem>{areasCadastro.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.nome}</SelectItem>)}</SelectContent></Select></div>
+            <div className="space-y-1"><Label>Área</Label><Select value={fAreaId || "__none__"} onValueChange={(v) => setFAreaId(v === "__none__" ? "" : v)}><SelectTrigger><SelectValue placeholder="Selecione a área" /></SelectTrigger><SelectContent>{areasCadastro.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.nome}</SelectItem>)}<SelectItem value="__none__">Sem área</SelectItem></SelectContent></Select></div>
             <Button className="w-full" disabled={!fNome.trim() || !fEmail.trim() || fSenha.length < 6 || criarMut.isPending} onClick={() => criarMut.mutate()}>{criarMut.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Cadastrar Usuário</Button>
           </CardContent>
         </Card>
