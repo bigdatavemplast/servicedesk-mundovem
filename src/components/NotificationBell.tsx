@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useEffect, useState } from "react";
 
+const NOME_APP = "Service Desk Mundo Vem";
 const LOGO_MUNDO_VEM = "/favicon.png";
 
 function montarNotificacao(titulo?: string, mensagem?: string) {
@@ -13,7 +14,7 @@ function montarNotificacao(titulo?: string, mensagem?: string) {
   const mensagemOriginal = mensagem?.trim() || "Há uma nova atualização no Service Desk.";
 
   return {
-    title: tituloOriginal,
+    title: `${NOME_APP} • ${tituloOriginal}`,
     body: mensagemOriginal,
   };
 }
