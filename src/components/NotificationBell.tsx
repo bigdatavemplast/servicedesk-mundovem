@@ -6,6 +6,18 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useEffect, useState } from "react";
 
+const NOME_APP = "Service Desk Mundo Vem";
+
+function montarNotificacao(titulo?: string, mensagem?: string) {
+  const tituloOriginal = titulo?.trim() || "Nova atualização";
+  const mensagemOriginal = mensagem?.trim() || "Há uma nova atualização no Service Desk.";
+
+  return {
+    title: `${NOME_APP} • ${tituloOriginal}`,
+    body: mensagemOriginal,
+  };
+}
+
 export function NotificationBell({ userId }: { userId: string }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
@@ -39,12 +51,18 @@ export function NotificationBell({ userId }: { userId: string }) {
         (payload) => {
           const n = payload.new as { id: string; titulo?: string; mensagem?: string; chamado_id?: string | null };
           qc.invalidateQueries({ queryKey: ["notificacoes", userId] });
+
           if (typeof window !== "undefined" && "Notification" in window && window.Notification.permission === "granted") {
-            const browserNotification = new window.Notification(n.titulo || "Nova notificação", {
-              body: n.mensagem || "Há uma nova atualização no Service Desk.",
+            const conteudo = montarNotificacao(n.titulo, n.mensagem);
+            const browserNotification = new window.Notification(conteudo.title, {
+              body: conteudo.body,
               icon: "/favicon.ico",
-              tag: n.id,
+              badge: "/favicon.ico",
+              tag: `service-desk-${n.id}`,
+              renotify: true,
+              silent: false,
             });
+
             browserNotification.onclick = () => {
               window.focus();
               if (n.chamado_id) navigate({ to: "/chamados/$id", params: { id: n.chamado_id } });
