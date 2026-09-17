@@ -9,13 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { Users, Loader2, Pencil, Trash2, KeyRound, UserPlus } from "lucide-react";
 import { criarUsuario, atualizarUsuario, excluirUsuario, definirPapel } from "@/lib/admin-users.functions";
@@ -48,6 +43,8 @@ const ROLES = [
   { v: "admin", l: "Administrador (Acesso total)" },
 ] as const;
 
+const AREAS_CADASTRO = ["TI", "RH", "Financeiro", "Expedição", "Comercial", "Projetos", "E-commerce", "Fábrica", "Marketing"];
+
 const ROLE_LABEL: Record<string, string> = {
   colaborador: "COLABORADOR", atendente: "ATENDENTE", gestor: "GESTOR", admin: "ADMIN",
 };
@@ -72,7 +69,6 @@ function AdminUsuariosPage() {
   const [fDep, setFDep] = useState("");
   const [fAreaId, setFAreaId] = useState("");
   const [fRole, setFRole] = useState<(typeof ROLES)[number]["v"]>("colaborador");
-
   const [editing, setEditing] = useState<any | null>(null);
   const [eNome, setENome] = useState("");
   const [eEmail, setEEmail] = useState("");
@@ -121,29 +117,14 @@ function AdminUsuariosPage() {
   const salvarMut = useMutation({
     mutationFn: async () => {
       if (!editing) return;
-      await atualizar({
-        data: {
-          id: editing.id,
-          nome: eNome.trim(),
-          email: eEmail.trim(),
-          departamento: eDep.trim() || null,
-          areaId: eAreaId || null,
-          senha: eSenha ? eSenha : undefined,
-        },
-      });
+      await atualizar({ data: { id: editing.id, nome: eNome.trim(), email: eEmail.trim(), departamento: eDep.trim() || null, areaId: eAreaId || null, senha: eSenha ? eSenha : undefined } });
       const currentPrimary = editing.roles[0];
       if (currentPrimary !== eRole) {
-        for (const r of editing.roles) {
-          await setRole({ data: { userId: editing.id, role: r as any, add: false } });
-        }
+        for (const r of editing.roles) await setRole({ data: { userId: editing.id, role: r as any, add: false } });
         await setRole({ data: { userId: editing.id, role: eRole as any, add: true } });
       }
     },
-    onSuccess: () => {
-      toast.success("Usuário atualizado");
-      setEditing(null); setESenha("");
-      qc.invalidateQueries({ queryKey: ["admin-users"] });
-    },
+    onSuccess: () => { toast.success("Usuário atualizado"); setEditing(null); setESenha(""); qc.invalidateQueries({ queryKey: ["admin-users"] }); },
     onError: (e: any) => toast.error(e.message ?? "Erro ao atualizar"),
   });
 
@@ -155,11 +136,7 @@ function AdminUsuariosPage() {
 
   const excluirMut = useMutation({
     mutationFn: async (id: string) => excluir({ data: { id } }),
-    onSuccess: () => {
-      toast.success("Usuário excluído");
-      setDeleting(null);
-      qc.invalidateQueries({ queryKey: ["admin-users"] });
-    },
+    onSuccess: () => { toast.success("Usuário excluído"); setDeleting(null); qc.invalidateQueries({ queryKey: ["admin-users"] }); },
     onError: (e: any) => toast.error(e.message ?? "Erro ao excluir"),
   });
 
@@ -169,25 +146,14 @@ function AdminUsuariosPage() {
   });
 
   function openEdit(u: any) {
-    setEditing(u);
-    setENome(u.nome ?? "");
-    setEEmail(u.email ?? "");
-    setEDep(u.departamento ?? "");
-    setEAreaId(u.area_id ?? "");
-    setERole(u.roles[0] ?? "colaborador");
-    setESenha("");
+    setEditing(u); setENome(u.nome ?? ""); setEEmail(u.email ?? ""); setEDep(u.departamento ?? ""); setEAreaId(u.area_id ?? ""); setERole(u.roles[0] ?? "colaborador"); setESenha("");
   }
+
+  const areasCadastro = areas.filter((a: any) => AREAS_CADASTRO.includes(a.nome?.trim()));
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Users className="h-6 w-6 text-primary" />
-        <div>
-          <h1 className="text-2xl font-bold">Gerenciamento de Usuários</h1>
-          <p className="text-sm text-muted-foreground">Cadastre novos funcionários e configure os níveis de acesso ao Service Desk.</p>
-        </div>
-      </div>
-
+      <div className="flex items-center gap-2"><Users className="h-6 w-6 text-primary" /><div><h1 className="text-2xl font-bold">Gerenciamento de Usuários</h1><p className="text-sm text-muted-foreground">Cadastre novos funcionários e configure os níveis de acesso ao Service Desk.</p></div></div>
       <div className="grid gap-4 lg:grid-cols-[380px_1fr]">
         <Card>
           <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-base"><UserPlus className="h-4 w-4 text-primary" /> Novo Usuário</CardTitle></CardHeader>
@@ -197,51 +163,17 @@ function AdminUsuariosPage() {
             <div className="space-y-1"><Label>Senha de Acesso</Label><Input type="password" placeholder="••••••••" value={fSenha} onChange={(e) => setFSenha(e.target.value)} /></div>
             <div className="space-y-1"><Label>Nível de Permissão (Papel)</Label><Select value={fRole} onValueChange={(v) => setFRole(v as any)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{ROLES.map((r) => <SelectItem key={r.v} value={r.v}>{r.l}</SelectItem>)}</SelectContent></Select></div>
             <div className="space-y-1"><Label>Departamento</Label><Input placeholder="Ex: RH, Financeiro, TI" value={fDep} onChange={(e) => setFDep(e.target.value)} /></div>
-            <div className="space-y-1">
-              <Label>Área</Label>
-              <Select value={fAreaId || "__none__"} onValueChange={(v) => setFAreaId(v === "__none__" ? "" : v)}>
-                <SelectTrigger><SelectValue placeholder="Selecione a área" /></SelectTrigger>
-                <SelectContent><SelectItem value="__none__">Sem área</SelectItem>{areas.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.nome}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
+            <div className="space-y-1"><Label>Área</Label><Select value={fAreaId || "__none__"} onValueChange={(v) => setFAreaId(v === "__none__" ? "" : v)}><SelectTrigger><SelectValue placeholder="Selecione a área" /></SelectTrigger><SelectContent><SelectItem value="__none__">Sem área</SelectItem>{areasCadastro.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.nome}</SelectItem>)}</SelectContent></Select></div>
             <Button className="w-full" disabled={!fNome.trim() || !fEmail.trim() || fSenha.length < 6 || criarMut.isPending} onClick={() => criarMut.mutate()}>{criarMut.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Cadastrar Usuário</Button>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="pb-2 flex flex-row items-center justify-between gap-2"><CardTitle className="text-base">Usuários Ativos ({filtered.length})</CardTitle><Input placeholder="Buscar por nome, e-mail ou departamento…" className="max-w-xs" value={busca} onChange={(e) => setBusca(e.target.value)} /></CardHeader>
-          <CardContent className="p-0">
-            {isLoading ? <div className="p-6 text-center text-sm text-muted-foreground">Carregando…</div> : (
-              <div className="overflow-x-auto"><table className="w-full text-sm"><thead className="border-b bg-muted/40 text-left text-xs uppercase text-muted-foreground"><tr><th className="px-4 py-2">Nome</th><th className="px-4 py-2">E-mail</th><th className="px-4 py-2">Área</th><th className="px-4 py-2">Departamento</th><th className="px-4 py-2">Nível</th><th className="px-4 py-2">Status</th><th className="px-4 py-2 text-right">Ações</th></tr></thead><tbody className="divide-y">
-                {filtered.map((u: any) => { const primary = u.roles[0] ?? "colaborador"; return <tr key={u.id} className={u.ativo ? "" : "[&>td:not(:last-child)]:opacity-60"}><td className="px-4 py-2 font-medium">{u.nome ?? "—"}</td><td className="px-4 py-2 text-muted-foreground">{u.email}</td><td className="px-4 py-2">{areas.find((a: any) => a.id === u.area_id)?.nome ?? "Sem área"}</td><td className="px-4 py-2">{u.departamento ?? "—"}</td><td className="px-4 py-2"><span className={`inline-block rounded-md border px-2 py-0.5 text-[10px] font-semibold ${ROLE_BADGE[primary]}`}>{ROLE_LABEL[primary]}</span></td><td className="px-4 py-2"><Badge variant="outline" className={u.ativo ? "border-emerald-200 bg-emerald-100 text-emerald-800" : "border-red-200 bg-red-100 text-red-800"}>{u.ativo ? "Ativo" : "Inativo"}</Badge></td><td className="px-4 py-2"><div className="flex justify-end gap-1"><Button size="icon" variant="ghost" title="Editar" onClick={() => openEdit(u)}><Pencil className="h-4 w-4" /></Button><Button size="sm" variant={u.ativo ? "outline" : "secondary"} onClick={() => ativarMut.mutate({ id: u.id, ativo: !u.ativo })}>{u.ativo ? "Inativar" : "Ativar"}</Button><Button size="icon" variant="ghost" title="Excluir" onClick={() => setDeleting(u)}><Trash2 className="h-4 w-4 text-red-500" /></Button></div></td></tr>; })}
-                {filtered.length === 0 && <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">Nenhum usuário encontrado.</td></tr>}
-              </tbody></table></div>
-            )}
-          </CardContent>
+          <CardContent className="p-0">{isLoading ? <div className="p-6 text-center text-sm text-muted-foreground">Carregando…</div> : <div className="overflow-x-auto"><table className="w-full text-sm"><thead className="border-b bg-muted/40 text-left text-xs uppercase text-muted-foreground"><tr><th className="px-4 py-2">Nome</th><th className="px-4 py-2">E-mail</th><th className="px-4 py-2">Área</th><th className="px-4 py-2">Departamento</th><th className="px-4 py-2">Nível</th><th className="px-4 py-2">Status</th><th className="px-4 py-2 text-right">Ações</th></tr></thead><tbody className="divide-y">{filtered.map((u: any) => { const primary = u.roles[0] ?? "colaborador"; return <tr key={u.id} className={u.ativo ? "" : "[&>td:not(:last-child)]:opacity-60"}><td className="px-4 py-2 font-medium">{u.nome ?? "—"}</td><td className="px-4 py-2 text-muted-foreground">{u.email}</td><td className="px-4 py-2">{areas.find((a: any) => a.id === u.area_id)?.nome ?? "Sem área"}</td><td className="px-4 py-2">{u.departamento ?? "—"}</td><td className="px-4 py-2"><span className={`inline-block rounded-md border px-2 py-0.5 text-[10px] font-semibold ${ROLE_BADGE[primary]}`}>{ROLE_LABEL[primary]}</span></td><td className="px-4 py-2"><Badge variant="outline" className={u.ativo ? "border-emerald-200 bg-emerald-100 text-emerald-800" : "border-red-200 bg-red-100 text-red-800"}>{u.ativo ? "Ativo" : "Inativo"}</Badge></td><td className="px-4 py-2"><div className="flex justify-end gap-1"><Button size="icon" variant="ghost" title="Editar" onClick={() => openEdit(u)}><Pencil className="h-4 w-4" /></Button><Button size="sm" variant={u.ativo ? "outline" : "secondary"} onClick={() => ativarMut.mutate({ id: u.id, ativo: !u.ativo })}>{u.ativo ? "Inativar" : "Ativar"}</Button><Button size="icon" variant="ghost" title="Excluir" onClick={() => setDeleting(u)}><Trash2 className="h-4 w-4 text-red-500" /></Button></div></td></tr>; })}{filtered.length === 0 && <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">Nenhum usuário encontrado.</td></tr>}</tbody></table></div>}</CardContent>
         </Card>
       </div>
-
-      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Editar usuário</DialogTitle><DialogDescription>Atualize os dados e o nível de acesso.</DialogDescription></DialogHeader>
-          <div className="grid gap-3">
-            <div className="space-y-1"><Label>Nome Completo</Label><Input value={eNome} onChange={(e) => setENome(e.target.value)} /></div>
-            <div className="space-y-1"><Label>E-mail Corporativo</Label><Input type="email" value={eEmail} onChange={(e) => setEEmail(e.target.value)} /></div>
-            <div className="space-y-1"><Label>Nova senha (opcional)</Label><Input type="password" placeholder="Deixe em branco para manter" value={eSenha} onChange={(e) => setESenha(e.target.value)} /></div>
-            <div className="space-y-1"><Label>Nível de Permissão (Papel)</Label><Select value={eRole} onValueChange={setERole}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{ROLES.map((r) => <SelectItem key={r.v} value={r.v}>{r.l}</SelectItem>)}</SelectContent></Select></div>
-            <div className="space-y-1"><Label>Departamento</Label><Input value={eDep} onChange={(e) => setEDep(e.target.value)} /></div>
-            <div className="space-y-1"><Label>Área</Label><Select value={eAreaId || "__none__"} onValueChange={(v) => setEAreaId(v === "__none__" ? "" : v)}><SelectTrigger><SelectValue placeholder="Selecione a área" /></SelectTrigger><SelectContent><SelectItem value="__none__">Sem área</SelectItem>{areas.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.nome}</SelectItem>)}</SelectContent></Select></div>
-          </div>
-          <DialogFooter><Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button><Button disabled={!eNome.trim() || !eEmail.trim() || salvarMut.isPending} onClick={() => salvarMut.mutate()}>{salvarMut.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Salvar</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>Excluir usuário?</AlertDialogTitle><AlertDialogDescription>Esta ação remove o acesso do usuário ao Service Desk e não pode ser desfeita.</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction disabled={excluirMut.isPending} onClick={() => deleting && excluirMut.mutate(deleting.id)}>{excluirMut.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Excluir</AlertDialogAction></AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}><DialogContent><DialogHeader><DialogTitle>Editar usuário</DialogTitle><DialogDescription>Atualize os dados e o nível de acesso.</DialogDescription></DialogHeader><div className="grid gap-3"><div className="space-y-1"><Label>Nome Completo</Label><Input value={eNome} onChange={(e) => setENome(e.target.value)} /></div><div className="space-y-1"><Label>E-mail Corporativo</Label><Input type="email" value={eEmail} onChange={(e) => setEEmail(e.target.value)} /></div><div className="space-y-1"><Label>Nova senha (opcional)</Label><Input type="password" placeholder="Deixe em branco para manter" value={eSenha} onChange={(e) => setESenha(e.target.value)} /></div><div className="space-y-1"><Label>Nível de Permissão (Papel)</Label><Select value={eRole} onValueChange={setERole}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{ROLES.map((r) => <SelectItem key={r.v} value={r.v}>{r.l}</SelectItem>)}</SelectContent></Select></div><div className="space-y-1"><Label>Departamento</Label><Input value={eDep} onChange={(e) => setEDep(e.target.value)} /></div><div className="space-y-1"><Label>Área</Label><Select value={eAreaId || "__none__"} onValueChange={(v) => setEAreaId(v === "__none__" ? "" : v)}><SelectTrigger><SelectValue placeholder="Selecione a área" /></SelectTrigger><SelectContent><SelectItem value="__none__">Sem área</SelectItem>{areas.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.nome}</SelectItem>)}</SelectContent></Select></div></div><DialogFooter><Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button><Button disabled={!eNome.trim() || !eEmail.trim() || salvarMut.isPending} onClick={() => salvarMut.mutate()}>{salvarMut.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Salvar</Button></DialogFooter></DialogContent></Dialog>
+      <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Excluir usuário?</AlertDialogTitle><AlertDialogDescription>Esta ação remove o acesso do usuário ao Service Desk e não pode ser desfeita.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction disabled={excluirMut.isPending} onClick={() => deleting && excluirMut.mutate(deleting.id)}>{excluirMut.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Excluir</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
     </div>
   );
 }
