@@ -7,6 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useEffect, useState } from "react";
 
 const NOME_APP = "Service Desk Mundo Vem";
+const LOGO_MUNDO_VEM = "/favicon.png";
 
 function montarNotificacao(titulo?: string, mensagem?: string) {
   const tituloOriginal = titulo?.trim() || "Nova atualização";
@@ -56,8 +57,8 @@ export function NotificationBell({ userId }: { userId: string }) {
             const conteudo = montarNotificacao(n.titulo, n.mensagem);
             const browserNotification = new window.Notification(conteudo.title, {
               body: conteudo.body,
-              icon: "/favicon.ico",
-              badge: "/favicon.ico",
+              icon: LOGO_MUNDO_VEM,
+              badge: LOGO_MUNDO_VEM,
               tag: `service-desk-${n.id}`,
               renotify: true,
               silent: false,
