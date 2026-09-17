@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, type FormEvent } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -82,7 +82,7 @@ function NovoChamadoPage() {
   const prontoParaAbrir = !!area?.id && Object.values(requisitos).every(Boolean); const progressoAbertura = prontoParaAbrir ? 100 : Math.round((Object.values(requisitos).filter(Boolean).length / Object.values(requisitos).length) * 100);
   function selecionarArea(id: string) { const next = areas.find((item) => item.id === id) ?? null; setArea(next); if (next) localStorage.setItem("service_desk_segmento", JSON.stringify(next)); }
   function adicionarAnexos(novos: File[]) { const validos: File[] = []; for (const file of novos) { const erro = validarAnexo(file); if (erro) { toast.error(erro); continue; } validos.push(file); } if (validos.length) setAnexos((atual) => [...atual, ...validos]); }
-  async function handleSubmit(event: React.FormEvent) {
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault(); if (!area?.id) return toast.error("Nenhuma área/segmento foi definido para este chamado."); if (!requisitos.titulo) return toast.error("Informe um título mais descritivo (mínimo de 5 caracteres)."); if (!requisitos.descricao) return toast.error("Descreva o ocorrido com pelo menos 20 caracteres."); if (!requisitos.tipo) return toast.error("Selecione o tipo de chamado."); if (!requisitos.categoria) return toast.error("Selecione a categoria."); if (incidente && !impacto) return toast.error("Selecione o impacto do incidente."); if (incidente && !urgencia) return toast.error("Selecione a urgência do incidente.");
     setLoading(true); let criado: any; try { criado = await criar({ data: { titulo: titulo.trim(), descricao: descricao.trim(), prioridade: prioridadeCalculada ?? prioridade, impacto: impacto || undefined, urgencia: urgencia || undefined, tipoChamadoId, segmentoId: area.id, categoriaId, subcategoriaId: subcategoriaId || null } }); } catch (error) { setLoading(false); return toast.error(error instanceof Error ? error.message : "Falha ao criar chamado"); }
     let falhas = 0; for (const file of anexos) { try { await enviarAnexo({ chamadoId: criado.id, autorId: user.id, file, onProgress: (pct) => setProgresso((p) => ({ ...p, [file.name]: pct })) }); } catch (error) { falhas += 1; toast.error(error instanceof Error ? error.message : `Falha ao anexar ${file.name}`); } }
