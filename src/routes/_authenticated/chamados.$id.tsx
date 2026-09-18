@@ -17,7 +17,7 @@ import { atualizarChamado, comentarChamado, avaliarChamado } from "@/lib/chamado
 export const Route = createFileRoute("/_authenticated/chamados/$id")({
   head: ({ params }) => {
     const ref = String(params.id).slice(0, 8);
-    const titulo = `Chamado ${ref} | Mundo Vem Service Desk`;
+    const titulo = "Mundo Vem — Service Desk";
     const descricao = `Acompanhe o chamado ${ref}: status, prioridade, SLA, comentários, anexos e histórico completo do atendimento na Mundo Vem.`;
     return { meta: [
       { title: titulo }, { name: "description", content: descricao },
