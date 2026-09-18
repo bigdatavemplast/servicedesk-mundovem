@@ -102,7 +102,6 @@ export const criarChamado = createServerFn({ method: "POST" }).middleware([requi
     chamado_id: criado.id, autor_id: context.userId, acao: "chamado_criado", de: "\u200B", para: criado.titulo, ator_role: atorRole,
   } as never);
   if (historicoError) throw new Error(`Falha ao registrar histórico: ${historicoError.message}`);
-  await criarNotificacao(admin, { destinatarioId: context.userId, tipo: "chamado_aberto", titulo: "Chamado " + criado.numero + " aberto", mensagem: `Seu chamado "${criado.titulo}" foi registrado com sucesso.`, chamadoId: criado.id });
   return criado;
 });
 
