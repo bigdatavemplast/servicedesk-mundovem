@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "@tanstack/react-router";
-import { Bell, BellRing } from "lucide-react";
+import { Bell, BellRing, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useEffect, useRef, useState } from "react";
@@ -35,6 +35,8 @@ export function NotificationBell({ userId }: { userId: string }) {
   const [open, setOpen] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission | "unsupported">("default");
   const [page, setPage] = useState(0);
+  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<Event | null>(null);
+  const [appInstalado, setAppInstalado] = useState(false);
   const idsComPush = useRef<Set<string>>(new Set());
 
   const { data: total = 0 } = useQuery({
@@ -203,7 +205,7 @@ export function NotificationBell({ userId }: { userId: string }) {
     };
   }, [userId, navigate]);
 
-  async function solicitarPermissao() {
+  async function instalarAplicativo() {\n    if (!deferredInstallPrompt) return;\n\n    const evento = deferredInstallPrompt as Event & {\n      prompt: () => Promise<void>;\n      userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;\n    };\n\n    await evento.prompt();\n    const escolha = await evento.userChoice;\n\n    if (escolha.outcome === "accepted") {\n      setAppInstalado(true);\n    }\n\n    setDeferredInstallPrompt(null);\n  }\n\n  async function solicitarPermissao() {
     if (
       typeof window === "undefined" ||
       !("Notification" in window)
@@ -298,7 +300,7 @@ export function NotificationBell({ userId }: { userId: string }) {
               </div>
             )}
 
-            {permission === "denied" && (
+            {deferredInstallPrompt && !appInstalado && (\n              <button\n                type="button"\n                onClick={instalarAplicativo}\n                className="mt-1 flex items-center gap-1 text-[10px] font-medium text-primary hover:underline"\n              >\n                <Download className="h-3 w-3" />\n                Instalar Service Desk no computador\n              </button>\n            )}\n\n            {permission === "denied" && (
               <div className="text-[10px] text-muted-foreground">
                 Notificações do navegador bloqueadas
               </div>
