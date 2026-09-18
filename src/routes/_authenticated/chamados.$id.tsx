@@ -67,7 +67,6 @@ function DetalheChamadoPage() {
   const [confirmacao, setConfirmacao] = useState<{ campo: "status" | "prioridade" | "atendente" | "tipo"; valor: string | null; label: string; atual: string; atualLabel: string } | null>(null);
   const atualizarServer = useServerFn(atualizarChamado); const comentarServer = useServerFn(comentarChamado); const avaliarServer = useServerFn(avaliarChamado);
   useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 1000); return () => window.clearInterval(timer); }, []);
-  useEffect(() => { if (chamado?.numero) document.title = chamado.numero; }, [chamado?.numero]);
   const { data: roles = [] } = useQuery({ queryKey: ["my-roles", user.id], queryFn: async () => { const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id); return (data ?? []).map((r) => r.role as string); } });
   const isStaff = roles.some((r) => ["atendente", "gestor", "admin"].includes(r));
   const isAttendant = roles.includes("atendente") && !roles.includes("gestor") && !roles.includes("admin");
@@ -84,6 +83,8 @@ function DetalheChamadoPage() {
       if (error) throw error; return data;
     },
   });
+
+  useEffect(() => { if (chamado?.numero) document.title = chamado.numero; }, [chamado?.numero]);
 
   const { data: comentarios = [] } = useQuery({ queryKey: ["chamado-comentarios", id, isAttendant], queryFn: async () => { let q = supabase.from("comentarios_chamado").select("id,conteudo,interno,criado_em,autor:profiles(nome)").eq("chamado_id", id).order("criado_em", { ascending: true }); if (!isAttendant) q = q.eq("interno", false); const { data } = await q; return data ?? []; } });
   const { data: historico = [] } = useQuery({ queryKey: ["chamado-historico", id], queryFn: async () => { const { data } = await supabase.from("historico_chamado").select("id,acao,de,para,criado_em,autor:profiles(id,nome)").eq("chamado_id", id).order("criado_em", { ascending: false }); return data ?? []; } });
