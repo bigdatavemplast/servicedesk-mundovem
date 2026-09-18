@@ -22,6 +22,13 @@ async function getRoles(supabase: any, userId: string): Promise<Role[]> {
   return (data ?? []).map((r: { role: Role }) => r.role);
 }
 
+function getPrimaryRole(roles: Role[]): Role {
+  if (roles.includes("admin")) return "admin";
+  if (roles.includes("gestor")) return "gestor";
+  if (roles.includes("atendente")) return "atendente";
+  return "colaborador";
+}
+
 async function hasPermission(supabase: any, userId: string, permission: Parameters<typeof hasAnyRolePermission>[1]) {
   return hasAnyRolePermission(await getRoles(supabase, userId), permission);
 }
@@ -67,6 +74,7 @@ export const registrarHistoricoAnexo = createServerFn({ method: "POST" }).middle
   nomeArquivo: z.string().trim().min(1).max(500),
 }).parse(d)).handler(async ({ data, context }) => {
   const admin = await getAdminClient(context.supabase);
+  const atorRole = getPrimaryRole(await getRoles(context.supabase, context.userId));
   const { data: ticket, error: ticketError } = await admin.from("chamados").select("id").eq("id", data.chamadoId).maybeSingle();
   if (ticketError || !ticket) throw new Error(ticketError?.message ?? "Chamado não encontrado");
   const { error } = await admin.from("historico_chamado").insert({
@@ -75,6 +83,7 @@ export const registrarHistoricoAnexo = createServerFn({ method: "POST" }).middle
     acao: data.acao,
     de: "\u200B",
     para: data.nomeArquivo,
+    ator_role: atorRole,
   } as never);
   if (error) throw new Error(`Falha ao registrar histórico do anexo: ${error.message}`);
   return { ok: true };
@@ -88,6 +97,11 @@ export const criarChamado = createServerFn({ method: "POST" }).middleware([requi
   const admin = await getAdminClient(context.supabase);
   const { data: criado, error } = await admin.from("chamados").insert({ titulo: data.titulo, descricao: data.descricao, prioridade: data.prioridade, tipo_chamado_id: data.tipoChamadoId, solicitante_id: context.userId, categoria_id: data.categoriaId, subcategoria_id: data.subcategoriaId, numero: "" } as never).select("id,numero,titulo,descricao,prioridade,prazo_resolucao,tipo_chamado_id").single();
   if (error || !criado) throw new Error(error?.message ?? "Falha ao criar chamado");
+  const atorRole = getPrimaryRole(await getRoles(context.supabase, context.userId));
+  const { error: historicoError } = await admin.from("historico_chamado").insert({
+    chamado_id: criado.id, autor_id: context.userId, acao: "chamado_criado", de: "\u200B", para: criado.titulo, ator_role: atorRole,
+  } as never);
+  if (historicoError) throw new Error(`Falha ao registrar histórico: ${historicoError.message}`);
   await criarNotificacao(admin, { destinatarioId: context.userId, tipo: "chamado_aberto", titulo: "Chamado " + criado.numero + " aberto", mensagem: `Seu chamado "${criado.titulo}" foi registrado com sucesso.`, chamadoId: criado.id });
   return criado;
 });
@@ -107,6 +121,12 @@ export const comentarChamado = createServerFn({ method: "POST" }).middleware([re
   if (data.interno && !(await hasPermission(supabase, context.userId, "ticket.comment.internal"))) throw new Error("Nota interna disponível somente para atendimento.");
   const { data: inserted, error } = await admin.from("comentarios_chamado").insert({ chamado_id: data.chamadoId, autor_id: context.userId, conteudo: data.conteudo, interno: data.interno } as never).select("id,conteudo,interno,criado_em").single();
   if (error || !inserted) throw new Error(error?.message ?? "Falha ao registrar comentário");
+  const atorRole = getPrimaryRole(roles);
+  const { error: historicoError } = await admin.from("historico_chamado").insert({
+    chamado_id: data.chamadoId, autor_id: context.userId, acao: data.interno ? "nota_interna_adicionada" : "comentario_adicionado",
+    de: "\u200B", para: data.conteudo, ator_role: atorRole,
+  } as never);
+  if (historicoError) throw new Error(`Falha ao registrar histórico: ${historicoError.message}`);
   return inserted;
 });
 
@@ -144,11 +164,12 @@ export const atualizarChamado = createServerFn({ method: "POST" }).middleware([r
     if (targetError) throw new Error(targetError.message);
     if (!(targetRoles ?? []).some((r: { role: Role }) => hasAnyRolePermission([r.role], "ticket.view.queue"))) throw new Error("O responsável selecionado não possui perfil de atendimento.");
   }
+  const atorRole = getPrimaryRole(roles);
   const patch: Record<string, any> = {}; const historico: any[] = [];
-  if (data.status && data.status !== ticket.status) { patch.status = data.status; historico.push({ chamado_id: data.chamadoId, autor_id: context.userId, acao: data.status === "reaberto" ? "chamado_reaberto" : "status_alterado", de: ticket.status, para: data.status }); if (data.status === "resolvido") patch.resolvido_em = new Date().toISOString(); if (data.status === "fechado") patch.fechado_em = new Date().toISOString(); if (data.status === "reaberto") { patch.reaberto_em = new Date().toISOString(); patch.sla_pausado = false; patch.atendente_id = ticket.atendente_id ?? null; } }
-  if (data.prioridade && data.prioridade !== ticket.prioridade) { patch.prioridade = data.prioridade; historico.push({ chamado_id: data.chamadoId, autor_id: context.userId, acao: "prioridade_alterada", de: ticket.prioridade, para: data.prioridade }); }
-  if (data.atendenteId !== undefined && data.atendenteId !== ticket.atendente_id) { patch.atendente_id = data.atendenteId; historico.push({ chamado_id: data.chamadoId, autor_id: context.userId, acao: "atendente_alterado", de: ticket.atendente_id ?? "", para: data.atendenteId ?? "" }); }
-  if (data.tipoChamadoId !== undefined && data.tipoChamadoId !== ticket.tipo_chamado_id) { patch.tipo_chamado_id = data.tipoChamadoId; historico.push({ chamado_id: data.chamadoId, autor_id: context.userId, acao: "tipo_chamado_alterado", de: ticket.tipo_chamado_id ?? "", para: data.tipoChamadoId }); }
+  if (data.status && data.status !== ticket.status) { patch.status = data.status; historico.push({ chamado_id: data.chamadoId, autor_id: context.userId, acao: data.status === "reaberto" ? "chamado_reaberto" : "status_alterado", de: ticket.status, para: data.status, ator_role: atorRole }); if (data.status === "resolvido") patch.resolvido_em = new Date().toISOString(); if (data.status === "fechado") patch.fechado_em = new Date().toISOString(); if (data.status === "reaberto") { patch.reaberto_em = new Date().toISOString(); patch.sla_pausado = false; patch.atendente_id = ticket.atendente_id ?? null; } }
+  if (data.prioridade && data.prioridade !== ticket.prioridade) { patch.prioridade = data.prioridade; historico.push({ chamado_id: data.chamadoId, autor_id: context.userId, acao: "prioridade_alterada", de: ticket.prioridade, para: data.prioridade, ator_role: atorRole }); }
+  if (data.atendenteId !== undefined && data.atendenteId !== ticket.atendente_id) { patch.atendente_id = data.atendenteId; historico.push({ chamado_id: data.chamadoId, autor_id: context.userId, acao: "atendente_alterado", de: ticket.atendente_id ?? "", para: data.atendenteId ?? "", ator_role: atorRole }); }
+  if (data.tipoChamadoId !== undefined && data.tipoChamadoId !== ticket.tipo_chamado_id) { patch.tipo_chamado_id = data.tipoChamadoId; historico.push({ chamado_id: data.chamadoId, autor_id: context.userId, acao: "tipo_chamado_alterado", de: ticket.tipo_chamado_id ?? "", para: data.tipoChamadoId, ator_role: atorRole }); }
   if (!Object.keys(patch).length) return { ok: true, chamado: ticket };
   let updated: any;
   if (data.atendenteId !== undefined) {
@@ -176,7 +197,7 @@ export const avaliarChamado = createServerFn({ method: "POST" }).middleware([req
   const { data: updated, error } = await admin.from("chamados").update({ avaliacao_nota: data.nota, avaliacao_comentario: data.comentario ?? null } as never).eq("id", data.chamadoId).select("id,avaliacao_nota,avaliacao_comentario").single();
   if (error || !updated) throw new Error(error?.message ?? "Falha ao registrar avaliação");
   const valorAvaliacao = `${data.nota} estrelas${data.comentario?.trim() ? ` — ${data.comentario.trim()}` : ""}`;
-  const { error: historicoError } = await admin.from("historico_chamado").insert({ chamado_id: data.chamadoId, autor_id: context.userId, acao: "avaliacao_registrada", de: "\u200B", para: valorAvaliacao } as never);
+  const { error: historicoError } = await admin.from("historico_chamado").insert({ chamado_id: data.chamadoId, autor_id: context.userId, acao: "avaliacao_registrada", de: "\u200B", para: valorAvaliacao, ator_role: getPrimaryRole(await getRoles(context.supabase, context.userId)) } as never);
   if (historicoError) throw new Error(historicoError.message);
   return updated;
 });
