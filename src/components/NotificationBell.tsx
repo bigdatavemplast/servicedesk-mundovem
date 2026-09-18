@@ -206,24 +206,38 @@ export function NotificationBell({ userId }: { userId: string }) {
   }, [userId, navigate]);
 
   async function instalarAplicativo() {
-    if (!deferredInstallPrompt) {
-      window.alert('Para instalar o Service Desk, abra o menu do navegador e escolha "Instalar Service Desk" ou "Instalar este site como aplicativo".');
+    if (deferredInstallPrompt) {
+      const evento = deferredInstallPrompt as Event & {
+        prompt: () => Promise<void>;
+        userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+      };
+
+      await evento.prompt();
+      const escolha = await evento.userChoice;
+
+      if (escolha.outcome === "accepted") {
+        setAppInstalado(true);
+      }
+
+      setDeferredInstallPrompt(null);
       return;
     }
 
-    const evento = deferredInstallPrompt as Event & {
-      prompt: () => Promise<void>;
-      userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-    };
+    const navegador = navigator.userAgent.toLowerCase();
+    const eChrome = navegador.includes("chrome") || navegador.includes("edg/");
+    const eFirefox = navegador.includes("firefox");
 
-    await evento.prompt();
-    const escolha = await evento.userChoice;
-
-    if (escolha.outcome === "accepted") {
-      setAppInstalado(true);
+    if (eChrome) {
+      window.alert("O Service Desk já está preparado para instalação. Se o botão do navegador não aparecer, abra o menu ⋮ e procure por \"Transmitir, salvar e compartilhar\" > \"Instalar página como app\" ou \"Instalar Service Desk\".");
+      return;
     }
 
-    setDeferredInstallPrompt(null);
+    if (eFirefox) {
+      window.alert("O Firefox não oferece instalação de PWA pelo botão deste site. Use o Chrome ou Microsoft Edge para instalar o Service Desk como aplicativo.");
+      return;
+    }
+
+    window.alert("Abra o menu do navegador e procure por \"Instalar Service Desk\" ou \"Instalar este site como aplicativo\".");
   }
 
   async function solicitarPermissao() {
