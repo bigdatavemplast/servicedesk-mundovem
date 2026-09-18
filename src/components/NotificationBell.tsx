@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "@tanstack/react-router";
-import { Bell, BellRing, Download } from "lucide-react";
+import { Bell, BellRing } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useEffect, useRef, useState } from "react";
@@ -30,7 +30,6 @@ export function NotificationBell({ userId }: { userId: string }) {
   const [open, setOpen] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission | "unsupported">("default");
   const [page, setPage] = useState(0);
-  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<Event | null>(null);
   const idsComPush = useRef<Set<string>>(new Set());
 
   const { data: total = 0 } = useQuery({
@@ -127,44 +126,6 @@ export function NotificationBell({ userId }: { userId: string }) {
     return () => { void supabase.removeChannel(channel); };
   }, [userId, navigate]);
 
-  useEffect(() => {
-    const capturarPrompt = (event: Event) => {
-      event.preventDefault();
-      setDeferredInstallPrompt(event);
-    };
-    window.addEventListener("beforeinstallprompt", capturarPrompt);
-    return () => window.removeEventListener("beforeinstallprompt", capturarPrompt);
-  }, []);
-
-  async function instalarAplicativo() {
-    if (deferredInstallPrompt) {
-      const evento = deferredInstallPrompt as Event & {
-        prompt: () => Promise<void>;
-        userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-      };
-      await evento.prompt();
-      await evento.userChoice;
-      setDeferredInstallPrompt(null);
-      return;
-    }
-
-    const navegador = navigator.userAgent.toLowerCase();
-    const eChrome = navegador.includes("chrome") || navegador.includes("edg/");
-    const eFirefox = navegador.includes("firefox");
-
-    if (eChrome) {
-      window.alert('O Service Desk já está preparado para instalação. Abra o menu ⋮ e procure por "Transmitir, salvar e compartilhar" > "Instalar página como app" ou "Instalar Service Desk".');
-      return;
-    }
-
-    if (eFirefox) {
-      window.alert("O Firefox não oferece instalação de PWA pelo botão deste site. Use o Chrome ou Microsoft Edge para instalar o Service Desk como aplicativo.");
-      return;
-    }
-
-    window.alert('Abra o menu do navegador e procure por "Instalar Service Desk" ou "Instalar este site como aplicativo".');
-  }
-
   async function solicitarPermissao() {
     if (typeof window === "undefined" || !("Notification" in window)) return;
     if (window.Notification.permission === "default") {
@@ -193,18 +154,6 @@ export function NotificationBell({ userId }: { userId: string }) {
 
   return (
     <div className="flex items-center gap-2">
-      <Button
-        type="button"
-        variant="default"
-        size="sm"
-        onClick={instalarAplicativo}
-        className="fixed bottom-5 left-5 z-50 h-11 gap-2 rounded-full bg-[#9C1917] px-4 font-semibold text-white shadow-lg hover:bg-[#7f1412]"
-        title="Instalar o Service Desk no computador"
-      >
-        <Download className="h-4 w-4" />
-        <span>Instalar agora</span>
-      </Button>
-
       <Popover open={open} onOpenChange={(next) => {
         setOpen(next);
         if (next) {
