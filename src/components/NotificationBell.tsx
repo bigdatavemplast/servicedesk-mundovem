@@ -202,7 +202,7 @@ export function NotificationBell({ userId }: { userId: string }) {
         title="Instalar o Service Desk no computador"
       >
         <Download className="h-4 w-4" />
-        <span>Instalar Service Desk</span>
+        <span>Instalar agora</span>
       </Button>
 
       <Popover open={open} onOpenChange={(next) => {
