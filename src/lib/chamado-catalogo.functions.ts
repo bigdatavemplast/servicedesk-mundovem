@@ -216,17 +216,6 @@ export const criarChamadoComCatalogo = createServerFn({ method: "POST" })
 
     if (error || !criado) throw new Error(error?.message ?? "Falha ao criar chamado");
 
-    // Toda abertura de chamado deve gerar a mesma notificação exibida no sino
-    // e no navegador. Este fluxo é o caminho principal de abertura via catálogo.
-    const { error: notificacaoError } = await admin.from("notificacoes").insert({
-      destinatario_id: context.userId,
-      tipo: "chamado_aberto",
-      titulo: `Chamado ${criado.numero} aberto`,
-      mensagem: `Seu chamado "${criado.titulo}" foi registrado com sucesso.`,
-      chamado_id: criado.id,
-    } as never);
-    if (notificacaoError) throw new Error(`Falha ao criar notificação: ${notificacaoError.message}`);
-
     if (fluxo !== "projeto") {
       const { error: eventoError } = await admin.rpc("registrar_evento_sla", {
         p_chamado_id: criado.id,
