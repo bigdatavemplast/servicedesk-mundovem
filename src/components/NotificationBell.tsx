@@ -24,14 +24,26 @@ export function NotificationBell({ userId }: { userId: string }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission | "unsupported">("default");
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 20;
+
+  const { data: total = 0 } = useQuery({
+    queryKey: ["notificacoes-total", userId],
+    queryFn: async () => {
+      const { count, error } = await supabase.from("notificacoes").select("id", { count: "exact", head: true }).eq("destinatario_id", userId);
+      if (error) throw error;
+      return count ?? 0;
+    }, refetchInterval: 60_000,
+  });
 
   const { data: notifs = [] } = useQuery({
-    queryKey: ["notificacoes", userId],
+    queryKey: ["notificacoes", userId, page],
     queryFn: async () => {
+      const from = page * PAGE_SIZE;
       const { data, error } = await supabase.from("notificacoes")
         .select("id,titulo,mensagem,lida,criado_em,chamado_id")
         .eq("destinatario_id", userId)
-        .order("criado_em", { ascending: false }).limit(100);
+        .order("criado_em", { ascending: false }).range(from, from + PAGE_SIZE - 1);
       if (error) throw error;
       return data ?? [];
     },
@@ -52,6 +64,7 @@ export function NotificationBell({ userId }: { userId: string }) {
         (payload) => {
           const n = payload.new as { id: string; titulo?: string; mensagem?: string; chamado_id?: string | null };
           qc.invalidateQueries({ queryKey: ["notificacoes", userId] });
+          qc.invalidateQueries({ queryKey: ["notificacoes-total", userId] });
 
           if (typeof window !== "undefined" && "Notification" in window && window.Notification.permission === "granted") {
             const conteudo = montarNotificacao(n.titulo, n.mensagem);
@@ -97,9 +110,10 @@ export function NotificationBell({ userId }: { userId: string }) {
   }
 
   const naoLidas = notifs.filter((n) => !n.lida).length;
+  const totalPaginas = Math.ceil(total / PAGE_SIZE);
 
   return (
-    <Popover open={open} onOpenChange={(next) => { setOpen(next); if (next) void solicitarPermissao(); }}>
+    <Popover open={open} onOpenChange={(next) => { setOpen(next); if (next) { setPage(0); void solicitarPermissao(); } }}>
       <PopoverTrigger asChild>
         <Button
           variant="ghost"
@@ -140,6 +154,13 @@ export function NotificationBell({ userId }: { userId: string }) {
             </button>
           ))}
         </div>
+        {totalPaginas > 1 && (
+          <div className="flex items-center justify-between border-t px-3 py-2">
+            <Button variant="ghost" size="sm" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>Anterior</Button>
+            <span className="text-[11px] text-muted-foreground">Página {page + 1} de {totalPaginas}</span>
+            <Button variant="ghost" size="sm" disabled={page >= totalPaginas - 1} onClick={() => setPage((p) => Math.min(totalPaginas - 1, p + 1))}>Próxima</Button>
+          </div>
+        )}
       </PopoverContent>
     </Popover>
   );
