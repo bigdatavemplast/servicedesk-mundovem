@@ -66,7 +66,7 @@ function DetalheChamadoPage() {
   const [comentario, setComentario] = useState(""); const [interno, setInterno] = useState(false); const [nota, setNota] = useState(0); const [avaliacaoComentario, setAvaliacaoComentario] = useState(""); const [now, setNow] = useState(Date.now());
   const [confirmacao, setConfirmacao] = useState<{ campo: "status" | "prioridade" | "atendente" | "tipo"; valor: string | null; label: string; atual: string; atualLabel: string } | null>(null);
   const atualizarServer = useServerFn(atualizarChamado); const comentarServer = useServerFn(comentarChamado); const avaliarServer = useServerFn(avaliarChamado);
-  useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 1000); return () => window.clearInterval(timer); }, []);
+  useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 1000); return () => window.clearInterval(timer); }, []);\n  useEffect(() => { if (chamado?.numero) document.title = chamado.numero; }, [chamado?.numero]);
   const { data: roles = [] } = useQuery({ queryKey: ["my-roles", user.id], queryFn: async () => { const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id); return (data ?? []).map((r) => r.role as string); } });
   const isStaff = roles.some((r) => ["atendente", "gestor", "admin"].includes(r));
   const isAttendant = roles.includes("atendente") && !roles.includes("gestor") && !roles.includes("admin");
