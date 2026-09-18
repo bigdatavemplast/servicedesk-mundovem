@@ -36,6 +36,15 @@ export function NotificationBell({ userId }: { userId: string }) {
     }, refetchInterval: 60_000,
   });
 
+  const { data: naoLidasTotal = 0 } = useQuery({
+    queryKey: ["notificacoes-nao-lidas", userId],
+    queryFn: async () => {
+      const { count, error } = await supabase.from("notificacoes").select("id", { count: "exact", head: true }).eq("destinatario_id", userId).eq("lida", false);
+      if (error) throw error;
+      return count ?? 0;
+    }, refetchInterval: 60_000,
+  });
+
   const { data: notifs = [] } = useQuery({
     queryKey: ["notificacoes", userId, page],
     queryFn: async () => {
@@ -65,6 +74,7 @@ export function NotificationBell({ userId }: { userId: string }) {
           const n = payload.new as { id: string; titulo?: string; mensagem?: string; chamado_id?: string | null };
           qc.invalidateQueries({ queryKey: ["notificacoes", userId] });
           qc.invalidateQueries({ queryKey: ["notificacoes-total", userId] });
+          qc.invalidateQueries({ queryKey: ["notificacoes-nao-lidas", userId] });
 
           if (typeof window !== "undefined" && "Notification" in window && window.Notification.permission === "granted") {
             const conteudo = montarNotificacao(n.titulo, n.mensagem);
@@ -100,6 +110,7 @@ export function NotificationBell({ userId }: { userId: string }) {
     if (!n.lida) {
       await supabase.from("notificacoes").update({ lida: true } as never).eq("id", n.id);
       qc.invalidateQueries({ queryKey: ["notificacoes", userId] });
+      qc.invalidateQueries({ queryKey: ["notificacoes-nao-lidas", userId] });
     }
     if (n.chamado_id) navigate({ to: "/chamados/$id", params: { id: n.chamado_id } });
   }
@@ -107,9 +118,10 @@ export function NotificationBell({ userId }: { userId: string }) {
   async function marcarTodas() {
     await supabase.from("notificacoes").update({ lida: true } as never).eq("destinatario_id", userId).eq("lida", false);
     qc.invalidateQueries({ queryKey: ["notificacoes", userId] });
+    qc.invalidateQueries({ queryKey: ["notificacoes-nao-lidas", userId] });
   }
 
-  const naoLidas = notifs.filter((n) => !n.lida).length;
+  const naoLidas = naoLidasTotal;
   const totalPaginas = Math.ceil(total / PAGE_SIZE);
 
   return (
