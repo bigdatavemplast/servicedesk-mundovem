@@ -317,12 +317,11 @@ export function NotificationBell({ userId }: { userId: string }) {
           variant="outline"
           size="sm"
           onClick={instalarAplicativo}
-          className="h-9 gap-2 px-3 font-medium"
+          className="fixed bottom-5 right-5 z-50 h-11 gap-2 rounded-full px-4 font-semibold shadow-lg"
           title="Instalar o Service Desk no computador"
         >
           <Download className="h-4 w-4" />
-          <span className="hidden sm:inline">Instalar no computador</span>
-          <span className="sm:hidden">Instalar</span>
+          <span>Instalar Service Desk</span>
         </Button>
       )}
 
