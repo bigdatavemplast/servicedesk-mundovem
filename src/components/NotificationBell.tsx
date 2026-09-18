@@ -207,7 +207,7 @@ export function NotificationBell({ userId }: { userId: string }) {
 
   async function instalarAplicativo() {
     if (!deferredInstallPrompt) {
-      window.alert("Para instalar o Service Desk, abra o menu do navegador e escolha \\"Instalar Service Desk\\" ou \\"Instalar este site como aplicativo\\".");
+      window.alert('Para instalar o Service Desk, abra o menu do navegador e escolha "Instalar Service Desk" ou "Instalar este site como aplicativo".');
       return;
     }
 
