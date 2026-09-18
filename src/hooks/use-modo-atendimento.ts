@@ -10,11 +10,11 @@ function readStoredMode(): ModoAtendimento {
   return localStorage.getItem(STORAGE_KEY) === "colaborador" ? "colaborador" : "atendente";
 }
 
-export function useModoAtendimento(userId?: string, isAtendente = false) {
-  const [modo, setModo] = useState<ModoAtendimento>(() => isAtendente ? readStoredMode() : "atendente");
+export function useModoAtendimento(userId?: string, podeAlternarModo = false) {
+  const [modo, setModo] = useState<ModoAtendimento>(() => podeAlternarModo ? readStoredMode() : "atendente");
 
   useEffect(() => {
-    if (!userId || !isAtendente) {
+    if (!userId || !podeAlternarModo) {
       setModo("atendente");
       return;
     }
@@ -42,10 +42,10 @@ export function useModoAtendimento(userId?: string, isAtendente = false) {
 
     void carregar();
     return () => { active = false; };
-  }, [userId, isAtendente]);
+  }, [userId, podeAlternarModo]);
 
   const alterarModo = useCallback(async (next: ModoAtendimento) => {
-    if (!isAtendente || !userId) return;
+    if (!podeAlternarModo || !userId) return;
 
     setModo(next);
     localStorage.setItem(STORAGE_KEY, next);
@@ -79,11 +79,11 @@ export function useModoAtendimento(userId?: string, isAtendente = false) {
     setModo(fallback);
     localStorage.setItem(STORAGE_KEY, fallback);
     throw new Error(rpcError.message || upsertError.message);
-  }, [isAtendente, userId]);
+  }, [podeAlternarModo, userId]);
 
   return {
-    modo: isAtendente ? modo : "atendente" as ModoAtendimento,
-    emModoColaborador: isAtendente && modo === "colaborador",
+    modo: podeAlternarModo ? modo : "atendente" as ModoAtendimento,
+    emModoColaborador: podeAlternarModo && modo === "colaborador",
     alterarModo,
   };
 }
