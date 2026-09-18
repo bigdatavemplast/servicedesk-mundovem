@@ -1,11 +1,18 @@
 {
+  "id": "/",
   "name": "Mundo Vem — Service Desk",
   "short_name": "Service Desk",
   "description": "Portal oficial de chamados de TI e demais áreas da Mundo Vem.",
+  "lang": "pt-BR",
+  "dir": "ltr",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "any",
   "background_color": "#ffffff",
   "theme_color": "#0f172a",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/favicon.png",
