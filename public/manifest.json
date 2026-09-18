@@ -1,0 +1,17 @@
+{
+  "name": "Mundo Vem — Service Desk",
+  "short_name": "Service Desk",
+  "description": "Portal oficial de chamados de TI e demais áreas da Mundo Vem.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
