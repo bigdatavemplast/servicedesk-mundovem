@@ -205,6 +205,28 @@ export function NotificationBell({ userId }: { userId: string }) {
     };
   }, [userId, navigate]);
 
+  useEffect(() => {
+    const verificarInstalacao = () => {
+      if (typeof window !== "undefined" && window.matchMedia("(display-mode: standalone)").matches) {
+        setAppInstalado(true);
+      }
+    };
+
+    const capturarPrompt = (event: Event) => {
+      event.preventDefault();
+      setDeferredInstallPrompt(event);
+    };
+
+    window.addEventListener("beforeinstallprompt", capturarPrompt);
+    window.addEventListener("appinstalled", verificarInstalacao);
+    verificarInstalacao();
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", capturarPrompt);
+      window.removeEventListener("appinstalled", verificarInstalacao);
+    };
+  }, []);
+
   async function instalarAplicativo() {
     if (deferredInstallPrompt) {
       const evento = deferredInstallPrompt as Event & {
@@ -228,7 +250,7 @@ export function NotificationBell({ userId }: { userId: string }) {
     const eFirefox = navegador.includes("firefox");
 
     if (eChrome) {
-      window.alert("O Service Desk já está preparado para instalação. Se o botão do navegador não aparecer, abra o menu ⋮ e procure por \"Transmitir, salvar e compartilhar\" > \"Instalar página como app\" ou \"Instalar Service Desk\".");
+      window.alert('O Service Desk já está preparado para instalação. Se a opção não aparecer automaticamente, abra o menu ⋮ e procure por "Transmitir, salvar e compartilhar" > "Instalar página como app" ou "Instalar Service Desk".');
       return;
     }
 
@@ -237,7 +259,7 @@ export function NotificationBell({ userId }: { userId: string }) {
       return;
     }
 
-    window.alert("Abra o menu do navegador e procure por \"Instalar Service Desk\" ou \"Instalar este site como aplicativo\".");
+    window.alert('Abra o menu do navegador e procure por "Instalar Service Desk" ou "Instalar este site como aplicativo".');
   }
 
   async function solicitarPermissao() {
@@ -288,145 +310,151 @@ export function NotificationBell({ userId }: { userId: string }) {
   const totalPaginas = Math.ceil(total / PAGE_SIZE);
 
   return (
-    <Popover
-      open={open}
-      onOpenChange={(next) => {
-        setOpen(next);
-
-        if (next) {
-          setPage(0);
-          void solicitarPermissao();
-        }
-      }}
-    >
-      <PopoverTrigger asChild>
+    <div className="flex items-center gap-2">
+      {!appInstalado && (
         <Button
-          variant="ghost"
-          size="icon"
-          className="relative"
-          aria-label={
-            naoLidas > 0
-              ? `Notificações (${naoLidas} não lidas)`
-              : "Notificações"
-          }
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={instalarAplicativo}
+          className="h-9 gap-2 px-3 font-medium"
+          title="Instalar o Service Desk no computador"
         >
-          {naoLidas > 0 ? (
-            <BellRing className="h-5 w-5" />
-          ) : (
-            <Bell className="h-5 w-5" />
-          )}
-
-          {naoLidas > 0 && (
-            <span className="absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
-              {naoLidas}
-            </span>
-          )}
+          <Download className="h-4 w-4" />
+          <span className="hidden sm:inline">Instalar no computador</span>
+          <span className="sm:hidden">Instalar</span>
         </Button>
-      </PopoverTrigger>
+      )}
 
-      <PopoverContent align="end" className="w-80 p-0">
-        <div className="flex items-center justify-between border-b px-3 py-2">
-          <div>
-            <span className="text-sm font-semibold">Notificações</span>
+      <Popover
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next);
 
-            {permission === "granted" && (
-              <div className="text-[10px] text-emerald-600">
-                Notificações do navegador ativas
-              </div>
+          if (next) {
+            setPage(0);
+            void solicitarPermissao();
+          }
+        }}
+      >
+        <PopoverTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative"
+            aria-label={
+              naoLidas > 0
+                ? `Notificações (${naoLidas} não lidas)`
+                : "Notificações"
+            }
+          >
+            {naoLidas > 0 ? (
+              <BellRing className="h-5 w-5" />
+            ) : (
+              <Bell className="h-5 w-5" />
             )}
 
-            {!appInstalado && (
-              <button
-                type="button"
-                onClick={instalarAplicativo}
-                className="mt-1 flex items-center gap-1 text-[10px] font-medium text-primary hover:underline"
-              >
-                <Download className="h-3 w-3" />
-                Instalar Service Desk no computador
-              </button>
+            {naoLidas > 0 && (
+              <span className="absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
+                {naoLidas}
+              </span>
             )}
+          </Button>
+        </PopoverTrigger>
 
-            {permission === "denied" && (
-              <div className="text-[10px] text-muted-foreground">
-                Notificações do navegador bloqueadas
-              </div>
-            )}
-          </div>
+        <PopoverContent align="end" className="w-80 p-0">
+          <div className="flex items-center justify-between border-b px-3 py-2">
+            <div>
+              <span className="text-sm font-semibold">Notificações</span>
 
-          {naoLidas > 0 && (
-            <button
-              className="text-xs text-primary hover:underline"
-              onClick={marcarTodas}
-            >
-              Marcar todas como lidas
-            </button>
-          )}
-        </div>
-
-        <div className="max-h-96 overflow-y-auto">
-          {notifs.length === 0 && (
-            <div className="p-6 text-center text-sm text-muted-foreground">
-              Sem notificações
-            </div>
-          )}
-
-          {notifs.map((n) => (
-            <button
-              key={n.id}
-              onClick={() => abrir(n)}
-              className={`block w-full border-b px-3 py-2 text-left text-sm last:border-0 hover:bg-muted/60 ${
-                !n.lida ? "bg-primary/5" : ""
-              }`}
-            >
-              <div className="flex justify-between gap-2">
-                <span className="font-medium">{n.titulo}</span>
-
-                {!n.lida && (
-                  <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary" />
-                )}
-              </div>
-
-              {n.mensagem && (
-                <div className="text-xs text-muted-foreground">
-                  {n.mensagem}
+              {permission === "granted" && (
+                <div className="text-[10px] text-emerald-600">
+                  Notificações do navegador ativas
                 </div>
               )}
 
-              <div className="mt-1 text-[10px] text-muted-foreground">
-                {new Date(n.criado_em).toLocaleString("pt-BR")}
-              </div>
-            </button>
-          ))}
-        </div>
+              {permission === "denied" && (
+                <div className="text-[10px] text-muted-foreground">
+                  Notificações do navegador bloqueadas
+                </div>
+              )}
+            </div>
 
-        {totalPaginas > 1 && (
-          <div className="flex items-center justify-between border-t px-3 py-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={page === 0}
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-            >
-              Anterior
-            </Button>
-
-            <span className="text-[11px] text-muted-foreground">
-              Página {page + 1} de {totalPaginas}
-            </span>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={page >= totalPaginas - 1}
-              onClick={() =>
-                setPage((p) => Math.min(totalPaginas - 1, p + 1))
-              }
-            >
-              Próxima
-            </Button>
+            {naoLidas > 0 && (
+              <button
+                className="text-xs text-primary hover:underline"
+                onClick={marcarTodas}
+              >
+                Marcar todas como lidas
+              </button>
+            )}
           </div>
-        )}
-      </PopoverContent>
-    </Popover>
+
+          <div className="max-h-96 overflow-y-auto">
+            {notifs.length === 0 && (
+              <div className="p-6 text-center text-sm text-muted-foreground">
+                Sem notificações
+              </div>
+            )}
+
+            {notifs.map((n) => (
+              <button
+                key={n.id}
+                onClick={() => abrir(n)}
+                className={`block w-full border-b px-3 py-2 text-left text-sm last:border-0 hover:bg-muted/60 ${
+                  !n.lida ? "bg-primary/5" : ""
+                }`}
+              >
+                <div className="flex justify-between gap-2">
+                  <span className="font-medium">{n.titulo}</span>
+
+                  {!n.lida && (
+                    <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary" />
+                  )}
+                </div>
+
+                {n.mensagem && (
+                  <div className="text-xs text-muted-foreground">
+                    {n.mensagem}
+                  </div>
+                )}
+
+                <div className="mt-1 text-[10px] text-muted-foreground">
+                  {new Date(n.criado_em).toLocaleString("pt-BR")}
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {totalPaginas > 1 && (
+            <div className="flex items-center justify-between border-t px-3 py-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={page === 0}
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+              >
+                Anterior
+              </Button>
+
+              <span className="text-[11px] text-muted-foreground">
+                Página {page + 1} de {totalPaginas}
+              </span>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={page >= totalPaginas - 1}
+                onClick={() =>
+                  setPage((p) => Math.min(totalPaginas - 1, p + 1))
+                }
+              >
+                Próxima
+              </Button>
+            </div>
+          )}
+        </PopoverContent>
+      </Popover>
+    </div>
   );
 }
