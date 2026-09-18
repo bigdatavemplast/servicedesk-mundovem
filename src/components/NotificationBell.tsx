@@ -31,7 +31,7 @@ export function NotificationBell({ userId }: { userId: string }) {
       const { data, error } = await supabase.from("notificacoes")
         .select("id,titulo,mensagem,lida,criado_em,chamado_id")
         .eq("destinatario_id", userId)
-        .order("criado_em", { ascending: false }).limit(20);
+        .order("criado_em", { ascending: false }).limit(100);
       if (error) throw error;
       return data ?? [];
     },
