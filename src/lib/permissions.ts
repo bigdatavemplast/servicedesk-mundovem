@@ -27,10 +27,12 @@ const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
 };
 
 export function hasPermission(role: Role, permission: Permission): boolean {
+  if (role === "admin") return true;
   return ROLE_PERMISSIONS[role]?.includes(permission) ?? false;
 }
 
 export function getPermissions(role: Role): readonly Permission[] {
+  if (role === "admin") return Object.values(ROLE_PERMISSIONS).flat();
   return ROLE_PERMISSIONS[role] ?? [];
 }
 
