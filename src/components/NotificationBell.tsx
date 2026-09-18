@@ -195,10 +195,10 @@ export function NotificationBell({ userId }: { userId: string }) {
     <div className="flex items-center gap-2">
       <Button
         type="button"
-        variant="outline"
+        variant="default"
         size="sm"
         onClick={instalarAplicativo}
-        className="fixed bottom-5 left-5 z-50 h-11 gap-2 rounded-full px-4 font-semibold shadow-lg"
+        className="fixed bottom-5 left-5 z-50 h-11 gap-2 rounded-full bg-red-600 px-4 font-semibold text-white shadow-lg hover:bg-red-700"
         title="Instalar o Service Desk no computador"
       >
         <Download className="h-4 w-4" />
