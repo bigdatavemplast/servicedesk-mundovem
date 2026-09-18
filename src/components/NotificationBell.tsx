@@ -206,7 +206,10 @@ export function NotificationBell({ userId }: { userId: string }) {
   }, [userId, navigate]);
 
   async function instalarAplicativo() {
-    if (!deferredInstallPrompt) {\n      window.alert("Para instalar o Service Desk, abra o menu do navegador e escolha \\"Instalar Service Desk\\" ou \\"Instalar este site como aplicativo\\".");\n      return;\n    }
+    if (!deferredInstallPrompt) {
+      window.alert("Para instalar o Service Desk, abra o menu do navegador e escolha \\"Instalar Service Desk\\" ou \\"Instalar este site como aplicativo\\".");
+      return;
+    }
 
     const evento = deferredInstallPrompt as Event & {
       prompt: () => Promise<void>;
