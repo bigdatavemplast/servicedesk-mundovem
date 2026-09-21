@@ -76,57 +76,34 @@ function AuthPage() {
     e.preventDefault();
     setLoading(true);
 
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
     let errorMessage = "";
+    for (let tentativa = 0; tentativa < 3; tentativa += 1) {
+      try {
+        const { error } = await supabase.auth.signInWithPassword({
+          email: loginEmail.trim(),
+          password: loginPass,
+        });
 
-    if (!supabaseUrl || !supabaseKey) {
-      errorMessage = "O serviço de autenticação não está configurado corretamente.";
-    } else {
-      for (let tentativa = 0; tentativa < 3; tentativa += 1) {
-        try {
-          const response = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              apikey: supabaseKey,
-            },
-            body: JSON.stringify({
-              email: loginEmail.trim(),
-              password: loginPass,
-            }),
-          });
-
-          const payload = await response.json().catch(() => null);
-
-          if (response.ok && payload?.access_token && payload?.refresh_token) {
-            const { error } = await supabase.auth.setSession({
-              access_token: payload.access_token,
-              refresh_token: payload.refresh_token,
-            });
-
-            if (!error) {
-              toast.success("Bem-vindo!");
-              setLoading(false);
-              if (nextPath) {
-                window.location.href = nextPath;
-                return;
-              }
-              navigate({ to: "/areas", replace: true });
-              return;
-            }
-
-            errorMessage = error.message;
-          } else {
-            errorMessage = payload?.msg || payload?.message || payload?.error_description || "Não foi possível autenticar.";
+        if (!error) {
+          toast.success("Bem-vindo!");
+          setLoading(false);
+          if (nextPath) {
+            window.location.href = nextPath;
+            return;
           }
-        } catch (erro) {
-          errorMessage = erro instanceof Error ? erro.message : "Falha de comunicação com o servidor de autenticação.";
+          navigate({ to: "/areas", replace: true });
+          return;
         }
 
-        if (tentativa < 2) {
-          await new Promise(resolve => setTimeout(resolve, 800 * (tentativa + 1)));
-        }
+        errorMessage = error.message || "Não foi possível autenticar.";
+      } catch (erro) {
+        errorMessage = erro instanceof Error
+          ? erro.message
+          : "Falha de comunicação com o servidor de autenticação.";
+      }
+
+      if (tentativa < 2) {
+        await new Promise(resolve => setTimeout(resolve, 800 * (tentativa + 1)));
       }
     }
 
@@ -134,7 +111,7 @@ function AuthPage() {
 
     const mensagem = errorMessage.toLowerCase();
     if (mensagem.includes("failed to fetch") || mensagem.includes("network") || mensagem.includes("fetch")) {
-      return toast.error("O servidor de login não respondeu. Aguarde alguns segundos e tente novamente.");
+      return toast.error("Não foi possível conectar ao servidor de login. Tente novamente em alguns segundos.");
     }
 
     return toast.error(errorMessage || "Não foi possível entrar. Verifique seu e-mail e senha.");
