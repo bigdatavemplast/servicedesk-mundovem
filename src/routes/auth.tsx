@@ -73,48 +73,13 @@ function AuthPage() {
   }, [recovery]);
 
   async function handleLogin(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-
-    let errorMessage = "";
-    for (let tentativa = 0; tentativa < 3; tentativa += 1) {
-      try {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: loginEmail.trim(),
-          password: loginPass,
-        });
-
-        if (!error) {
-          toast.success("Bem-vindo!");
-          setLoading(false);
-          if (nextPath) {
-            window.location.href = nextPath;
-            return;
-          }
-          navigate({ to: "/areas", replace: true });
-          return;
-        }
-
-        errorMessage = error.message || "Não foi possível autenticar.";
-      } catch (erro) {
-        errorMessage = erro instanceof Error
-          ? erro.message
-          : "Falha de comunicação com o servidor de autenticação.";
-      }
-
-      if (tentativa < 2) {
-        await new Promise(resolve => setTimeout(resolve, 800 * (tentativa + 1)));
-      }
-    }
-
+    e.preventDefault(); setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password: loginPass });
     setLoading(false);
-
-    const mensagem = errorMessage.toLowerCase();
-    if (mensagem.includes("failed to fetch") || mensagem.includes("network") || mensagem.includes("fetch")) {
-      return toast.error("Não foi possível conectar ao servidor de login. Tente novamente em alguns segundos.");
-    }
-
-    return toast.error(errorMessage || "Não foi possível entrar. Verifique seu e-mail e senha.");
+    if (error) return toast.error(error.message);
+    toast.success("Bem-vindo!");
+    if (nextPath) { window.location.href = nextPath; return; }
+    navigate({ to: "/areas", replace: true });
   }
 
   async function handlePasswordUpdate(e: React.FormEvent) {
