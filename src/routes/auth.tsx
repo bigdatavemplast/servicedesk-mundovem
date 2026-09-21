@@ -74,9 +74,31 @@ function AuthPage() {
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault(); setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password: loginPass });
+
+    let error: { message?: string } | null = null;
+    for (let tentativa = 0; tentativa < 3; tentativa += 1) {
+      try {
+        const resposta = await supabase.auth.signInWithPassword({ email: loginEmail.trim(), password: loginPass });
+        error = resposta.error;
+        if (!error) break;
+      } catch (erro) {
+        error = erro instanceof Error ? erro : { message: "Falha de comunicação com o servidor de autenticação." };
+      }
+
+      if (tentativa < 2) {
+        await new Promise(resolve => setTimeout(resolve, 700 * (tentativa + 1)));
+      }
+    }
+
     setLoading(false);
-    if (error) return toast.error(error.message);
+    if (error) {
+      const mensagem = error.message || "";
+      if (mensagem.toLowerCase().includes("failed to fetch") || mensagem.toLowerCase().includes("network")) {
+        return toast.error("Não foi possível conectar ao servidor de login. Tente novamente em alguns segundos.");
+      }
+      return toast.error(mensagem);
+    }
+
     toast.success("Bem-vindo!");
     if (nextPath) { window.location.href = nextPath; return; }
     navigate({ to: "/areas", replace: true });
