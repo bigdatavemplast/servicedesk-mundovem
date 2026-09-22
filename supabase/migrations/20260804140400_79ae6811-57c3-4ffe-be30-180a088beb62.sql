@@ -3,7 +3,7 @@ CREATE OR REPLACE FUNCTION public.match_conhecimento(query_embedding vector, mat
  RETURNS TABLE(origem text, ref_id uuid, titulo text, conteudo text, similarity double precision)
  LANGUAGE sql
  STABLE SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO 'public, extensions'
 AS $function$
   WITH artigos AS (
     SELECT 'base_conhecimento'::text AS origem, b.id AS ref_id, b.titulo::text AS titulo,
