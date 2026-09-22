@@ -137,7 +137,7 @@ LANGUAGE sql
 STABLE
 SECURITY DEFINER
 SET search_path = public, extensions
-AS $
+AS $$
   WITH artigos AS (
     SELECT 'base_conhecimento'::text AS origem, b.id AS ref_id, b.titulo::text AS titulo,
            b.conteudo AS conteudo, 1 - (b.embedding <=> query_embedding) AS similarity
