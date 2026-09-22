@@ -21,7 +21,7 @@ AS $function$
       AND (
         c.solicitante_id = auth.uid()
         OR c.atendente_id = auth.uid()
-        OR public.has_any_role(auth.uid(), ARRAY['atendente','gestor','admin']::app_role[])
+        OR public.has_any_role(auth.uid(), ARRAY['atendente','gestor','admin']::public.app_role[])
       )
   ),
   docs AS (
@@ -53,7 +53,7 @@ WITH CHECK (
       AND (
         c.solicitante_id = auth.uid()
         OR c.atendente_id = auth.uid()
-        OR public.has_any_role(auth.uid(), ARRAY['atendente','gestor','admin']::app_role[])
+        OR public.has_any_role(auth.uid(), ARRAY['atendente','gestor','admin']::public.app_role[])
       )
   )
 );
