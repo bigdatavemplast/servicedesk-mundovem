@@ -1,1 +1,3 @@
 project_id = "qnajflcpknyjhbxaehye"
+
+# Local/CI migration validation. Do not use this project_id for deployment.
