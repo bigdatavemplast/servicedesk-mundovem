@@ -5,6 +5,20 @@
 -- ============================================================
 
 -- 1) Garante prefixos determinísticos sem violar a unicidade.
+-- Primeiro move todos os registros para valores temporários únicos, porque
+-- o índice uq_grupos_atendimento_prefixo é UNIQUE e uma atualização direta
+-- pode colidir com um prefixo ainda ocupado por outra fila.
+WITH temporarios AS (
+  SELECT id,
+         'TMP-' || row_number() OVER (ORDER BY id)::text AS prefixo_tmp
+  FROM public.grupos_atendimento
+)
+UPDATE public.grupos_atendimento g
+SET prefixo = t.prefixo_tmp
+FROM temporarios t
+WHERE g.id = t.id;
+
+-- Depois aplica os prefixos finais, numerando duplicidades por segmento.
 WITH prefixos AS (
   SELECT
     g.id,
