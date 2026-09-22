@@ -32,7 +32,7 @@ jobs:
         run: supabase db reset
 
       - name: Verify migration history
-        run: supabase migration list
+        run: supabase migration list --local
 
       - name: Stop local Supabase
         if: always()
