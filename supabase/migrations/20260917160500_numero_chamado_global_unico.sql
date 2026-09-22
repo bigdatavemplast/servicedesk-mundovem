@@ -114,3 +114,4 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_chamados_numero_unico
   ON public.chamados (numero);
 
 -- CI: validação local de migrations.
+-- CI trigger: deploy to the user-owned Supabase project.
