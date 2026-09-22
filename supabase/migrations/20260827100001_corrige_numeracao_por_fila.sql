@@ -19,34 +19,38 @@ FROM temporarios t
 WHERE g.id = t.id;
 
 -- Depois aplica os prefixos finais, numerando duplicidades por segmento.
-WITH prefixos AS (
-  SELECT
-    g.id,
-    CASE
-      WHEN lower(s.nome) = 'ti' THEN 'SD-TI'
-      WHEN lower(s.nome) = 'rh' THEN 'SD-RH'
-      WHEN lower(s.nome) = 'financeiro' THEN 'SD-FIN'
-      WHEN lower(s.nome) = 'projetos' THEN 'SD-PROJ'
-      WHEN lower(s.nome) = 'outros' THEN 'SD-OUT'
-      ELSE 'SD-' || upper(regexp_replace(unaccent(s.nome), '[^A-Za-z0-9]+', '', 'g'))
-    END AS prefixo_base
-  FROM public.grupos_atendimento g
-  JOIN public.segmentos s ON s.id = g.segmento_id
-),
-numerados AS (
-  SELECT
-    id,
-    prefixo_base,
-    row_number() OVER (PARTITION BY prefixo_base ORDER BY id) AS rn
-  FROM prefixos
-)
-UPDATE public.grupos_atendimento g
-SET prefixo = CASE
-  WHEN n.rn = 1 THEN n.prefixo_base
-  ELSE n.prefixo_base || '-' || n.rn::text
+DO $
+DECLARE
+  r RECORD;
+BEGIN
+  FOR r IN
+    WITH prefixos AS (
+      SELECT g.id,
+        CASE
+          WHEN lower(s.nome) = 'ti' THEN 'SD-TI'
+          WHEN lower(s.nome) = 'rh' THEN 'SD-RH'
+          WHEN lower(s.nome) = 'financeiro' THEN 'SD-FIN'
+          WHEN lower(s.nome) = 'projetos' THEN 'SD-PROJ'
+          WHEN lower(s.nome) = 'outros' THEN 'SD-OUT'
+          ELSE 'SD-' || upper(regexp_replace(unaccent(s.nome), '[^A-Za-z0-9]+', '', 'g'))
+        END AS prefixo_base
+      FROM public.grupos_atendimento g
+      JOIN public.segmentos s ON s.id = g.segmento_id
+    ),
+    numerados AS (
+      SELECT id, prefixo_base,
+        row_number() OVER (PARTITION BY prefixo_base ORDER BY id) AS rn
+      FROM prefixos
+    )
+    SELECT id,
+      CASE WHEN rn = 1 THEN prefixo_base ELSE prefixo_base || '-' || rn::text END AS prefixo_final
+    FROM numerados
+    ORDER BY id
+  LOOP
+    UPDATE public.grupos_atendimento SET prefixo = r.prefixo_final WHERE id = r.id;
+  END LOOP;
 END
-FROM numerados n
-WHERE g.id = n.id;
+$;
 
 -- 2) Recria a função de numeração para também reconhecer o número legado.
 CREATE OR REPLACE FUNCTION public.chamado_before_insert()
