@@ -1,0 +1,2 @@
+-- CI: trigger deployment check for the user-owned Supabase project.
+-- No schema changes.
