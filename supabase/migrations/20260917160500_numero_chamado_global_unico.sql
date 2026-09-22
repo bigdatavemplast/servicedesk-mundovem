@@ -118,3 +118,5 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_chamados_numero_unico
 -- CI rerun: force deployment workflow after CLI IPv4 compatibility fix.
 
 -- CI rerun: use Supabase CLI beta with IPv4 pooler fallback.
+
+-- CI rerun: use latest Supabase CLI IPv4 pooler fallback.
