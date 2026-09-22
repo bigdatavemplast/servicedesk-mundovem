@@ -36,7 +36,7 @@ WITH CHECK (user_id = auth.uid());
 
 CREATE TABLE IF NOT EXISTS public.ai_messages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  conversation_id UUID NOT NULL REFERENCES public.ai_conversations(id) ON DELETE CASCADE,
+  conversation_id UUID NOT NULL,
   user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   role TEXT NOT NULL,
   content TEXT NOT NULL,
