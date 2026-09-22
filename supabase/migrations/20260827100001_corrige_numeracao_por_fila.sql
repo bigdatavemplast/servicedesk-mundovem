@@ -5,6 +5,7 @@
 -- ============================================================
 
 -- 1) Garante prefixos determinísticos sem violar a unicidade.
+-- Validação CI: bloco DO com delimitador PostgreSQL completo.
 -- Primeiro move todos os registros para valores temporários únicos, porque
 -- o índice uq_grupos_atendimento_prefixo é UNIQUE e uma atualização direta
 -- pode colidir com um prefixo ainda ocupado por outra fila.
