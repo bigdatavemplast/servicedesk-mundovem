@@ -7,19 +7,9 @@
 -- para não quebrar histórico, links ou notificações.
 -- ============================================================
 
--- 1) Garante os prefixos oficiais das filas ativas.
-UPDATE public.grupos_atendimento g
-SET prefixo = CASE
-  WHEN lower(trim(s.nome)) = 'ti' THEN 'SD-TI'
-  WHEN lower(trim(s.nome)) = 'rh' THEN 'SD-RH'
-  WHEN lower(trim(s.nome)) = 'financeiro' THEN 'SD-FIN'
-  WHEN lower(trim(s.nome)) = 'projetos' THEN 'SD-PROJ'
-  WHEN lower(trim(s.nome)) = 'outros' THEN 'SD-OUT'
-  ELSE 'SD-' || upper(regexp_replace(unaccent(trim(s.nome)), '[^A-Za-z0-9]+', '', 'g'))
-END
-FROM public.segmentos s
-WHERE g.segmento_id = s.id
-  AND g.ativo = TRUE;
+-- 1) Os prefixos oficiais das filas já foram normalizados pela migration
+-- 20260827100001_corrige_numeracao_por_fila.sql. Não repetir a alteração
+-- aqui, pois uq_grupos_atendimento_prefixo é UNIQUE.
 
 -- 2) Recalcula a próxima sequência de cada fila com base apenas
 --    nos chamados que já usam o novo padrão.
