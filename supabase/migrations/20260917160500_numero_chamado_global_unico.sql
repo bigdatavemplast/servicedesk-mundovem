@@ -115,3 +115,4 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_chamados_numero_unico
 
 -- CI: validação local de migrations.
 -- CI trigger: deploy to the user-owned Supabase project.
+-- CI rerun: force deployment workflow after CLI IPv4 compatibility fix.
