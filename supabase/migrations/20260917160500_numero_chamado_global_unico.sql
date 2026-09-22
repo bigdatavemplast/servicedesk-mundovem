@@ -99,14 +99,26 @@ WHERE c.id = n.id;
 -- Faz a sequence continuar exatamente após o maior número existente.
 SELECT setval(
   'public.chamados_numero_seq',
-  COALESCE(
-    (SELECT MAX((regexp_match(numero, '^SD-([0-9]+)$'))[1]::BIGINT)
-     FROM public.chamados
-     WHERE numero ~ '^SD-[0-9]+$'),
-    0
-  ),
-  true
-);
+  COALESCE(s.max_numero, 1),
+  s.max_numero IS NOT NULL
+)
+FROM (
+  SELECT MAX((regexp_match(numero, '^SD-([0-9]+)
+
+-- Proteção adicional: o campo numero já é UNIQUE, mas esta constraint
+-- documenta explicitamente a regra de unicidade no banco.
+CREATE UNIQUE INDEX IF NOT EXISTS ux_chamados_numero_unico
+  ON public.chamados (numero);
+))[1]::BIGINT) AS max_numero
+  FROM public.chamados
+  WHERE numero ~ '^SD-[0-9]+
+
+-- Proteção adicional: o campo numero já é UNIQUE, mas esta constraint
+-- documenta explicitamente a regra de unicidade no banco.
+CREATE UNIQUE INDEX IF NOT EXISTS ux_chamados_numero_unico
+  ON public.chamados (numero);
+
+) AS s;
 
 -- Proteção adicional: o campo numero já é UNIQUE, mas esta constraint
 -- documenta explicitamente a regra de unicidade no banco.
