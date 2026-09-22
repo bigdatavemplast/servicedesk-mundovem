@@ -2,10 +2,6 @@
 -- Service Desk - Reabertura de chamados
 -- ============================================================
 
--- O status reaberto precisa existir no enum utilizado pela tabela.
-ALTER TYPE public.status_chamado
-  ADD VALUE IF NOT EXISTS 'reaberto';
-
 -- Dados da reabertura.
 ALTER TABLE public.chamados
   ADD COLUMN IF NOT EXISTS reaberto_em TIMESTAMPTZ;
