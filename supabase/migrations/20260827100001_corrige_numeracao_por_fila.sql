@@ -19,7 +19,7 @@ FROM temporarios t
 WHERE g.id = t.id;
 
 -- Depois aplica os prefixos finais, numerando duplicidades por segmento.
-DO $
+DO $$
 DECLARE
   r RECORD;
 BEGIN
