@@ -37,3 +37,11 @@ jobs:
       - name: Stop local Supabase
         if: always()
         run: supabase stop
+
+      - name: Deploy migrations to new Supabase
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase link --project-ref nstmbtimaghenkpjqbih
+          supabase db push
