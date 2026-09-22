@@ -1,13 +1,38 @@
 -- 1) search_path fixo
-ALTER FUNCTION public.atualizar_documentacao_sistema_atualizado_em() SET search_path = public;
-ALTER FUNCTION public.sla_aplicar_prazo_calendario() SET search_path = public;
-ALTER FUNCTION public.sla_calcular_prazo_util(timestamp with time zone, bigint, uuid) SET search_path = public;
-ALTER FUNCTION public.slugify_conhecimento(text) SET search_path = public;
-ALTER FUNCTION public.status_sla_resolucao(timestamp with time zone, boolean, bigint) SET search_path = public;
-ALTER FUNCTION public.sincronizar_segmento_categoria() SET search_path = public;
-ALTER FUNCTION public.atualizar_regra_atribuicao_atualizado_em() SET search_path = public;
-ALTER FUNCTION public.validar_item_catalogo() SET search_path = public;
-ALTER FUNCTION public.itsm_itens_catalogo_set_atualizado_em() SET search_path = public;
+-- Algumas funções são criadas apenas em instalações que incluem módulos
+-- opcionais posteriores. O ajuste de segurança é aplicado somente quando
+-- a função já existe no estado atual da migration.
+DO $$
+BEGIN
+  IF to_regprocedure('public.atualizar_documentacao_sistema_atualizado_em()') IS NOT NULL THEN
+    ALTER FUNCTION public.atualizar_documentacao_sistema_atualizado_em() SET search_path = public;
+  END IF;
+  IF to_regprocedure('public.sla_aplicar_prazo_calendario()') IS NOT NULL THEN
+    ALTER FUNCTION public.sla_aplicar_prazo_calendario() SET search_path = public;
+  END IF;
+  IF to_regprocedure('public.sla_calcular_prazo_util(timestamp with time zone, bigint, uuid)') IS NOT NULL THEN
+    ALTER FUNCTION public.sla_calcular_prazo_util(timestamp with time zone, bigint, uuid) SET search_path = public;
+  END IF;
+  IF to_regprocedure('public.slugify_conhecimento(text)') IS NOT NULL THEN
+    ALTER FUNCTION public.slugify_conhecimento(text) SET search_path = public;
+  END IF;
+  IF to_regprocedure('public.status_sla_resolucao(timestamp with time zone, boolean, bigint)') IS NOT NULL THEN
+    ALTER FUNCTION public.status_sla_resolucao(timestamp with time zone, boolean, bigint) SET search_path = public;
+  END IF;
+  IF to_regprocedure('public.sincronizar_segmento_categoria()') IS NOT NULL THEN
+    ALTER FUNCTION public.sincronizar_segmento_categoria() SET search_path = public;
+  END IF;
+  IF to_regprocedure('public.atualizar_regra_atribuicao_atualizado_em()') IS NOT NULL THEN
+    ALTER FUNCTION public.atualizar_regra_atribuicao_atualizado_em() SET search_path = public;
+  END IF;
+  IF to_regprocedure('public.validar_item_catalogo()') IS NOT NULL THEN
+    ALTER FUNCTION public.validar_item_catalogo() SET search_path = public;
+  END IF;
+  IF to_regprocedure('public.itsm_itens_catalogo_set_atualizado_em()') IS NOT NULL THEN
+    ALTER FUNCTION public.itsm_itens_catalogo_set_atualizado_em() SET search_path = public;
+  END IF;
+END
+$$;
 
 -- 2) SECURITY DEFINER: remover execução para anônimos
 DO $$
