@@ -103,7 +103,10 @@ SELECT setval(
   s.max_numero IS NOT NULL
 )
 FROM (
-  SELECT MAX((regexp_match(numero, '^SD-([0-9]+)
+  SELECT MAX((regexp_match(numero, '^SD-([0-9]+)' || chr(36)))[1]::BIGINT) AS max_numero
+  FROM public.chamados
+  WHERE numero ~ ('^SD-[0-9]+' || chr(36))
+) AS s;
 
 -- Proteção adicional: o campo numero já é UNIQUE, mas esta constraint
 -- documenta explicitamente a regra de unicidade no banco.
