@@ -106,7 +106,13 @@ CREATE TRIGGER trg_perguntas_sem_resposta_updated
 BEFORE UPDATE ON public.perguntas_sem_resposta
 FOR EACH ROW EXECUTE FUNCTION public.tg_atualizado_em();
 
--- 5. Índices vetoriais (1536 dims: índice direto)
+-- 5. Embedding da base de conhecimento
+-- A tabela base_conhecimento foi criada antes da extensão vetorial; a coluna é adicionada aqui
+-- para manter a migration reproduzível do zero antes da criação dos índices HNSW.
+ALTER TABLE public.base_conhecimento
+  ADD COLUMN IF NOT EXISTS embedding vector(1536);
+
+-- 6. Índices vetoriais (1536 dims: índice direto)
 CREATE INDEX IF NOT EXISTS idx_bc_embedding ON public.base_conhecimento
   USING hnsw (embedding vector_cosine_ops);
 CREATE INDEX IF NOT EXISTS idx_chamados_embedding ON public.chamados
@@ -114,7 +120,7 @@ CREATE INDEX IF NOT EXISTS idx_chamados_embedding ON public.chamados
 CREATE INDEX IF NOT EXISTS idx_doc_assistente_embedding ON public.documentos_assistente
   USING hnsw (embedding vector_cosine_ops);
 
--- 6. Busca unificada por similaridade
+-- 7. Busca unificada por similaridade
 CREATE OR REPLACE FUNCTION public.match_conhecimento(
   query_embedding vector(1536),
   match_threshold double precision DEFAULT 0.55,
