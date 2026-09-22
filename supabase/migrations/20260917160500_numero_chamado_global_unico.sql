@@ -112,18 +112,3 @@ FROM (
 -- documenta explicitamente a regra de unicidade no banco.
 CREATE UNIQUE INDEX IF NOT EXISTS ux_chamados_numero_unico
   ON public.chamados (numero);
-))[1]::BIGINT) AS max_numero
-  FROM public.chamados
-  WHERE numero ~ '^SD-[0-9]+
-
--- Proteção adicional: o campo numero já é UNIQUE, mas esta constraint
--- documenta explicitamente a regra de unicidade no banco.
-CREATE UNIQUE INDEX IF NOT EXISTS ux_chamados_numero_unico
-  ON public.chamados (numero);
-
-) AS s;
-
--- Proteção adicional: o campo numero já é UNIQUE, mas esta constraint
--- documenta explicitamente a regra de unicidade no banco.
-CREATE UNIQUE INDEX IF NOT EXISTS ux_chamados_numero_unico
-  ON public.chamados (numero);
