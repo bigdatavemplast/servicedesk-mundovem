@@ -125,16 +125,14 @@ WHERE c.id = e.id;
 -- Garante que a próxima sequência continue após o maior número já usado.
 SELECT setval(
   'public.chamados_numero_seq',
-  COALESCE(
-    (
-      SELECT MAX((regexp_match(numero, '-([0-9]+)$'))[1]::BIGINT)
-      FROM public.chamados
-      WHERE numero ~ '^SD-[A-Z]+-[0-9]+$'
-    ),
-    0
-  ),
-  true
-);
+  COALESCE(s.max_numero, 1),
+  s.max_numero IS NOT NULL
+)
+FROM (
+  SELECT MAX((regexp_match(numero, '-([0-9]+)' || chr(36)))[1]::BIGINT) AS max_numero
+  FROM public.chamados
+  WHERE numero ~ ('^SD-[A-Z]+-[0-9]+' || chr(36))
+) AS s;
 
 CREATE UNIQUE INDEX IF NOT EXISTS ux_chamados_numero_unico
 ON public.chamados (numero);
