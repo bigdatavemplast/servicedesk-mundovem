@@ -112,3 +112,5 @@ FROM (
 -- documenta explicitamente a regra de unicidade no banco.
 CREATE UNIQUE INDEX IF NOT EXISTS ux_chamados_numero_unico
   ON public.chamados (numero);
+
+-- CI: validação local de migrations.
