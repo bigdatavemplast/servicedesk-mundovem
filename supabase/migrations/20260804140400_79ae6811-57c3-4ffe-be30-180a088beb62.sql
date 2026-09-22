@@ -7,14 +7,14 @@ CREATE OR REPLACE FUNCTION public.match_conhecimento(query_embedding vector, mat
 AS $function$
   WITH artigos AS (
     SELECT 'base_conhecimento'::text AS origem, b.id AS ref_id, b.titulo::text AS titulo,
-           b.conteudo AS conteudo, 1 - (b.embedding <=> query_embedding) AS similarity
+           b.conteudo AS conteudo, 1 - (b.embedding OPERATOR(extensions.<=>) query_embedding) AS similarity
     FROM public.base_conhecimento b
     WHERE b.publicado = true AND b.embedding IS NOT NULL
   ),
   tickets AS (
     SELECT 'chamado'::text AS origem, c.id AS ref_id,
            (c.numero || ' — ' || c.titulo)::text AS titulo,
-           c.descricao AS conteudo, 1 - (c.embedding <=> query_embedding) AS similarity
+           c.descricao AS conteudo, 1 - (c.embedding OPERATOR(extensions.<=>) query_embedding) AS similarity
     FROM public.chamados c
     WHERE c.status IN ('resolvido','fechado') AND c.embedding IS NOT NULL
       AND auth.uid() IS NOT NULL
@@ -26,7 +26,7 @@ AS $function$
   ),
   docs AS (
     SELECT 'documento'::text AS origem, d.id AS ref_id, d.titulo AS titulo,
-           d.conteudo AS conteudo, 1 - (d.embedding <=> query_embedding) AS similarity
+           d.conteudo AS conteudo, 1 - (d.embedding OPERATOR(extensions.<=>) query_embedding) AS similarity
     FROM public.documentos_assistente d
     WHERE d.ativo = true AND d.embedding IS NOT NULL
   ),
@@ -99,10 +99,10 @@ CREATE OR REPLACE FUNCTION public.buscar_artigos_semanticos(query_embedding vect
  STABLE
  SET search_path TO 'public'
 AS $function$
-  select b.id, b.titulo::text, b.conteudo, 1 - (b.embedding <=> query_embedding) as similarity
+  select b.id, b.titulo::text, b.conteudo, 1 - (b.embedding OPERATOR(extensions.<=>) query_embedding) as similarity
   from public.base_conhecimento b
   where b.publicado = true and b.embedding is not null
-  order by b.embedding <=> query_embedding
+  order by b.embedding OPERATOR(extensions.<=>) query_embedding
   limit match_count;
 $function$;
 
