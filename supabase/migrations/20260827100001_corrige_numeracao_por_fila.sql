@@ -50,7 +50,7 @@ BEGIN
     UPDATE public.grupos_atendimento SET prefixo = r.prefixo_final WHERE id = r.id;
   END LOOP;
 END
-$;
+$$;
 
 -- 2) Recria a função de numeração para também reconhecer o número legado.
 CREATE OR REPLACE FUNCTION public.chamado_before_insert()
