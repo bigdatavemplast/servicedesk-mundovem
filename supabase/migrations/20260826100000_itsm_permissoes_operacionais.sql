@@ -5,7 +5,7 @@ create or replace function public.itsm_tem_papel(papeis text[]) returns boolean
 language sql stable security definer set search_path=public as $$
   select exists (
     select 1 from public.user_roles ur
-    where ur.user_id = auth.uid() and ur.role = any(papeis)
+    where ur.user_id = auth.uid() and ur.role::text = any(papeis)
   );
 $$;
 revoke all on function public.itsm_tem_papel(text[]) from public;
