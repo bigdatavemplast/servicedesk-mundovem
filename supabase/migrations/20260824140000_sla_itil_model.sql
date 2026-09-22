@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS public.sla_regras (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   nome VARCHAR(150) NOT NULL,
   ativo BOOLEAN NOT NULL DEFAULT TRUE,
-  tipo_fluxo VARCHAR(30) NOT NULL CHECK (tipo_fluxo IN ('incidente', 'requisicao', 'triagem', 'melhoria', 'projeto')),
+  tipo_fluxo VARCHAR(30) NOT NULL CHECK (tipo_fluxo IN ('incidente', 'requisicao', 'triagem', 'melhoria', 'projeto', 'duvida', 'acesso', 'solicitacao')),
   segmento_id UUID REFERENCES public.segmentos(id) ON DELETE SET NULL,
   categoria_id UUID REFERENCES public.categorias(id) ON DELETE SET NULL,
   catalogo_item_id UUID,
