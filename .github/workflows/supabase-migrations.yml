@@ -42,6 +42,7 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: |
-          supabase db push --db-url "$SUPABASE_DB_URL"
+          DB_URL="$(node -e 'const p=process.env.SUPABASE_DB_PASSWORD; console.log(`postgresql://postgres.nstmbtimaghenkpjqbih:${encodeURIComponent(p)}@aws-0-us-east-2.pooler.supabase.com:5432/postgres`)')" 
+          supabase db push --db-url "$DB_URL"
