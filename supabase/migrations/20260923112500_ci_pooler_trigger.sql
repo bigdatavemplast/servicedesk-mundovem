@@ -1,0 +1,2 @@
+-- CI: trigger migration deployment after switching to IPv4 Session Pooler.
+-- No schema changes.
