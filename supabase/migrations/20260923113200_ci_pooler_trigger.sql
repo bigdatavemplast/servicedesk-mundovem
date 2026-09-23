@@ -1,0 +1,2 @@
+-- CI: retrigger Supabase migration deployment after fixing pooler password encoding.
+-- No schema changes.
