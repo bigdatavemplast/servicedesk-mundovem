@@ -11,7 +11,6 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as McpRouteImport } from './routes/mcp'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
@@ -55,8 +54,6 @@ import { Route as AuthenticatedAdminCategoriasRouteImport } from './routes/_auth
 import { Route as AuthenticatedAdminCatalogoRouteImport } from './routes/_authenticated/admin.catalogo'
 import { Route as AuthenticatedAdminAutomacoesRouteImport } from './routes/_authenticated/admin/automacoes'
 import { Route as AuthenticatedAdminAssistenteRouteImport } from './routes/_authenticated/admin.assistente'
-import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
-import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as AuthenticatedBaseConhecimentoIdEditarRouteImport } from './routes/_authenticated/base-conhecimento.$id.editar'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -67,11 +64,6 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const McpRoute = McpRouteImport.update({
-  id: '/mcp',
-  path: '/mcp',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
@@ -318,17 +310,6 @@ const AuthenticatedAdminAssistenteRoute =
     path: '/admin/assistente',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const Char91DotmcpChar93InvokeToolToolRoute =
-  Char91DotmcpChar93InvokeToolToolRouteImport.update({
-    id: '/.mcp/invoke-tool/$tool',
-    path: '/.mcp/invoke-tool/$tool',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
-  id: '/.lovable/oauth/consent',
-  path: '/.lovable/oauth/consent',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthenticatedBaseConhecimentoIdEditarRoute =
   AuthenticatedBaseConhecimentoIdEditarRouteImport.update({
     id: '/editar',
@@ -340,7 +321,6 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/forgot-password': typeof ForgotPasswordRoute
-  '/mcp': typeof McpRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
@@ -360,8 +340,6 @@ export interface FileRoutesByFullPath {
   '/itsm-relacionamentos': typeof AuthenticatedItsmRelacionamentosRoute
   '/itsm-servicos': typeof AuthenticatedItsmServicosRoute
   '/api/assistente': typeof ApiAssistenteRoute
-  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
-  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/admin/assistente': typeof AuthenticatedAdminAssistenteRoute
   '/admin/automacoes': typeof AuthenticatedAdminAutomacoesRoute
   '/admin/catalogo': typeof AuthenticatedAdminCatalogoRoute
@@ -390,7 +368,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/forgot-password': typeof ForgotPasswordRoute
-  '/mcp': typeof McpRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
@@ -409,8 +386,6 @@ export interface FileRoutesByTo {
   '/itsm-relacionamentos': typeof AuthenticatedItsmRelacionamentosRoute
   '/itsm-servicos': typeof AuthenticatedItsmServicosRoute
   '/api/assistente': typeof ApiAssistenteRoute
-  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
-  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/admin/assistente': typeof AuthenticatedAdminAssistenteRoute
   '/admin/automacoes': typeof AuthenticatedAdminAutomacoesRoute
   '/admin/catalogo': typeof AuthenticatedAdminCatalogoRoute
@@ -441,7 +416,6 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/forgot-password': typeof ForgotPasswordRoute
-  '/mcp': typeof McpRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
@@ -461,8 +435,6 @@ export interface FileRoutesById {
   '/_authenticated/itsm-relacionamentos': typeof AuthenticatedItsmRelacionamentosRoute
   '/_authenticated/itsm-servicos': typeof AuthenticatedItsmServicosRoute
   '/api/assistente': typeof ApiAssistenteRoute
-  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
-  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/_authenticated/admin/assistente': typeof AuthenticatedAdminAssistenteRoute
   '/_authenticated/admin/automacoes': typeof AuthenticatedAdminAutomacoesRoute
   '/_authenticated/admin/catalogo': typeof AuthenticatedAdminCatalogoRoute
@@ -493,7 +465,6 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/forgot-password'
-    | '/mcp'
     | '/reset-password'
     | '/sitemap.xml'
     | '/.mcp/list-tools'
@@ -513,8 +484,6 @@ export interface FileRouteTypes {
     | '/itsm-relacionamentos'
     | '/itsm-servicos'
     | '/api/assistente'
-    | '/.lovable/oauth/consent'
-    | '/.mcp/invoke-tool/$tool'
     | '/admin/assistente'
     | '/admin/automacoes'
     | '/admin/catalogo'
@@ -543,7 +512,6 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/forgot-password'
-    | '/mcp'
     | '/reset-password'
     | '/sitemap.xml'
     | '/.mcp/list-tools'
@@ -562,8 +530,6 @@ export interface FileRouteTypes {
     | '/itsm-relacionamentos'
     | '/itsm-servicos'
     | '/api/assistente'
-    | '/.lovable/oauth/consent'
-    | '/.mcp/invoke-tool/$tool'
     | '/admin/assistente'
     | '/admin/automacoes'
     | '/admin/catalogo'
@@ -593,7 +559,6 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/forgot-password'
-    | '/mcp'
     | '/reset-password'
     | '/sitemap.xml'
     | '/.mcp/list-tools'
@@ -613,8 +578,6 @@ export interface FileRouteTypes {
     | '/_authenticated/itsm-relacionamentos'
     | '/_authenticated/itsm-servicos'
     | '/api/assistente'
-    | '/.lovable/oauth/consent'
-    | '/.mcp/invoke-tool/$tool'
     | '/_authenticated/admin/assistente'
     | '/_authenticated/admin/automacoes'
     | '/_authenticated/admin/catalogo'
@@ -645,14 +608,11 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
-  McpRoute: typeof McpRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   ApiAssistenteRoute: typeof ApiAssistenteRoute
-  DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
-  Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -669,13 +629,6 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/mcp': {
-      id: '/mcp'
-      path: '/mcp'
-      fullPath: '/mcp'
-      preLoaderRoute: typeof McpRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/forgot-password': {
@@ -979,20 +932,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAssistenteRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/.mcp/invoke-tool/$tool': {
-      id: '/.mcp/invoke-tool/$tool'
-      path: '/.mcp/invoke-tool/$tool'
-      fullPath: '/.mcp/invoke-tool/$tool'
-      preLoaderRoute: typeof Char91DotmcpChar93InvokeToolToolRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/.lovable/oauth/consent': {
-      id: '/.lovable/oauth/consent'
-      path: '/.lovable/oauth/consent'
-      fullPath: '/.lovable/oauth/consent'
-      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_authenticated/base-conhecimento/$id/editar': {
       id: '/_authenticated/base-conhecimento/$id/editar'
       path: '/editar'
@@ -1118,15 +1057,12 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
-  McpRoute: McpRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
   ApiAssistenteRoute: ApiAssistenteRoute,
-  DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
-  Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
