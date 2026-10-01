@@ -4,6 +4,7 @@ import { nitro } from "nitro/vite";
 import viteReact from "@vitejs/plugin-react";
 
 export default defineConfig({
+  cssMinify: "esbuild",
   plugins: [
     tanstackStart({
       server: {
