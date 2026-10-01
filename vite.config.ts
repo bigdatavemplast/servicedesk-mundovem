@@ -6,14 +6,5 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   cssMinify: "esbuild",
-  plugins: [
-    tanstackStart({
-      server: {
-        entry: "server",
-      },
-    }),
-    nitro(),
-    viteReact(),
-    tailwindcss(),
-  ],
+  plugins: [tanstackStart(), nitro(), viteReact(), tailwindcss()],
 });
