@@ -31,9 +31,9 @@ export const Route = createFileRoute("/_authenticated/chamados/$id")({
 });
 
 const STATUS: { v: string; l: string }[] = [
-  { v: "aberto", l: "Aberto" }, { v: "em_andamento", l: "Em andamento" },
+  { v: "aberto", l: "Aberto" }, { v: "em_triagem", l: "Em triagem" }, { v: "em_andamento", l: "Em andamento" },
   { v: "aguardando_usuario", l: "Aguardando usuário" }, { v: "aguardando_terceiro", l: "Aguardando terceiro" },
-  { v: "resolvido", l: "Resolvido" }, { v: "fechado", l: "Fechado" }, { v: "cancelado", l: "Cancelado" },
+  { v: "resolvido", l: "Resolvido" }, { v: "fechado", l: "Fechado" }, { v: "reaberto", l: "Reaberto" }, { v: "cancelado", l: "Cancelado" },
 ];
 const PRIOS = [
   { v: "baixa", l: "Baixa" }, { v: "media", l: "Média" }, { v: "alta", l: "Alta" }, { v: "critica", l: "Crítica" },
