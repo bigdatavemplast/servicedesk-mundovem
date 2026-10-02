@@ -13,7 +13,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogD
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { Users, Loader2, Pencil, Trash2, KeyRound, UserPlus } from "lucide-react";
-import { criarUsuario, atualizarUsuario, excluirUsuario, definirPapel } from "@/lib/admin-users.functions";
+import { criarUsuario, atualizarUsuario, excluirUsuario } from "@/lib/admin-users.functions";
+import { definirPapel } from "@/lib/admin-roles.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/usuarios")({
   head: () => ({
