@@ -117,12 +117,13 @@ export const definirPapel = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ userId: z.string().uuid(), role: roleEnum, add: z.boolean() }).parse(d))
   .handler(async ({ data, context }) => {
     await assertPermission(context.supabase, context.userId, "roles.manage");
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // A política RLS de user_roles já autoriza somente usuários com users.manage/roles.manage.
+    // Portanto, esta operação não precisa de service_role e pode usar a sessão autenticada.
     if (data.add) {
-      const { error } = await supabaseAdmin.from("user_roles").insert({ user_id: data.userId, role: data.role } as never);
+      const { error } = await context.supabase.from("user_roles").insert({ user_id: data.userId, role: data.role } as never);
       if (error && !String(error.message).toLowerCase().includes("duplicate")) throw new Error(error.message);
     } else {
-      const { error } = await supabaseAdmin.from("user_roles").delete().eq("user_id", data.userId).eq("role", data.role as any);
+      const { error } = await context.supabase.from("user_roles").delete().eq("user_id", data.userId).eq("role", data.role as any);
       if (error) throw new Error(error.message);
     }
     return { ok: true };
