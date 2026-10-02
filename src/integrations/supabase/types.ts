@@ -1271,6 +1271,7 @@ export type Database = {
       historico_chamado: {
         Row: {
           acao: string
+          ator_role: string | null
           autor_id: string | null
           chamado_id: string
           criado_em: string
@@ -1280,6 +1281,7 @@ export type Database = {
         }
         Insert: {
           acao: string
+          ator_role?: string | null
           autor_id?: string | null
           chamado_id: string
           criado_em?: string
@@ -1289,6 +1291,7 @@ export type Database = {
         }
         Update: {
           acao?: string
+          ator_role?: string | null
           autor_id?: string | null
           chamado_id?: string
           criado_em?: string
@@ -2365,6 +2368,32 @@ export type Database = {
           },
         ]
       }
+      preferencias_atendimento: {
+        Row: {
+          atualizado_em: string
+          modo_ativo: string
+          usuario_id: string
+        }
+        Insert: {
+          atualizado_em?: string
+          modo_ativo?: string
+          usuario_id: string
+        }
+        Update: {
+          atualizado_em?: string
+          modo_ativo?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "preferencias_atendimento_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           area_id: string | null
@@ -2880,6 +2909,7 @@ export type Database = {
       }
     }
     Functions: {
+      alterar_modo_atendimento: { Args: { _modo: string }; Returns: string }
       atribuir_chamado: {
         Args: { _atendente_id: string; _chamado_id: string }
         Returns: {
@@ -2959,6 +2989,31 @@ export type Database = {
           titulo: string
         }[]
       }
+      chamado_numero_global: {
+        Args: { p_segmento_id: string }
+        Returns: string
+      }
+      codigo_area_chamado: { Args: { p_segmento_id: string }; Returns: string }
+      criar_notificacao: {
+        Args: {
+          p_chamado_id?: string
+          p_destinatario_id: string
+          p_mensagem?: string
+          p_tipo: Database["public"]["Enums"]["tipo_notificacao"]
+          p_titulo: string
+        }
+        Returns: string
+      }
+      criar_notificacao_automatica: {
+        Args: {
+          p_chamado_id?: string
+          p_destinatario_id: string
+          p_mensagem?: string
+          p_tipo: Database["public"]["Enums"]["tipo_notificacao"]
+          p_titulo: string
+        }
+        Returns: string
+      }
       dashboard_escopo_gestor: {
         Args: { _gestor_id: string; _solicitante_id: string }
         Returns: boolean
@@ -3018,6 +3073,7 @@ export type Database = {
           titulo: string
         }[]
       }
+      normalizar_nome_area: { Args: { _nome: string }; Returns: string }
       obter_feedback_artigo_base_conhecimento: {
         Args: { p_artigo_id: string }
         Returns: Json
