@@ -57,6 +57,31 @@ function adminClient() {
   })
 }
 
+async function removeOwnedStorageObjects(admin: ReturnType<typeof adminClient>, userId: string) {
+  const { data: objects, error } = await admin
+    .schema("storage")
+    .from("objects")
+    .select("bucket_id,name")
+    .or("owner.eq." + userId + ",owner_id.eq." + userId)
+
+  if (error) throw new Error("Falha ao verificar arquivos do usuário: " + error.message)
+  if (!objects?.length) return
+
+  const byBucket = new Map<string, string[]>()
+  for (const object of objects) {
+    const paths = byBucket.get(object.bucket_id) ?? []
+    paths.push(object.name)
+    byBucket.set(object.bucket_id, paths)
+  }
+
+  for (const [bucket, paths] of byBucket) {
+    const { error: removeError } = await admin.storage.from(bucket).remove(paths)
+    if (removeError) {
+      throw new Error("Falha ao remover arquivos do usuário: " + removeError.message)
+    }
+  }
+}
+
 Deno.serve(async (req) => {
   try {
     if (req.method !== "POST") return json({ error: "Method not allowed" }, 405)
@@ -104,6 +129,7 @@ Deno.serve(async (req) => {
 
     if (body.action === "delete") {
       if (body.id === callerId) return json({ error: "Você não pode excluir a si mesmo" }, 400)
+      await removeOwnedStorageObjects(admin, body.id)
       const { error } = await admin.auth.admin.deleteUser(body.id)
       if (error) throw new Error(error.message)
       return json({ ok: true })
