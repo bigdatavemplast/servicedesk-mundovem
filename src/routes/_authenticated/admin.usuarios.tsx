@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { Users, Loader2, Pencil, Trash2, KeyRound, UserPlus } from "lucide-react";
 import { criarUsuario, atualizarUsuario, excluirUsuario } from "@/lib/admin-users.functions";
 import { definirPapel } from "@/lib/admin-roles.functions";
+import { atualizarPerfilAdministrativo } from "@/lib/admin-profile.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/usuarios")({
   head: () => ({
@@ -63,6 +64,7 @@ function AdminUsuariosPage() {
   const atualizar = useServerFn(atualizarUsuario);
   const excluir = useServerFn(excluirUsuario);
   const setRole = useServerFn(definirPapel);
+  const atualizarPerfil = useServerFn(atualizarPerfilAdministrativo);
 
   const [busca, setBusca] = useState("");
   const [fNome, setFNome] = useState("");
@@ -120,17 +122,32 @@ function AdminUsuariosPage() {
     mutationFn: async () => {
       if (!editing) return;
       const currentPrimary = editing.roles[0];
+      const emailChanged = editing.email !== eEmail.trim();
+      const senhaChanged = !!eSenha;
       const profileChanged =
         editing.nome !== eNome.trim() ||
-        editing.email !== eEmail.trim() ||
+        (editing.email ?? "") !== eEmail.trim() ||
         (editing.departamento ?? "") !== (eDep.trim() || "") ||
-        (editing.area_id ?? "") !== (eAreaId || "") ||
-        !!eSenha;
+        (editing.area_id ?? "") !== (eAreaId || "");
 
-      // Se a alteração for somente de papel, não chama a rotina administrativa
-      // que depende de service_role/Lovable Cloud.
+      // Dados de perfil/área/departamento usam a sessão autenticada + RLS.
+      // Somente operações de Auth que exigem privilégio administrativo continuam
+      // passando pela rotina server-side que usa a chave privilegiada.
       if (profileChanged) {
-        await atualizar({ data: { id: editing.id, nome: eNome.trim(), email: eEmail.trim(), departamento: eDep.trim() || null, areaId: eAreaId || null, senha: eSenha ? eSenha : undefined } });
+        await atualizarPerfil({ data: {
+          id: editing.id,
+          nome: eNome.trim(),
+          email: eEmail.trim(),
+          departamento: eDep.trim() || null,
+          areaId: eAreaId || null,
+        } });
+      }
+      if (emailChanged || senhaChanged) {
+        await atualizar({ data: {
+          id: editing.id,
+          email: emailChanged ? eEmail.trim() : undefined,
+          senha: senhaChanged ? eSenha : undefined,
+        } });
       }
 
       if (currentPrimary !== eRole) {
@@ -143,7 +160,7 @@ function AdminUsuariosPage() {
   });
 
   const ativarMut = useMutation({
-    mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => atualizar({ data: { id, ativo } }),
+    mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => atualizarPerfil({ data: { id, ativo } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
     onError: (e: any) => toast.error(e.message),
   });
