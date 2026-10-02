@@ -41,7 +41,8 @@ const PRIOS = [
 function fmt(d: string | null) { if (!d) return "—"; return new Date(d).toLocaleString("pt-BR"); }
 function prioClass(p: string) { return p === "critica" ? "bg-red-100 text-red-700" : p === "alta" ? "bg-amber-100 text-amber-700" : p === "media" ? "bg-blue-100 text-blue-700" : "bg-emerald-100 text-emerald-700"; }
 function slaInfo(chamado: any, now: number) {
-  if (chamado?.sla_pausado) { const sec = Math.max(0, Number(chamado.sla_tempo_restante_segundos ?? 0)); return { status: "pausado", label: "Pausado", seconds: sec }; }
+  const slaDeveEstarPausado = !!chamado?.sla_pausado && ["aguardando_usuario", "aguardando_terceiro"].includes(chamado?.status);
+  if (slaDeveEstarPausado) { const sec = Math.max(0, Number(chamado.sla_tempo_restante_segundos ?? 0)); return { status: "pausado", label: "Pausado", seconds: sec }; }
   if (!chamado?.prazo_resolucao) return { status: "sem_sla", label: "Sem SLA", seconds: null as number | null };
   const sec = Math.floor((new Date(chamado.prazo_resolucao).getTime() - now) / 1000);
   if (sec <= 0) return { status: "vencido", label: "Vencido", seconds: 0 };
