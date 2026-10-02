@@ -9,66 +9,58 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ApiAssistenteRouteImport } from './routes/api/assistente'
-import { Route as AuthenticatedItsmServicosRouteImport } from './routes/_authenticated/itsm-servicos'
-import { Route as AuthenticatedItsmRelacionamentosRouteImport } from './routes/_authenticated/itsm-relacionamentos'
-import { Route as AuthenticatedItsmProblemasRouteImport } from './routes/_authenticated/itsm-problemas'
-import { Route as AuthenticatedItsmMudancasRouteImport } from './routes/_authenticated/itsm-mudancas'
-import { Route as AuthenticatedItsmGovernancaRouteImport } from './routes/_authenticated/itsm-governanca'
-import { Route as AuthenticatedItsmConhecimentoRouteImport } from './routes/_authenticated/itsm-conhecimento'
-import { Route as AuthenticatedItsmAvancadoRouteImport } from './routes/_authenticated/itsm-avancado'
-import { Route as AuthenticatedItsmAuditoriaRouteImport } from './routes/_authenticated/itsm-auditoria'
-import { Route as AuthenticatedItsmAtivosRouteImport } from './routes/_authenticated/itsm-ativos'
-import { Route as AuthenticatedGestaoRouteImport } from './routes/_authenticated/gestao'
-import { Route as AuthenticatedFilaRouteImport } from './routes/_authenticated/fila'
-import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
-import { Route as AuthenticatedCatalogoRouteImport } from './routes/_authenticated/catalogo'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as AuthenticatedAreasRouteImport } from './routes/_authenticated/areas'
-import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
-import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
-import { Route as AuthenticatedGestaoIndexRouteImport } from './routes/_authenticated/gestao.index'
-import { Route as AuthenticatedChamadosIndexRouteImport } from './routes/_authenticated/chamados.index'
-import { Route as AuthenticatedBaseConhecimentoIndexRouteImport } from './routes/_authenticated/base-conhecimento.index'
-import { Route as AuthenticatedAssistenteIndexRouteImport } from './routes/_authenticated/assistente.index'
+import { Route as AuthenticatedCatalogoRouteImport } from './routes/_authenticated/catalogo'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedFilaRouteImport } from './routes/_authenticated/fila'
+import { Route as AuthenticatedGestaoRouteImport } from './routes/_authenticated/gestao'
+import { Route as AuthenticatedItsmAtivosRouteImport } from './routes/_authenticated/itsm-ativos'
+import { Route as AuthenticatedItsmAuditoriaRouteImport } from './routes/_authenticated/itsm-auditoria'
+import { Route as AuthenticatedItsmAvancadoRouteImport } from './routes/_authenticated/itsm-avancado'
+import { Route as AuthenticatedItsmConhecimentoRouteImport } from './routes/_authenticated/itsm-conhecimento'
+import { Route as AuthenticatedItsmGovernancaRouteImport } from './routes/_authenticated/itsm-governanca'
+import { Route as AuthenticatedItsmMudancasRouteImport } from './routes/_authenticated/itsm-mudancas'
+import { Route as AuthenticatedItsmProblemasRouteImport } from './routes/_authenticated/itsm-problemas'
+import { Route as AuthenticatedItsmRelacionamentosRouteImport } from './routes/_authenticated/itsm-relacionamentos'
+import { Route as AuthenticatedItsmServicosRouteImport } from './routes/_authenticated/itsm-servicos'
+import { Route as ApiAssistenteRouteImport } from './routes/api/assistente'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
-import { Route as AuthenticatedGestaoCapacidadeRouteImport } from './routes/_authenticated/gestao.capacidade'
-import { Route as AuthenticatedChamadosNovoRouteImport } from './routes/_authenticated/chamados.novo'
-import { Route as AuthenticatedChamadosIdRouteImport } from './routes/_authenticated/chamados.$id'
-import { Route as AuthenticatedBaseConhecimentoNovoRouteImport } from './routes/_authenticated/base-conhecimento.novo'
-import { Route as AuthenticatedBaseConhecimentoIdRouteImport } from './routes/_authenticated/base-conhecimento.$id'
-import { Route as AuthenticatedAssistenteConversaIdRouteImport } from './routes/_authenticated/assistente.$conversaId'
-import { Route as AuthenticatedAdminUsuariosRouteImport } from './routes/_authenticated/admin.usuarios'
-import { Route as AuthenticatedAdminTiposChamadoRouteImport } from './routes/_authenticated/admin.tipos-chamado'
-import { Route as AuthenticatedAdminSegmentosRouteImport } from './routes/_authenticated/admin/segmentos'
-import { Route as AuthenticatedAdminRegrasAtribuicaoRouteImport } from './routes/_authenticated/admin/regras-atribuicao'
-import { Route as AuthenticatedAdminItsmPermissoesRouteImport } from './routes/_authenticated/admin/itsm-permissoes'
-import { Route as AuthenticatedAdminGruposRouteImport } from './routes/_authenticated/admin/grupos'
-import { Route as AuthenticatedAdminDocumentacaoRouteImport } from './routes/_authenticated/admin/documentacao'
-import { Route as AuthenticatedAdminCategoriasRouteImport } from './routes/_authenticated/admin.categorias'
-import { Route as AuthenticatedAdminCatalogoRouteImport } from './routes/_authenticated/admin.catalogo'
-import { Route as AuthenticatedAdminAutomacoesRouteImport } from './routes/_authenticated/admin/automacoes'
 import { Route as AuthenticatedAdminAssistenteRouteImport } from './routes/_authenticated/admin.assistente'
+import { Route as AuthenticatedAdminAutomacoesRouteImport } from './routes/_authenticated/admin/automacoes'
+import { Route as AuthenticatedAdminCatalogoRouteImport } from './routes/_authenticated/admin.catalogo'
+import { Route as AuthenticatedAdminCategoriasRouteImport } from './routes/_authenticated/admin.categorias'
+import { Route as AuthenticatedAdminDocumentacaoRouteImport } from './routes/_authenticated/admin/documentacao'
+import { Route as AuthenticatedAdminGruposRouteImport } from './routes/_authenticated/admin/grupos'
+import { Route as AuthenticatedAdminItsmPermissoesRouteImport } from './routes/_authenticated/admin/itsm-permissoes'
+import { Route as AuthenticatedAdminRegrasAtribuicaoRouteImport } from './routes/_authenticated/admin/regras-atribuicao'
+import { Route as AuthenticatedAdminSegmentosRouteImport } from './routes/_authenticated/admin/segmentos'
+import { Route as AuthenticatedAdminTiposChamadoRouteImport } from './routes/_authenticated/admin.tipos-chamado'
+import { Route as AuthenticatedAdminUsuariosRouteImport } from './routes/_authenticated/admin.usuarios'
+import { Route as AuthenticatedAssistenteIndexRouteImport } from './routes/_authenticated/assistente.index'
+import { Route as AuthenticatedAssistenteConversaIdRouteImport } from './routes/_authenticated/assistente.$conversaId'
+import { Route as AuthenticatedBaseConhecimentoIndexRouteImport } from './routes/_authenticated/base-conhecimento.index'
+import { Route as AuthenticatedBaseConhecimentoIdRouteImport } from './routes/_authenticated/base-conhecimento.$id'
+import { Route as AuthenticatedBaseConhecimentoNovoRouteImport } from './routes/_authenticated/base-conhecimento.novo'
+import { Route as AuthenticatedChamadosIndexRouteImport } from './routes/_authenticated/chamados.index'
+import { Route as AuthenticatedChamadosIdRouteImport } from './routes/_authenticated/chamados.$id'
+import { Route as AuthenticatedChamadosNovoRouteImport } from './routes/_authenticated/chamados.novo'
+import { Route as AuthenticatedGestaoIndexRouteImport } from './routes/_authenticated/gestao.index'
+import { Route as AuthenticatedGestaoCapacidadeRouteImport } from './routes/_authenticated/gestao.capacidade'
 import { Route as AuthenticatedBaseConhecimentoIdEditarRouteImport } from './routes/_authenticated/base-conhecimento.$id.editar'
 
-const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
-  id: '/sitemap.xml',
-  path: '/sitemap.xml',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
-  id: '/forgot-password',
-  path: '/forgot-password',
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -76,54 +68,55 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
-  id: '/_authenticated',
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiAssistenteRoute = ApiAssistenteRouteImport.update({
-  id: '/api/assistente',
-  path: '/api/assistente',
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedItsmServicosRoute =
-  AuthenticatedItsmServicosRouteImport.update({
-    id: '/itsm-servicos',
-    path: '/itsm-servicos',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedItsmRelacionamentosRoute =
-  AuthenticatedItsmRelacionamentosRouteImport.update({
-    id: '/itsm-relacionamentos',
-    path: '/itsm-relacionamentos',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedItsmProblemasRoute =
-  AuthenticatedItsmProblemasRouteImport.update({
-    id: '/itsm-problemas',
-    path: '/itsm-problemas',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedItsmMudancasRoute =
-  AuthenticatedItsmMudancasRouteImport.update({
-    id: '/itsm-mudancas',
-    path: '/itsm-mudancas',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedItsmGovernancaRoute =
-  AuthenticatedItsmGovernancaRouteImport.update({
-    id: '/itsm-governanca',
-    path: '/itsm-governanca',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedItsmConhecimentoRoute =
-  AuthenticatedItsmConhecimentoRouteImport.update({
-    id: '/itsm-conhecimento',
-    path: '/itsm-conhecimento',
+const AuthenticatedAreasRoute = AuthenticatedAreasRouteImport.update({
+  id: '/areas',
+  path: '/areas',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedCatalogoRoute = AuthenticatedCatalogoRouteImport.update({
+  id: '/catalogo',
+  path: '/catalogo',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedFilaRoute = AuthenticatedFilaRouteImport.update({
+  id: '/fila',
+  path: '/fila',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedGestaoRoute = AuthenticatedGestaoRouteImport.update({
+  id: '/gestao',
+  path: '/gestao',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedItsmAtivosRoute = AuthenticatedItsmAtivosRouteImport.update({
+  id: '/itsm-ativos',
+  path: '/itsm-ativos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedItsmAuditoriaRoute =
+  AuthenticatedItsmAuditoriaRouteImport.update({
+    id: '/itsm-auditoria',
+    path: '/itsm-auditoria',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedItsmAvancadoRoute =
@@ -132,170 +125,56 @@ const AuthenticatedItsmAvancadoRoute =
     path: '/itsm-avancado',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedItsmAuditoriaRoute =
-  AuthenticatedItsmAuditoriaRouteImport.update({
-    id: '/itsm-auditoria',
-    path: '/itsm-auditoria',
+const AuthenticatedItsmConhecimentoRoute =
+  AuthenticatedItsmConhecimentoRouteImport.update({
+    id: '/itsm-conhecimento',
+    path: '/itsm-conhecimento',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedItsmAtivosRoute = AuthenticatedItsmAtivosRouteImport.update({
-  id: '/itsm-ativos',
-  path: '/itsm-ativos',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedGestaoRoute = AuthenticatedGestaoRouteImport.update({
-  id: '/gestao',
-  path: '/gestao',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedFilaRoute = AuthenticatedFilaRouteImport.update({
-  id: '/fila',
-  path: '/fila',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedCatalogoRoute = AuthenticatedCatalogoRouteImport.update({
-  id: '/catalogo',
-  path: '/catalogo',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedAreasRoute = AuthenticatedAreasRouteImport.update({
-  id: '/areas',
-  path: '/areas',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const Char91DotwellKnownChar93OauthProtectedResourceRoute =
-  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
-    id: '/.well-known/oauth-protected-resource',
-    path: '/.well-known/oauth-protected-resource',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const Char91DotmcpChar93ListToolsRoute =
-  Char91DotmcpChar93ListToolsRouteImport.update({
-    id: '/.mcp/list-tools',
-    path: '/.mcp/list-tools',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const AuthenticatedGestaoIndexRoute =
-  AuthenticatedGestaoIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthenticatedGestaoRoute,
-  } as any)
-const AuthenticatedChamadosIndexRoute =
-  AuthenticatedChamadosIndexRouteImport.update({
-    id: '/chamados/',
-    path: '/chamados/',
+const AuthenticatedItsmGovernancaRoute =
+  AuthenticatedItsmGovernancaRouteImport.update({
+    id: '/itsm-governanca',
+    path: '/itsm-governanca',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedBaseConhecimentoIndexRoute =
-  AuthenticatedBaseConhecimentoIndexRouteImport.update({
-    id: '/base-conhecimento/',
-    path: '/base-conhecimento/',
+const AuthenticatedItsmMudancasRoute =
+  AuthenticatedItsmMudancasRouteImport.update({
+    id: '/itsm-mudancas',
+    path: '/itsm-mudancas',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedAssistenteIndexRoute =
-  AuthenticatedAssistenteIndexRouteImport.update({
-    id: '/assistente/',
-    path: '/assistente/',
+const AuthenticatedItsmProblemasRoute =
+  AuthenticatedItsmProblemasRouteImport.update({
+    id: '/itsm-problemas',
+    path: '/itsm-problemas',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedItsmRelacionamentosRoute =
+  AuthenticatedItsmRelacionamentosRouteImport.update({
+    id: '/itsm-relacionamentos',
+    path: '/itsm-relacionamentos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedItsmServicosRoute =
+  AuthenticatedItsmServicosRouteImport.update({
+    id: '/itsm-servicos',
+    path: '/itsm-servicos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const ApiAssistenteRoute = ApiAssistenteRouteImport.update({
+  id: '/api/assistente',
+  path: '/api/assistente',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   id: '/admin/',
   path: '/admin/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedGestaoCapacidadeRoute =
-  AuthenticatedGestaoCapacidadeRouteImport.update({
-    id: '/capacidade',
-    path: '/capacidade',
-    getParentRoute: () => AuthenticatedGestaoRoute,
-  } as any)
-const AuthenticatedChamadosNovoRoute =
-  AuthenticatedChamadosNovoRouteImport.update({
-    id: '/chamados/novo',
-    path: '/chamados/novo',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedChamadosIdRoute = AuthenticatedChamadosIdRouteImport.update({
-  id: '/chamados/$id',
-  path: '/chamados/$id',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedBaseConhecimentoNovoRoute =
-  AuthenticatedBaseConhecimentoNovoRouteImport.update({
-    id: '/base-conhecimento/novo',
-    path: '/base-conhecimento/novo',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedBaseConhecimentoIdRoute =
-  AuthenticatedBaseConhecimentoIdRouteImport.update({
-    id: '/base-conhecimento/$id',
-    path: '/base-conhecimento/$id',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedAssistenteConversaIdRoute =
-  AuthenticatedAssistenteConversaIdRouteImport.update({
-    id: '/assistente/$conversaId',
-    path: '/assistente/$conversaId',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedAdminUsuariosRoute =
-  AuthenticatedAdminUsuariosRouteImport.update({
-    id: '/admin/usuarios',
-    path: '/admin/usuarios',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedAdminTiposChamadoRoute =
-  AuthenticatedAdminTiposChamadoRouteImport.update({
-    id: '/admin/tipos-chamado',
-    path: '/admin/tipos-chamado',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedAdminSegmentosRoute =
-  AuthenticatedAdminSegmentosRouteImport.update({
-    id: '/admin/segmentos',
-    path: '/admin/segmentos',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedAdminRegrasAtribuicaoRoute =
-  AuthenticatedAdminRegrasAtribuicaoRouteImport.update({
-    id: '/admin/regras-atribuicao',
-    path: '/admin/regras-atribuicao',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedAdminItsmPermissoesRoute =
-  AuthenticatedAdminItsmPermissoesRouteImport.update({
-    id: '/admin/itsm-permissoes',
-    path: '/admin/itsm-permissoes',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedAdminGruposRoute =
-  AuthenticatedAdminGruposRouteImport.update({
-    id: '/admin/grupos',
-    path: '/admin/grupos',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedAdminDocumentacaoRoute =
-  AuthenticatedAdminDocumentacaoRouteImport.update({
-    id: '/admin/documentacao',
-    path: '/admin/documentacao',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedAdminCategoriasRoute =
-  AuthenticatedAdminCategoriasRouteImport.update({
-    id: '/admin/categorias',
-    path: '/admin/categorias',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedAdminCatalogoRoute =
-  AuthenticatedAdminCatalogoRouteImport.update({
-    id: '/admin/catalogo',
-    path: '/admin/catalogo',
+const AuthenticatedAdminAssistenteRoute =
+  AuthenticatedAdminAssistenteRouteImport.update({
+    id: '/admin/assistente',
+    path: '/admin/assistente',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAdminAutomacoesRoute =
@@ -304,11 +183,118 @@ const AuthenticatedAdminAutomacoesRoute =
     path: '/admin/automacoes',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedAdminAssistenteRoute =
-  AuthenticatedAdminAssistenteRouteImport.update({
-    id: '/admin/assistente',
-    path: '/admin/assistente',
+const AuthenticatedAdminCatalogoRoute =
+  AuthenticatedAdminCatalogoRouteImport.update({
+    id: '/admin/catalogo',
+    path: '/admin/catalogo',
     getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminCategoriasRoute =
+  AuthenticatedAdminCategoriasRouteImport.update({
+    id: '/admin/categorias',
+    path: '/admin/categorias',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminDocumentacaoRoute =
+  AuthenticatedAdminDocumentacaoRouteImport.update({
+    id: '/admin/documentacao',
+    path: '/admin/documentacao',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminGruposRoute =
+  AuthenticatedAdminGruposRouteImport.update({
+    id: '/admin/grupos',
+    path: '/admin/grupos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminItsmPermissoesRoute =
+  AuthenticatedAdminItsmPermissoesRouteImport.update({
+    id: '/admin/itsm-permissoes',
+    path: '/admin/itsm-permissoes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminRegrasAtribuicaoRoute =
+  AuthenticatedAdminRegrasAtribuicaoRouteImport.update({
+    id: '/admin/regras-atribuicao',
+    path: '/admin/regras-atribuicao',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminSegmentosRoute =
+  AuthenticatedAdminSegmentosRouteImport.update({
+    id: '/admin/segmentos',
+    path: '/admin/segmentos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminTiposChamadoRoute =
+  AuthenticatedAdminTiposChamadoRouteImport.update({
+    id: '/admin/tipos-chamado',
+    path: '/admin/tipos-chamado',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminUsuariosRoute =
+  AuthenticatedAdminUsuariosRouteImport.update({
+    id: '/admin/usuarios',
+    path: '/admin/usuarios',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAssistenteIndexRoute =
+  AuthenticatedAssistenteIndexRouteImport.update({
+    id: '/assistente/',
+    path: '/assistente/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAssistenteConversaIdRoute =
+  AuthenticatedAssistenteConversaIdRouteImport.update({
+    id: '/assistente/$conversaId',
+    path: '/assistente/$conversaId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedBaseConhecimentoIndexRoute =
+  AuthenticatedBaseConhecimentoIndexRouteImport.update({
+    id: '/base-conhecimento/',
+    path: '/base-conhecimento/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedBaseConhecimentoIdRoute =
+  AuthenticatedBaseConhecimentoIdRouteImport.update({
+    id: '/base-conhecimento/$id',
+    path: '/base-conhecimento/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedBaseConhecimentoNovoRoute =
+  AuthenticatedBaseConhecimentoNovoRouteImport.update({
+    id: '/base-conhecimento/novo',
+    path: '/base-conhecimento/novo',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedChamadosIndexRoute =
+  AuthenticatedChamadosIndexRouteImport.update({
+    id: '/chamados/',
+    path: '/chamados/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedChamadosIdRoute = AuthenticatedChamadosIdRouteImport.update({
+  id: '/chamados/$id',
+  path: '/chamados/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedChamadosNovoRoute =
+  AuthenticatedChamadosNovoRouteImport.update({
+    id: '/chamados/novo',
+    path: '/chamados/novo',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedGestaoIndexRoute =
+  AuthenticatedGestaoIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedGestaoRoute,
+  } as any)
+const AuthenticatedGestaoCapacidadeRoute =
+  AuthenticatedGestaoCapacidadeRouteImport.update({
+    id: '/capacidade',
+    path: '/capacidade',
+    getParentRoute: () => AuthenticatedGestaoRoute,
   } as any)
 const AuthenticatedBaseConhecimentoIdEditarRoute =
   AuthenticatedBaseConhecimentoIdEditarRouteImport.update({
@@ -323,8 +309,6 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
-  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/areas': typeof AuthenticatedAreasRoute
   '/catalogo': typeof AuthenticatedCatalogoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -370,8 +354,6 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
-  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/areas': typeof AuthenticatedAreasRoute
   '/catalogo': typeof AuthenticatedCatalogoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -418,8 +400,6 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
-  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/_authenticated/areas': typeof AuthenticatedAreasRoute
   '/_authenticated/catalogo': typeof AuthenticatedCatalogoRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
@@ -467,8 +447,6 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/reset-password'
     | '/sitemap.xml'
-    | '/.mcp/list-tools'
-    | '/.well-known/oauth-protected-resource'
     | '/areas'
     | '/catalogo'
     | '/dashboard'
@@ -514,8 +492,6 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/reset-password'
     | '/sitemap.xml'
-    | '/.mcp/list-tools'
-    | '/.well-known/oauth-protected-resource'
     | '/areas'
     | '/catalogo'
     | '/dashboard'
@@ -561,8 +537,6 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/reset-password'
     | '/sitemap.xml'
-    | '/.mcp/list-tools'
-    | '/.well-known/oauth-protected-resource'
     | '/_authenticated/areas'
     | '/_authenticated/catalogo'
     | '/_authenticated/dashboard'
@@ -610,39 +584,16 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
-  Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
-  Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   ApiAssistenteRoute: typeof ApiAssistenteRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/sitemap.xml': {
-      id: '/sitemap.xml'
-      path: '/sitemap.xml'
-      fullPath: '/sitemap.xml'
-      preLoaderRoute: typeof SitemapDotxmlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/forgot-password': {
-      id: '/forgot-password'
-      path: '/forgot-password'
-      fullPath: '/forgot-password'
-      preLoaderRoute: typeof ForgotPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -652,102 +603,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/assistente': {
-      id: '/api/assistente'
-      path: '/api/assistente'
-      fullPath: '/api/assistente'
-      preLoaderRoute: typeof ApiAssistenteRouteImport
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/itsm-servicos': {
-      id: '/_authenticated/itsm-servicos'
-      path: '/itsm-servicos'
-      fullPath: '/itsm-servicos'
-      preLoaderRoute: typeof AuthenticatedItsmServicosRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/itsm-relacionamentos': {
-      id: '/_authenticated/itsm-relacionamentos'
-      path: '/itsm-relacionamentos'
-      fullPath: '/itsm-relacionamentos'
-      preLoaderRoute: typeof AuthenticatedItsmRelacionamentosRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/itsm-problemas': {
-      id: '/_authenticated/itsm-problemas'
-      path: '/itsm-problemas'
-      fullPath: '/itsm-problemas'
-      preLoaderRoute: typeof AuthenticatedItsmProblemasRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/itsm-mudancas': {
-      id: '/_authenticated/itsm-mudancas'
-      path: '/itsm-mudancas'
-      fullPath: '/itsm-mudancas'
-      preLoaderRoute: typeof AuthenticatedItsmMudancasRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/itsm-governanca': {
-      id: '/_authenticated/itsm-governanca'
-      path: '/itsm-governanca'
-      fullPath: '/itsm-governanca'
-      preLoaderRoute: typeof AuthenticatedItsmGovernancaRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/itsm-conhecimento': {
-      id: '/_authenticated/itsm-conhecimento'
-      path: '/itsm-conhecimento'
-      fullPath: '/itsm-conhecimento'
-      preLoaderRoute: typeof AuthenticatedItsmConhecimentoRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/itsm-avancado': {
-      id: '/_authenticated/itsm-avancado'
-      path: '/itsm-avancado'
-      fullPath: '/itsm-avancado'
-      preLoaderRoute: typeof AuthenticatedItsmAvancadoRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/itsm-auditoria': {
-      id: '/_authenticated/itsm-auditoria'
-      path: '/itsm-auditoria'
-      fullPath: '/itsm-auditoria'
-      preLoaderRoute: typeof AuthenticatedItsmAuditoriaRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/itsm-ativos': {
-      id: '/_authenticated/itsm-ativos'
-      path: '/itsm-ativos'
-      fullPath: '/itsm-ativos'
-      preLoaderRoute: typeof AuthenticatedItsmAtivosRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/gestao': {
-      id: '/_authenticated/gestao'
-      path: '/gestao'
-      fullPath: '/gestao'
-      preLoaderRoute: typeof AuthenticatedGestaoRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/fila': {
-      id: '/_authenticated/fila'
-      path: '/fila'
-      fullPath: '/fila'
-      preLoaderRoute: typeof AuthenticatedFilaRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/dashboard': {
-      id: '/_authenticated/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+    '/_authenticated/areas': {
+      id: '/_authenticated/areas'
+      path: '/areas'
+      fullPath: '/areas'
+      preLoaderRoute: typeof AuthenticatedAreasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/catalogo': {
@@ -757,54 +645,96 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCatalogoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/areas': {
-      id: '/_authenticated/areas'
-      path: '/areas'
-      fullPath: '/areas'
-      preLoaderRoute: typeof AuthenticatedAreasRouteImport
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/.well-known/oauth-protected-resource': {
-      id: '/.well-known/oauth-protected-resource'
-      path: '/.well-known/oauth-protected-resource'
-      fullPath: '/.well-known/oauth-protected-resource'
-      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
+    '/_authenticated/fila': {
+      id: '/_authenticated/fila'
+      path: '/fila'
+      fullPath: '/fila'
+      preLoaderRoute: typeof AuthenticatedFilaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/gestao': {
+      id: '/_authenticated/gestao'
+      path: '/gestao'
+      fullPath: '/gestao'
+      preLoaderRoute: typeof AuthenticatedGestaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/itsm-ativos': {
+      id: '/_authenticated/itsm-ativos'
+      path: '/itsm-ativos'
+      fullPath: '/itsm-ativos'
+      preLoaderRoute: typeof AuthenticatedItsmAtivosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/itsm-auditoria': {
+      id: '/_authenticated/itsm-auditoria'
+      path: '/itsm-auditoria'
+      fullPath: '/itsm-auditoria'
+      preLoaderRoute: typeof AuthenticatedItsmAuditoriaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/itsm-avancado': {
+      id: '/_authenticated/itsm-avancado'
+      path: '/itsm-avancado'
+      fullPath: '/itsm-avancado'
+      preLoaderRoute: typeof AuthenticatedItsmAvancadoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/itsm-conhecimento': {
+      id: '/_authenticated/itsm-conhecimento'
+      path: '/itsm-conhecimento'
+      fullPath: '/itsm-conhecimento'
+      preLoaderRoute: typeof AuthenticatedItsmConhecimentoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/itsm-governanca': {
+      id: '/_authenticated/itsm-governanca'
+      path: '/itsm-governanca'
+      fullPath: '/itsm-governanca'
+      preLoaderRoute: typeof AuthenticatedItsmGovernancaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/itsm-mudancas': {
+      id: '/_authenticated/itsm-mudancas'
+      path: '/itsm-mudancas'
+      fullPath: '/itsm-mudancas'
+      preLoaderRoute: typeof AuthenticatedItsmMudancasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/itsm-problemas': {
+      id: '/_authenticated/itsm-problemas'
+      path: '/itsm-problemas'
+      fullPath: '/itsm-problemas'
+      preLoaderRoute: typeof AuthenticatedItsmProblemasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/itsm-relacionamentos': {
+      id: '/_authenticated/itsm-relacionamentos'
+      path: '/itsm-relacionamentos'
+      fullPath: '/itsm-relacionamentos'
+      preLoaderRoute: typeof AuthenticatedItsmRelacionamentosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/itsm-servicos': {
+      id: '/_authenticated/itsm-servicos'
+      path: '/itsm-servicos'
+      fullPath: '/itsm-servicos'
+      preLoaderRoute: typeof AuthenticatedItsmServicosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/assistente': {
+      id: '/api/assistente'
+      path: '/api/assistente'
+      fullPath: '/api/assistente'
+      preLoaderRoute: typeof ApiAssistenteRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/.mcp/list-tools': {
-      id: '/.mcp/list-tools'
-      path: '/.mcp/list-tools'
-      fullPath: '/.mcp/list-tools'
-      preLoaderRoute: typeof Char91DotmcpChar93ListToolsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/gestao/': {
-      id: '/_authenticated/gestao/'
-      path: '/'
-      fullPath: '/gestao/'
-      preLoaderRoute: typeof AuthenticatedGestaoIndexRouteImport
-      parentRoute: typeof AuthenticatedGestaoRoute
-    }
-    '/_authenticated/chamados/': {
-      id: '/_authenticated/chamados/'
-      path: '/chamados'
-      fullPath: '/chamados/'
-      preLoaderRoute: typeof AuthenticatedChamadosIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/base-conhecimento/': {
-      id: '/_authenticated/base-conhecimento/'
-      path: '/base-conhecimento'
-      fullPath: '/base-conhecimento/'
-      preLoaderRoute: typeof AuthenticatedBaseConhecimentoIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/assistente/': {
-      id: '/_authenticated/assistente/'
-      path: '/assistente'
-      fullPath: '/assistente/'
-      preLoaderRoute: typeof AuthenticatedAssistenteIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/': {
       id: '/_authenticated/admin/'
@@ -813,109 +743,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/gestao/capacidade': {
-      id: '/_authenticated/gestao/capacidade'
-      path: '/capacidade'
-      fullPath: '/gestao/capacidade'
-      preLoaderRoute: typeof AuthenticatedGestaoCapacidadeRouteImport
-      parentRoute: typeof AuthenticatedGestaoRoute
-    }
-    '/_authenticated/chamados/novo': {
-      id: '/_authenticated/chamados/novo'
-      path: '/chamados/novo'
-      fullPath: '/chamados/novo'
-      preLoaderRoute: typeof AuthenticatedChamadosNovoRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/chamados/$id': {
-      id: '/_authenticated/chamados/$id'
-      path: '/chamados/$id'
-      fullPath: '/chamados/$id'
-      preLoaderRoute: typeof AuthenticatedChamadosIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/base-conhecimento/novo': {
-      id: '/_authenticated/base-conhecimento/novo'
-      path: '/base-conhecimento/novo'
-      fullPath: '/base-conhecimento/novo'
-      preLoaderRoute: typeof AuthenticatedBaseConhecimentoNovoRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/base-conhecimento/$id': {
-      id: '/_authenticated/base-conhecimento/$id'
-      path: '/base-conhecimento/$id'
-      fullPath: '/base-conhecimento/$id'
-      preLoaderRoute: typeof AuthenticatedBaseConhecimentoIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/assistente/$conversaId': {
-      id: '/_authenticated/assistente/$conversaId'
-      path: '/assistente/$conversaId'
-      fullPath: '/assistente/$conversaId'
-      preLoaderRoute: typeof AuthenticatedAssistenteConversaIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/admin/usuarios': {
-      id: '/_authenticated/admin/usuarios'
-      path: '/admin/usuarios'
-      fullPath: '/admin/usuarios'
-      preLoaderRoute: typeof AuthenticatedAdminUsuariosRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/admin/tipos-chamado': {
-      id: '/_authenticated/admin/tipos-chamado'
-      path: '/admin/tipos-chamado'
-      fullPath: '/admin/tipos-chamado'
-      preLoaderRoute: typeof AuthenticatedAdminTiposChamadoRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/admin/segmentos': {
-      id: '/_authenticated/admin/segmentos'
-      path: '/admin/segmentos'
-      fullPath: '/admin/segmentos'
-      preLoaderRoute: typeof AuthenticatedAdminSegmentosRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/admin/regras-atribuicao': {
-      id: '/_authenticated/admin/regras-atribuicao'
-      path: '/admin/regras-atribuicao'
-      fullPath: '/admin/regras-atribuicao'
-      preLoaderRoute: typeof AuthenticatedAdminRegrasAtribuicaoRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/admin/itsm-permissoes': {
-      id: '/_authenticated/admin/itsm-permissoes'
-      path: '/admin/itsm-permissoes'
-      fullPath: '/admin/itsm-permissoes'
-      preLoaderRoute: typeof AuthenticatedAdminItsmPermissoesRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/admin/grupos': {
-      id: '/_authenticated/admin/grupos'
-      path: '/admin/grupos'
-      fullPath: '/admin/grupos'
-      preLoaderRoute: typeof AuthenticatedAdminGruposRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/admin/documentacao': {
-      id: '/_authenticated/admin/documentacao'
-      path: '/admin/documentacao'
-      fullPath: '/admin/documentacao'
-      preLoaderRoute: typeof AuthenticatedAdminDocumentacaoRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/admin/categorias': {
-      id: '/_authenticated/admin/categorias'
-      path: '/admin/categorias'
-      fullPath: '/admin/categorias'
-      preLoaderRoute: typeof AuthenticatedAdminCategoriasRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/admin/catalogo': {
-      id: '/_authenticated/admin/catalogo'
-      path: '/admin/catalogo'
-      fullPath: '/admin/catalogo'
-      preLoaderRoute: typeof AuthenticatedAdminCatalogoRouteImport
+    '/_authenticated/admin/assistente': {
+      id: '/_authenticated/admin/assistente'
+      path: '/admin/assistente'
+      fullPath: '/admin/assistente'
+      preLoaderRoute: typeof AuthenticatedAdminAssistenteRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/automacoes': {
@@ -925,12 +757,138 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAutomacoesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/admin/assistente': {
-      id: '/_authenticated/admin/assistente'
-      path: '/admin/assistente'
-      fullPath: '/admin/assistente'
-      preLoaderRoute: typeof AuthenticatedAdminAssistenteRouteImport
+    '/_authenticated/admin/catalogo': {
+      id: '/_authenticated/admin/catalogo'
+      path: '/admin/catalogo'
+      fullPath: '/admin/catalogo'
+      preLoaderRoute: typeof AuthenticatedAdminCatalogoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/categorias': {
+      id: '/_authenticated/admin/categorias'
+      path: '/admin/categorias'
+      fullPath: '/admin/categorias'
+      preLoaderRoute: typeof AuthenticatedAdminCategoriasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/documentacao': {
+      id: '/_authenticated/admin/documentacao'
+      path: '/admin/documentacao'
+      fullPath: '/admin/documentacao'
+      preLoaderRoute: typeof AuthenticatedAdminDocumentacaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/grupos': {
+      id: '/_authenticated/admin/grupos'
+      path: '/admin/grupos'
+      fullPath: '/admin/grupos'
+      preLoaderRoute: typeof AuthenticatedAdminGruposRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/itsm-permissoes': {
+      id: '/_authenticated/admin/itsm-permissoes'
+      path: '/admin/itsm-permissoes'
+      fullPath: '/admin/itsm-permissoes'
+      preLoaderRoute: typeof AuthenticatedAdminItsmPermissoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/regras-atribuicao': {
+      id: '/_authenticated/admin/regras-atribuicao'
+      path: '/admin/regras-atribuicao'
+      fullPath: '/admin/regras-atribuicao'
+      preLoaderRoute: typeof AuthenticatedAdminRegrasAtribuicaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/segmentos': {
+      id: '/_authenticated/admin/segmentos'
+      path: '/admin/segmentos'
+      fullPath: '/admin/segmentos'
+      preLoaderRoute: typeof AuthenticatedAdminSegmentosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/tipos-chamado': {
+      id: '/_authenticated/admin/tipos-chamado'
+      path: '/admin/tipos-chamado'
+      fullPath: '/admin/tipos-chamado'
+      preLoaderRoute: typeof AuthenticatedAdminTiposChamadoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/usuarios': {
+      id: '/_authenticated/admin/usuarios'
+      path: '/admin/usuarios'
+      fullPath: '/admin/usuarios'
+      preLoaderRoute: typeof AuthenticatedAdminUsuariosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/assistente/': {
+      id: '/_authenticated/assistente/'
+      path: '/assistente'
+      fullPath: '/assistente/'
+      preLoaderRoute: typeof AuthenticatedAssistenteIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/assistente/$conversaId': {
+      id: '/_authenticated/assistente/$conversaId'
+      path: '/assistente/$conversaId'
+      fullPath: '/assistente/$conversaId'
+      preLoaderRoute: typeof AuthenticatedAssistenteConversaIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/base-conhecimento/': {
+      id: '/_authenticated/base-conhecimento/'
+      path: '/base-conhecimento'
+      fullPath: '/base-conhecimento/'
+      preLoaderRoute: typeof AuthenticatedBaseConhecimentoIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/base-conhecimento/$id': {
+      id: '/_authenticated/base-conhecimento/$id'
+      path: '/base-conhecimento/$id'
+      fullPath: '/base-conhecimento/$id'
+      preLoaderRoute: typeof AuthenticatedBaseConhecimentoIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/base-conhecimento/novo': {
+      id: '/_authenticated/base-conhecimento/novo'
+      path: '/base-conhecimento/novo'
+      fullPath: '/base-conhecimento/novo'
+      preLoaderRoute: typeof AuthenticatedBaseConhecimentoNovoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/chamados/': {
+      id: '/_authenticated/chamados/'
+      path: '/chamados'
+      fullPath: '/chamados/'
+      preLoaderRoute: typeof AuthenticatedChamadosIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/chamados/$id': {
+      id: '/_authenticated/chamados/$id'
+      path: '/chamados/$id'
+      fullPath: '/chamados/$id'
+      preLoaderRoute: typeof AuthenticatedChamadosIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/chamados/novo': {
+      id: '/_authenticated/chamados/novo'
+      path: '/chamados/novo'
+      fullPath: '/chamados/novo'
+      preLoaderRoute: typeof AuthenticatedChamadosNovoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/gestao/': {
+      id: '/_authenticated/gestao/'
+      path: '/'
+      fullPath: '/gestao/'
+      preLoaderRoute: typeof AuthenticatedGestaoIndexRouteImport
+      parentRoute: typeof AuthenticatedGestaoRoute
+    }
+    '/_authenticated/gestao/capacidade': {
+      id: '/_authenticated/gestao/capacidade'
+      path: '/capacidade'
+      fullPath: '/gestao/capacidade'
+      preLoaderRoute: typeof AuthenticatedGestaoCapacidadeRouteImport
+      parentRoute: typeof AuthenticatedGestaoRoute
     }
     '/_authenticated/base-conhecimento/$id/editar': {
       id: '/_authenticated/base-conhecimento/$id/editar'
@@ -1059,9 +1017,6 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
-  Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
-  Char91DotwellKnownChar93OauthProtectedResourceRoute:
-    Char91DotwellKnownChar93OauthProtectedResourceRoute,
   ApiAssistenteRoute: ApiAssistenteRoute,
 }
 export const routeTree = rootRouteImport
