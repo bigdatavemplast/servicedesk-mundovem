@@ -34,7 +34,6 @@ async function getCaller(req: Request) {
   const publishable = Deno.env.get("SUPABASE_PUBLISHABLE_KEYS")
   const publishableKey = publishable ? JSON.parse(publishable).default : Deno.env.get("SUPABASE_ANON_KEY")
   if (!publishableKey) throw new Error("Supabase publishable key is not configured")
-
   const userClient = createClient(Deno.env.get("SUPABASE_URL")!, publishableKey, {
     global: { headers: { Authorization: auth } },
     auth: { persistSession: false, autoRefreshToken: false },
@@ -42,12 +41,9 @@ async function getCaller(req: Request) {
   const token = auth.slice("Bearer ".length)
   const { data, error } = await userClient.auth.getUser(token)
   if (error || !data.user) throw new Error("Unauthorized")
-
   const { data: roles, error: rolesError } = await userClient.from("user_roles").select("role").eq("user_id", data.user.id)
   if (rolesError) throw new Error(rolesError.message)
-
-  const allowed = (roles ?? []).some((r) => r.role === "admin" || r.role === "gestor")
-  if (!allowed) throw new Error("Forbidden: permissão insuficiente")
+  if (!(roles ?? []).some((r) => r.role === "admin" || r.role === "gestor")) throw new Error("Forbidden: permissão insuficiente")
   return { userId: data.user.id }
 }
 
@@ -58,26 +54,31 @@ function adminClient() {
 }
 
 async function removeOwnedStorageObjects(admin: ReturnType<typeof adminClient>, userId: string) {
-  const { data: objects, error } = await admin
-    .schema("storage")
-    .from("objects")
-    .select("bucket_id,name")
-    .or("owner.eq." + userId + ",owner_id.eq." + userId)
+  // Não acessa storage.objects diretamente: esse schema não é exposto pelo cliente JS.
+  // Lista os buckets e percorre os objetos usando a API administrativa de Storage.
+  const { data: buckets, error: bucketError } = await admin.storage.listBuckets()
+  if (bucketError) throw new Error("Falha ao verificar arquivos do usuário: " + bucketError.message)
 
-  if (error) throw new Error("Falha ao verificar arquivos do usuário: " + error.message)
-  if (!objects?.length) return
-
-  const byBucket = new Map<string, string[]>()
-  for (const object of objects) {
-    const paths = byBucket.get(object.bucket_id) ?? []
-    paths.push(object.name)
-    byBucket.set(object.bucket_id, paths)
-  }
-
-  for (const [bucket, paths] of byBucket) {
-    const { error: removeError } = await admin.storage.from(bucket).remove(paths)
-    if (removeError) {
-      throw new Error("Falha ao remover arquivos do usuário: " + removeError.message)
+  for (const bucket of buckets ?? []) {
+    const paths: string[] = []
+    const walk = async (prefix = ""): Promise<void> => {
+      const { data, error } = await admin.storage.from(bucket.id).list(prefix, { limit: 1000, offset: 0 })
+      if (error) throw new Error("Falha ao verificar arquivos do usuário: " + error.message)
+      for (const item of data ?? []) {
+        const path = prefix ? prefix + "/" + item.name : item.name
+        if (item.id) {
+          const metadata = (item.metadata ?? {}) as Record<string, unknown>
+          const owner = typeof metadata.owner === "string" ? metadata.owner : typeof metadata.owner_id === "string" ? metadata.owner_id : null
+          if (owner === userId) paths.push(path)
+        } else {
+          await walk(path)
+        }
+      }
+    }
+    await walk()
+    if (paths.length) {
+      const { error: removeError } = await admin.storage.from(bucket.id).remove(paths)
+      if (removeError) throw new Error("Falha ao remover arquivos do usuário: " + removeError.message)
     }
   }
 }
@@ -96,7 +97,6 @@ Deno.serve(async (req) => {
       })
       if (error || !created.user) throw new Error(error?.message ?? "Falha ao criar usuário")
       const uid = created.user.id
-
       const { error: profileError } = await admin.from("profiles").upsert({
         id: uid, nome: body.nome, email: body.email, departamento: body.departamento ?? null,
         departamento_id: body.departamentoId ?? null, area_id: body.areaId ?? null, ativo: true,
@@ -105,7 +105,6 @@ Deno.serve(async (req) => {
         await admin.auth.admin.deleteUser(uid)
         throw new Error(profileError.message)
       }
-
       const { error: roleError } = await admin.from("user_roles").insert({ user_id: uid, role: body.role })
       if (roleError) {
         await admin.auth.admin.deleteUser(uid)
