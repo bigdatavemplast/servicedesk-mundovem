@@ -130,7 +130,7 @@ export const comentarChamado = createServerFn({ method: "POST" }).middleware([re
 });
 
 export const atualizarChamado = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((d) => z.object({
-  chamadoId: z.string().uuid(), status: z.enum(["aberto", "em_andamento", "aguardando_usuario", "aguardando_terceiro", "resolvido", "fechado", "reaberto", "cancelado"]).optional(), prioridade: z.enum(["baixa", "media", "alta", "critica"]).optional(), atendenteId: z.string().uuid().nullable().optional(), tipoChamadoId: z.string().uuid().optional(),
+  chamadoId: z.string().uuid(), status: z.enum(["aberto", "em_triagem", "em_andamento", "aguardando_usuario", "aguardando_terceiro", "resolvido", "fechado", "reaberto", "cancelado"]).optional(), prioridade: z.enum(["baixa", "media", "alta", "critica"]).optional(), atendenteId: z.string().uuid().nullable().optional(), tipoChamadoId: z.string().uuid().optional(),
 }).parse(d)).handler(async ({ data, context }) => {
   const supabase = context.supabase as any; const admin = await getAdminClient(supabase);
   const { data: ticket, error: ticketError } = await admin.from("chamados").select("*").eq("id", data.chamadoId).maybeSingle();
