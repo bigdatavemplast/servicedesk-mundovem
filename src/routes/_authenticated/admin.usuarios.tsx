@@ -133,6 +133,13 @@ function AdminUsuariosPage() {
       // Dados de perfil/área/departamento usam a sessão autenticada + RLS.
       // Somente operações de Auth que exigem privilégio administrativo continuam
       // passando pela rotina server-side que usa a chave privilegiada.
+      if (emailChanged || senhaChanged) {
+        await atualizar({ data: {
+          id: editing.id,
+          email: emailChanged ? eEmail.trim() : undefined,
+          senha: senhaChanged ? eSenha : undefined,
+        } });
+      }
       if (profileChanged) {
         await atualizarPerfil({ data: {
           id: editing.id,
@@ -140,13 +147,6 @@ function AdminUsuariosPage() {
           email: eEmail.trim(),
           departamento: eDep.trim() || null,
           areaId: eAreaId || null,
-        } });
-      }
-      if (emailChanged || senhaChanged) {
-        await atualizar({ data: {
-          id: editing.id,
-          email: emailChanged ? eEmail.trim() : undefined,
-          senha: senhaChanged ? eSenha : undefined,
         } });
       }
 
