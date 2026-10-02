@@ -118,8 +118,20 @@ function AdminUsuariosPage() {
   const salvarMut = useMutation({
     mutationFn: async () => {
       if (!editing) return;
-      await atualizar({ data: { id: editing.id, nome: eNome.trim(), email: eEmail.trim(), departamento: eDep.trim() || null, areaId: eAreaId || null, senha: eSenha ? eSenha : undefined } });
       const currentPrimary = editing.roles[0];
+      const profileChanged =
+        editing.nome !== eNome.trim() ||
+        editing.email !== eEmail.trim() ||
+        (editing.departamento ?? "") !== (eDep.trim() || "") ||
+        (editing.area_id ?? "") !== (eAreaId || "") ||
+        !!eSenha;
+
+      // Se a alteração for somente de papel, não chama a rotina administrativa
+      // que depende de service_role/Lovable Cloud.
+      if (profileChanged) {
+        await atualizar({ data: { id: editing.id, nome: eNome.trim(), email: eEmail.trim(), departamento: eDep.trim() || null, areaId: eAreaId || null, senha: eSenha ? eSenha : undefined } });
+      }
+
       if (currentPrimary !== eRole) {
         for (const r of editing.roles) await setRole({ data: { userId: editing.id, role: r as any, add: false } });
         await setRole({ data: { userId: editing.id, role: eRole as any, add: true } });
