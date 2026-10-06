@@ -11,7 +11,7 @@ const LOGO_MUNDO_VEM = "/favicon.png";
 const PAGE_SIZE = 20;
 const PUSH_POLL_INTERVAL = 5_000;
 
-function montarNotificacao(titulo?: string, mensagem?: string) {
+function montarNotificacao(titulo?: string | null, mensagem?: string | null) {
   const tituloOriginal = titulo?.trim() || "Nova atualização";
   const mensagemOriginal = mensagem?.trim() || "Há uma nova atualização no Service Desk.";
   return { title: `${NOME_APP} • ${tituloOriginal}`, body: mensagemOriginal };
@@ -19,8 +19,8 @@ function montarNotificacao(titulo?: string, mensagem?: string) {
 
 type NotificacaoRecebida = {
   id: string;
-  titulo?: string;
-  mensagem?: string;
+  titulo?: string | null;
+  mensagem?: string | null;
   chamado_id?: string | null;
 };
 
@@ -76,14 +76,15 @@ export function NotificationBell({ userId }: { userId: string }) {
     if (typeof window === "undefined" || !("Notification" in window) || window.Notification.permission !== "granted") return;
     idsComPush.current.add(n.id);
     const conteudo = montarNotificacao(n.titulo, n.mensagem);
-    const browserNotification = new window.Notification(conteudo.title, {
+    const opcoes: NotificationOptions & { renotify: boolean } = {
       body: conteudo.body,
       icon: LOGO_MUNDO_VEM,
       badge: LOGO_MUNDO_VEM,
       tag: `service-desk-${n.id}`,
       renotify: true,
       silent: false,
-    });
+    };
+    const browserNotification = new window.Notification(conteudo.title, opcoes);
     browserNotification.onclick = () => {
       window.focus();
       if (n.chamado_id) navigate({ to: "/chamados/$id", params: { id: n.chamado_id } });
