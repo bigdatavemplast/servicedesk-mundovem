@@ -1,14 +1,7 @@
-import { defineConfig } from "vite";
-import { tanstackStart } from "@tanstack/react-start/plugin/vite";
-import viteReact from "@vitejs/plugin-react";
-import tailwindcss from "@tailwindcss/vite";
-import { nitro } from "nitro/vite";
+import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
+// Configuração oficial do projeto: mantém a prévia do Lovable (saída em dist/)
+// e o deploy próprio (Vercel/Cloudflare) com o mesmo arquivo.
 export default defineConfig({
-  plugins: [
-    tailwindcss(),
-    tanstackStart(),
-    nitro(),
-    viteReact(),
-  ],
+  nitro: true,
 });
