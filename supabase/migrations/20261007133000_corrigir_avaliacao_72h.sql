@@ -1,9 +1,12 @@
--- Corrige avaliação do colaborador: 72h, fechamento atômico e permissão específica
--- para a transição Resolvido -> Fechado causada pela avaliação.
+-- Reconcile production evaluation rules into the migration chain.
+-- Automatic evaluation occurs after 48h and closes the ticket atomically.
+-- This migration is intentionally self-contained so a clean rebuild reaches the same
+-- authorization/evaluation state as production before the reopen migration runs.
 
 CREATE OR REPLACE FUNCTION public.validar_permissoes_chamado_por_papel()
 RETURNS trigger
 LANGUAGE plpgsql
+SET search_path = public
 AS $function$
 DECLARE
   v_actor uuid := auth.uid();
@@ -124,7 +127,7 @@ $function$;
 CREATE OR REPLACE FUNCTION public.avaliar_chamado(
   _chamado_id uuid,
   _nota integer,
-  _comentario text default null
+  _comentario text DEFAULT NULL
 )
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -152,9 +155,9 @@ BEGIN
   IF v_chamado.avaliacao_nota IS NOT NULL THEN RAISE EXCEPTION 'Este chamado já foi avaliado.'; END IF;
   IF v_chamado.resolvido_em IS NULL THEN RAISE EXCEPTION 'O chamado não possui data de resolução válida.'; END IF;
 
-  IF v_chamado.resolvido_em <= v_agora - interval '72 hours' THEN
+  IF v_chamado.resolvido_em <= v_agora - interval '48 hours' THEN
     v_nota := 5;
-    v_comentario := 'Avaliação automática: o colaborador não avaliou o chamado dentro de 72 horas após a resolução.';
+    v_comentario := 'Avaliação automática: o colaborador não avaliou o chamado dentro de 48 horas após a resolução.';
     v_automatica := true;
   ELSE
     v_nota := _nota;
@@ -205,12 +208,12 @@ BEGIN
     WHERE status = 'resolvido'
       AND avaliacao_nota IS NULL
       AND resolvido_em IS NOT NULL
-      AND resolvido_em <= v_agora - interval '72 hours'
+      AND resolvido_em <= v_agora - interval '48 hours'
     FOR UPDATE
   LOOP
     UPDATE public.chamados
        SET avaliacao_nota = 5,
-           avaliacao_comentario = 'Avaliação automática: o colaborador não avaliou o chamado dentro de 72 horas após a resolução.',
+           avaliacao_comentario = 'Avaliação automática: o colaborador não avaliou o chamado dentro de 48 horas após a resolução.',
            status = 'fechado',
            fechado_em = COALESCE(fechado_em, v_agora),
            sla_pausado = false
@@ -222,4 +225,8 @@ BEGIN
 END;
 $function$;
 
+REVOKE ALL ON FUNCTION public.avaliar_chamado(uuid, integer, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.avaliar_chamado(uuid, integer, text) TO authenticated;
+
 REVOKE ALL ON FUNCTION public.auto_avaliar_chamados_expirados() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.auto_avaliar_chamados_expirados() TO authenticated;
