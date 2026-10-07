@@ -264,3 +264,55 @@ $function$;
 
 REVOKE ALL ON FUNCTION public.reabrir_chamado(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.reabrir_chamado(uuid) TO authenticated;
+
+
+-- Permite também reabrir um chamado já avaliado, desde que o solicitante
+-- seja o próprio colaborador e ainda esteja dentro das 48h.
+CREATE OR REPLACE FUNCTION public.validar_permissoes_chamado_por_papel()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public
+AS $function$
+DECLARE
+  v_actor uuid := auth.uid();
+  v_role public.app_role;
+  v_reopen boolean := false;
+  v_evaluation_close boolean := false;
+BEGIN
+  IF v_actor IS NULL THEN RETURN NEW; END IF;
+  SELECT ur.role INTO v_role FROM public.user_roles ur WHERE ur.user_id = v_actor LIMIT 1;
+  IF v_role = 'admin' THEN RETURN NEW; END IF;
+
+  v_evaluation_close := v_role='colaborador'
+    AND OLD.solicitante_id=v_actor AND NEW.solicitante_id=v_actor
+    AND OLD.status='resolvido' AND NEW.status='fechado'
+    AND OLD.avaliacao_nota IS NULL AND NEW.avaliacao_nota IS NOT NULL;
+
+  v_reopen := v_role='colaborador'
+    AND OLD.solicitante_id=v_actor AND NEW.solicitante_id=v_actor
+    AND OLD.status IN ('resolvido','fechado') AND NEW.status='reaberto'
+    AND OLD.resolvido_em IS NOT NULL
+    AND OLD.resolvido_em > now() - interval '48 hours';
+
+  IF v_role='colaborador' THEN
+    IF OLD.solicitante_id IS DISTINCT FROM v_actor THEN
+      RAISE EXCEPTION 'Colaborador só pode alterar os próprios chamados.';
+    END IF;
+    IF v_reopen THEN RETURN NEW; END IF;
+    IF NOT v_evaluation_close AND (
+      NEW.atendente_id IS DISTINCT FROM OLD.atendente_id OR NEW.grupo_atendimento_id IS DISTINCT FROM OLD.grupo_atendimento_id
+      OR NEW.segmento_id IS DISTINCT FROM OLD.segmento_id OR NEW.categoria_id IS DISTINCT FROM OLD.categoria_id
+      OR NEW.subcategoria_id IS DISTINCT FROM OLD.subcategoria_id OR NEW.prioridade IS DISTINCT FROM OLD.prioridade
+      OR NEW.impacto IS DISTINCT FROM OLD.impacto OR NEW.urgencia IS DISTINCT FROM OLD.urgencia
+      OR NEW.status IS DISTINCT FROM OLD.status OR NEW.sla_id IS DISTINCT FROM OLD.sla_id
+      OR NEW.sla_regra_id IS DISTINCT FROM OLD.sla_regra_id OR NEW.prazo_resposta IS DISTINCT FROM OLD.prazo_resposta
+      OR NEW.prazo_resolucao IS DISTINCT FROM OLD.prazo_resolucao
+    ) THEN
+      RAISE EXCEPTION 'Colaborador não possui permissão para alterar a operação do chamado.';
+    END IF;
+    RETURN NEW;
+  END IF;
+
+  RETURN NEW;
+END;
+$function$;
