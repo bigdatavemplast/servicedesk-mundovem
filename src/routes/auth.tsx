@@ -75,8 +75,21 @@ function AuthPage() {
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault(); setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password: loginPass });
+    if (error) { setLoading(false); return toast.error(error.message); }
+
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("ativo")
+      .eq("id", (await supabase.auth.getUser()).data.user?.id ?? "")
+      .maybeSingle();
+
+    if (profileError || !profile?.ativo) {
+      await supabase.auth.signOut();
+      setLoading(false);
+      return toast.error("Seu usuário está inativo. Procure o administrador do sistema.");
+    }
+
     setLoading(false);
-    if (error) return toast.error(error.message);
     toast.success("Bem-vindo!");
     if (nextPath) { window.location.href = nextPath; return; }
     navigate({ to: "/areas", replace: true });
