@@ -197,3 +197,10 @@ $function$;
 
 REVOKE ALL ON FUNCTION public.reabrir_chamado(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.reabrir_chamado(uuid) TO authenticated;
+
+
+ALTER FUNCTION public.reabrir_chamado(uuid) SET search_path = public;
+REVOKE EXECUTE ON FUNCTION public.reabrir_chamado(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.reabrir_chamado(uuid) TO authenticated;
+ALTER FUNCTION public.avaliar_chamado(uuid, integer, text) SET search_path = public;
+REVOKE EXECUTE ON FUNCTION public.avaliar_chamado(uuid, integer, text) FROM anon;
