@@ -183,7 +183,7 @@ function GestaoPage() {
   const [dias, setDias] = useState("30");
   const [segmentoId, setSegmentoId] = useState(areaStored());
   const { data: user } = useQuery({ queryKey: ["gestao-current-user"], queryFn: async () => { const { data, error } = await supabase.auth.getUser(); if (error) throw error; return data.user; } });
-  const { data: roles = [] } = useQuery({ queryKey: ["gestao-my-roles", user?.id], enabled: !!user?.id, queryFn: async () => { const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", user!.id); if (error) throw error; return (data ?? []).map((r) => String(r.role)); } });
+  const { data: roles = [], isLoading: loadingRoles } = useQuery({ queryKey: ["gestao-my-roles", user?.id], enabled: !!user?.id, queryFn: async () => { const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", user!.id); if (error) throw error; return (data ?? []).map((r) => String(r.role)); } });
   const isGestor = roles.includes("gestor") && !roles.includes("admin");
   const { data: perfilGestor } = useQuery({ queryKey: ["gestao-gestor-profile", user?.id], enabled: isGestor && !!user?.id, queryFn: async () => { const { data, error } = await supabase.from("profiles").select("area_id").eq("id", user!.id).maybeSingle(); if (error) throw error; return data as { area_id: string | null } | null; } });
 
