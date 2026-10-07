@@ -213,8 +213,11 @@ function GestaoPage() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const { data: areaGestor } = useQuery({ queryKey: ["gestao-gestor-area-name", perfilGestor?.area_id], enabled: isGestor && !!perfilGestor?.area_id, queryFn: async () => { const { data, error } = await supabase.from("areas").select("id,nome,ativo").eq("id", perfilGestor!.area_id!).maybeSingle(); if (error) throw error; return data as { id: string; nome: string; ativo: boolean } | null; } });
+  const normalizarNomeArea = (nome: string) => nome.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, "");
+  const segmentoGestor = areaGestor ? segmentos.find((segmento) => normalizarNomeArea(segmento.nome) === normalizarNomeArea(areaGestor.nome)) : null;
   const segmentoValido = isGestor
-    ? (perfilGestor?.area_id || "")
+    ? (segmentoGestor?.id || "")
     : (segmentos.some((segmento) => segmento.id === segmentoId) ? segmentoId : segmentos[0]?.id || "");
 
   useEffect(() => {
