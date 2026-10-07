@@ -33,7 +33,7 @@ function DashboardPage(){
   const {data:roles=[],isLoading:loadingRoles}=useQuery({queryKey:["my-roles",user.id],queryFn:async()=>{const {data,error}=await supabase.from("user_roles").select("role").eq("user_id",user.id);if(error)throw error;return(data??[]).map(r=>String(r.role));}});
   const isGestor=roles.includes("gestor");
   const {data:perfil}=useQuery({queryKey:["dashboard-profile-area",user.id],enabled:isGestor,queryFn:async()=>{const {data,error}=await supabase.from("profiles").select("area_id").eq("id",user.id).maybeSingle();if(error)throw error;return data as {area_id:string|null}|null;}});
-  const {data:areaGestor}=useQuery({queryKey:["dashboard-gestor-area",perfil?.area_id],enabled:isGestor&&!!perfil?.area_id,queryFn:async()=>{const {data,error}=await supabase.from("segmentos").select("id,nome").eq("id",perfil!.area_id!).maybeSingle();if(error)throw error;return data as Area|null;}});
+  const {data:areaGestor}=useQuery({queryKey:["dashboard-gestor-area",perfil?.area_id],enabled:isGestor&&!!perfil?.area_id,queryFn:async()=>{const {data,error}=await supabase.from("areas").select("id,nome,ativo").eq("id",perfil!.area_id!).maybeSingle();if(error)throw error;if(!data)return null;const {data:segmentos,error:segError}=await supabase.from("segmentos").select("id,nome").eq("ativo",true).order("ordem").order("nome");if(segError)throw segError;const normalizar=(nome:string)=>nome.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase().replace(/[^A-Z0-9]+/g,"");return (segmentos??[]).find((s)=>normalizar(s.nome)===normalizar(data.nome)) as Area|null;}});
   const area=isGestor?(areaGestor??null):areaSelecionada;
   const isAtendente=roles.includes("atendente");
   const {modo}=useModoAtendimento(user.id,isAtendente);
