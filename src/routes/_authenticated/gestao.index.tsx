@@ -182,6 +182,10 @@ function Kpi({
 function GestaoPage() {
   const [dias, setDias] = useState("30");
   const [segmentoId, setSegmentoId] = useState(areaStored());
+  const { data: user } = useQuery({ queryKey: ["gestao-current-user"], queryFn: async () => { const { data, error } = await supabase.auth.getUser(); if (error) throw error; return data.user; } });
+  const { data: roles = [] } = useQuery({ queryKey: ["gestao-my-roles", user?.id], enabled: !!user?.id, queryFn: async () => { const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", user!.id); if (error) throw error; return (data ?? []).map((r) => String(r.role)); } });
+  const isGestor = roles.includes("gestor") && !roles.includes("admin");
+  const { data: perfilGestor } = useQuery({ queryKey: ["gestao-gestor-profile", user?.id], enabled: isGestor && !!user?.id, queryFn: async () => { const { data, error } = await supabase.from("profiles").select("area_id").eq("id", user!.id).maybeSingle(); if (error) throw error; return data as { area_id: string | null } | null; } });
 
   const days = Number(dias);
 
@@ -209,11 +213,9 @@ function GestaoPage() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const segmentoValido = segmentos.some(
-    (segmento) => segmento.id === segmentoId,
-  )
-    ? segmentoId
-    : segmentos[0]?.id || "";
+  const segmentoValido = isGestor
+    ? (perfilGestor?.area_id || "")
+    : (segmentos.some((segmento) => segmento.id === segmentoId) ? segmentoId : segmentos[0]?.id || "");
 
   useEffect(() => {
     if (
@@ -1076,6 +1078,7 @@ function GestaoPage() {
             onValueChange={
               setSegmentoId
             }
+            disabled={isGestor}
           >
             <SelectTrigger className="w-[180px]">
               <SelectValue />
