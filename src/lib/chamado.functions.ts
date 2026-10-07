@@ -187,16 +187,16 @@ export const atualizarChamado = createServerFn({ method: "POST" }).middleware([r
 });
 
 export const avaliarChamado = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((d) => z.object({ chamadoId: z.string().uuid(), nota: z.number().int().min(1).max(5), comentario: z.string().nullable().optional() }).parse(d)).handler(async ({ data, context }) => {
-  const admin = await getAdminClient(context.supabase);
-  const { data: ticket, error: ticketError } = await admin.from("chamados").select("id,solicitante_id,status,resolvido_em,avaliacao_nota").eq("id", data.chamadoId).maybeSingle();
-  if (ticketError || !ticket) throw new Error(ticketError?.message ?? "Chamado não encontrado");
-  if (ticket.solicitante_id !== context.userId || ticket.status !== "resolvido") throw new Error("Somente o solicitante pode avaliar um chamado resolvido.");
-  if (ticket.avaliacao_nota != null) throw new Error("Este chamado já possui uma avaliação.");
-  if (!ticket.resolvido_em || Date.now() - new Date(ticket.resolvido_em).getTime() > 48 * 60 * 60 * 1000) throw new Error("O prazo de 48 horas para avaliar o chamado expirou.");
-  const { data: updated, error } = await admin.from("chamados").update({ avaliacao_nota: data.nota, avaliacao_comentario: data.comentario ?? null } as never).eq("id", data.chamadoId).select("id,avaliacao_nota,avaliacao_comentario").single();
-  if (error || !updated) throw new Error(error?.message ?? "Falha ao registrar avaliação");
-  const valorAvaliacao = `${data.nota} estrelas${data.comentario?.trim() ? ` — ${data.comentario.trim()}` : ""}`;
-  const { error: historicoError } = await admin.from("historico_chamado").insert({ chamado_id: data.chamadoId, autor_id: context.userId, acao: "avaliacao_registrada", de: "\u200B", para: valorAvaliacao, ator_role: getPrimaryRole(await getRoles(context.supabase, context.userId)) } as never);
-  if (historicoError) throw new Error(historicoError.message);
-  return updated;
+  // A avaliação usa a sessão autenticada para que a RPC valide auth.uid().
+  // A RPC também fecha o chamado e grava o histórico de forma atômica.
+  const { data: resultado, error } = await context.supabase.rpc("avaliar_chamado", {
+    _chamado_id: data.chamadoId,
+    _nota: data.nota,
+    _comentario: data.comentario ?? null,
+  });
+
+  if (error) throw new Error(error.message);
+  if (!resultado) throw new Error("Falha ao registrar avaliação.");
+
+  return resultado;
 });
