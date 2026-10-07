@@ -50,7 +50,7 @@ function slaInfo(chamado: any, now: number) {
   // Chamados resolvidos, fechados ou cancelados não devem continuar consumindo SLA.
   // O SLA só volta a contar quando o chamado é reaberto.
   if (["resolvido", "fechado", "cancelado"].includes(status)) {
-    return { status: "finalizado", label: "Encerrado", seconds: null as number | null };
+    return { status: "finalizado", label: "SLA encerrado", seconds: null as number | null };
   }
   if (!chamado?.prazo_resolucao) return { status: "sem_sla", label: "Sem SLA", seconds: null as number | null };
   const sec = Math.floor((new Date(chamado.prazo_resolucao).getTime() - now) / 1000);
