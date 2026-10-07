@@ -27,16 +27,7 @@ type Segmento = { id: string; nome: string; ativo: boolean };
 type Horario = { calendario_id: string; dia_semana: number; hora_inicio: string; hora_fim: string };
 type Regra = { id: string; calendario_id: string | null; usa_sla_resolucao: boolean };
 
-function statusStyle(s: string) {
-  if (s === "aberto") return "bg-sky-100 text-sky-700 border border-sky-200";
-  if (s === "em_andamento") return "bg-violet-100 text-violet-700 border border-violet-200";
-  if (s === "aguardando_usuario") return "bg-orange-100 text-orange-700 border border-orange-200";
-  if (s === "aguardando_terceiro") return "bg-amber-100 text-amber-800 border border-amber-200";
-  if (s === "resolvido") return "bg-emerald-100 text-emerald-700 border border-emerald-200";
-  if (s === "fechado") return "bg-slate-100 text-slate-700 border border-slate-200";
-  if (s === "cancelado") return "bg-red-100 text-red-700 border border-red-200";
-  return "bg-muted text-muted-foreground border border-border";
-}
+function statusStyle(_s: string) { return "bg-muted text-muted-foreground border border-border"; }
 function statusLabel(s: string) {
   if (s === "aberto") return "Aberto";
   if (s === "em_andamento") return "Em andamento";
@@ -47,9 +38,7 @@ function statusLabel(s: string) {
   if (s === "cancelado") return "Cancelado";
   return s;
 }
-function prioStyle(p: string) {
-  return p === "critica" ? "bg-red-100 text-red-700 border border-red-200" : p === "alta" ? "bg-orange-100 text-orange-700 border border-orange-200" : p === "media" ? "bg-yellow-100 text-yellow-800 border border-yellow-200" : "bg-emerald-100 text-emerald-700 border border-emerald-200";
-}
+function prioStyle(_p: string) { return "bg-muted text-muted-foreground border border-border"; }
 function prioLabel(p: string) {
   if (p === "critica") return "Crítica";
   if (p === "alta") return "Alta";
