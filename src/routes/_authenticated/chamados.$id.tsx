@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectValue, SelectTrigger } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { ArrowLeft, AlertTriangle, Clock, Loader2, Star } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Clock, Loader2, RotateCcw, Star } from "lucide-react";
 import { AnexosSecao } from "@/components/anexos/AnexosSecao";
 import { useServerFn } from "@tanstack/react-start";
 import { atualizarChamado, comentarChamado, avaliarChamado } from "@/lib/chamado.functions";
@@ -65,7 +65,7 @@ function dayLabel(d: string | null | undefined, now: number) {
 function DetalheChamadoPage() {
   const { id } = Route.useParams(); const { user } = Route.useRouteContext(); const navigate = useNavigate(); const qc = useQueryClient();
   const [comentario, setComentario] = useState(""); const [interno, setInterno] = useState(false); const [nota, setNota] = useState(0); const [avaliacaoComentario, setAvaliacaoComentario] = useState(""); const [now, setNow] = useState(Date.now());
-  const [confirmacao, setConfirmacao] = useState<{ campo: "status" | "prioridade" | "atendente" | "tipo"; valor: string | null; label: string; atual: string; atualLabel: string } | null>(null);
+  const [confirmacaoReabertura, setConfirmacaoReabertura] = useState(false); const [confirmacao, setConfirmacao] = useState<{ campo: "status" | "prioridade" | "atendente" | "tipo"; valor: string | null; label: string; atual: string; atualLabel: string } | null>(null);
   const atualizarServer = useServerFn(atualizarChamado); const comentarServer = useServerFn(comentarChamado); const avaliarServer = useServerFn(avaliarChamado);
   useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 1000); return () => window.clearInterval(timer); }, []);
   const { data: roles = [] } = useQuery({ queryKey: ["my-roles", user.id], queryFn: async () => { const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id); return (data ?? []).map((r) => r.role as string); } });
@@ -179,13 +179,28 @@ function DetalheChamadoPage() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const reabrir = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc("reabrir_chamado", { _chamado_id: id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Chamado reaberto");
+      setConfirmacaoReabertura(false);
+      qc.invalidateQueries({ queryKey: ["chamado", id] });
+      qc.invalidateQueries({ queryKey: ["chamado-historico", id] });
+      qc.invalidateQueries({ queryKey: ["fila"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Não foi possível reabrir o chamado."),
+  });
+
   const sla = slaInfo(chamado, now);
   const paginaSomenteLeitura = isManager;
   const podeAlterarChamado = !paginaSomenteLeitura;
   const podeAvaliar = !!chamado && chamado.solicitante_id === user.id && chamado.status === "resolvido" && chamado.avaliacao_nota == null && !!chamado.resolvido_em && (Date.now() - new Date(chamado.resolvido_em).getTime() <= 48 * 60 * 60 * 1000);
   const jaAvaliado = chamado?.avaliacao_nota != null;
-  const podeReabrir = !!chamado && chamado.solicitante_id === user.id && chamado.status === "fechado" && !!chamado.fechado_em && (Date.now() - new Date(chamado.fechado_em).getTime() <= 48 * 60 * 60 * 1000);
-  const prazoReaberturaMs = chamado?.fechado_em ? new Date(chamado.fechado_em).getTime() + 48 * 60 * 60 * 1000 : 0;
+  const podeReabrir = !!chamado && chamado.solicitante_id === user.id && ["resolvido", "fechado"].includes(chamado.status) && !!chamado.resolvido_em && (Date.now() - new Date(chamado.resolvido_em).getTime() < 48 * 60 * 60 * 1000);
   const statusOptions = STATUS;
   const chamadoEmAbertoAposVirada = !!chamado && !["resolvido", "fechado", "cancelado"].includes(chamado.status) && dateKey(chamado.aberto_em) !== dateKey(new Date(now).toISOString());
 
@@ -198,6 +213,7 @@ function DetalheChamadoPage() {
       <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Descrição</CardTitle></CardHeader><CardContent><p className="whitespace-pre-wrap text-sm">{chamado.descricao}</p></CardContent></Card>
       <AnexosSecao chamadoId={id} userId={user.id} podeRemoverTodos={roles.includes("admin") && !paginaSomenteLeitura} />
       {podeAvaliar && (<Card className="border-emerald-200 bg-emerald-50/40"><CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Star className="h-4 w-4 text-amber-500" />Avaliar atendimento</CardTitle></CardHeader><CardContent className="space-y-3"><div className="flex gap-1">{[1,2,3,4,5].map((n) => (<button key={n} onClick={() => setNota(n)} className="p-1"><Star className={`h-6 w-6 ${n <= nota ? "fill-amber-400 text-amber-400" : "text-muted-foreground"}`} /></button>))}</div><Textarea rows={3} placeholder="Comentário (opcional)" value={avaliacaoComentario} onChange={(e) => setAvaliacaoComentario(e.target.value)} /><Button disabled={nota < 1 || avaliar.isPending} onClick={() => avaliar.mutate()}>{avaliar.isPending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />} Enviar avaliação</Button></CardContent></Card>)}
+      {podeReabrir && (<Card className="border-sky-200 bg-sky-50/40"><CardContent className="flex flex-wrap items-center justify-between gap-3 p-4"><div><div className="font-medium">O problema continua?</div><div className="text-sm text-muted-foreground">Você pode reabrir este chamado até 48 horas após a resolução.</div></div><Button variant="outline" onClick={() => setConfirmacaoReabertura(true)} disabled={reabrir.isPending}><RotateCcw className="mr-2 h-4 w-4" />Reabrir chamado</Button></CardContent></Card>)}
       {jaAvaliado && (<Card><CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Star className="h-4 w-4 text-amber-500" />Avaliação</CardTitle></CardHeader><CardContent className="space-y-2"><div className="flex gap-1">{[1,2,3,4,5].map((n) => (<Star key={n} className={`h-5 w-5 ${n <= (chamado.avaliacao_nota ?? 0) ? "fill-amber-400 text-amber-400" : "text-muted-foreground"}`} />))}</div>{chamado.avaliacao_comentario && <p className="text-sm text-muted-foreground">"{chamado.avaliacao_comentario}"</p>}</CardContent></Card>)}
       {isStaff && (<Card><CardHeader className="pb-2"><CardTitle className="text-sm">Ações do atendimento</CardTitle></CardHeader><CardContent className="flex flex-wrap gap-3">
         <div className="min-w-[180px] space-y-1"><label className="text-xs text-muted-foreground">Status</label><Select disabled={!podeAlterarChamado} value={chamado.status} onValueChange={(v) => { if (!v || !v.trim()) return; const item = STATUS.find((x) => x.v === v); if (v !== chamado.status) setConfirmacao({ campo: "status", valor: v, label: item?.l ?? v, atual: chamado.status, atualLabel: STATUS.find((x) => x.v === chamado.status)?.l ?? chamado.status }); }}><SelectTrigger className="h-9"><SelectValue /></SelectTrigger><SelectContent>{statusOptions.map((s) => <SelectItem key={s.v} value={s.v}>{s.l}</SelectItem>)}</SelectContent></Select></div>
@@ -210,6 +226,7 @@ function DetalheChamadoPage() {
       <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Conversas</CardTitle></CardHeader><CardContent className="space-y-3">{comentarios.length === 0 && <p className="text-sm text-muted-foreground">Nenhum comentário ainda.</p>}{comentarios.map((c: any) => (<div key={c.id} className={`rounded-md border-l-4 p-3 text-sm ${c.interno ? "border-amber-400 bg-amber-50" : "border-slate-300 bg-muted/40"}`}><div className="mb-1 flex justify-between text-xs text-muted-foreground"><span>{c.autor?.nome ?? "Sistema"} {c.interno && <span className="font-medium text-amber-700">(interno)</span>}</span><span>{fmt(c.criado_em)}</span></div><p className="whitespace-pre-wrap">{c.conteudo}</p></div>))}</CardContent></Card>
       <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Histórico</CardTitle></CardHeader><CardContent><ul className="space-y-2 text-sm"><li className="text-muted-foreground"><Clock className="mr-1 inline h-3 w-3" /> Aberto em {fmt(chamado.aberto_em)}</li>{historico.map((h: any, index: number) => { const anterior = historico[index + 1]; const novoDia = !anterior || dateKey(h.criado_em) !== dateKey(anterior.criado_em); return (<li key={h.id} className={`text-muted-foreground${novoDia ? " historico-item-com-dia" : ""}`}>{novoDia && <div className="historico-dia" aria-label={`Alterações de ${dayLabel(h.criado_em, now)}`}><span>{dayLabel(h.criado_em, now)}</span></div>}<Clock className="mr-1 inline h-3 w-3" />{h.acao === "atendente_alterado" ? "Atendente alterado" : h.acao === "tipo_chamado_alterado" ? "Tipo de chamado alterado" : h.acao.replaceAll("_", " ")}: <span className="text-foreground" style={{ textDecoration: "none" }}>{h.acao === "atendente_alterado" ? `${getAtendenteNome(h.de)} → ${getAtendenteNome(h.para)}` : h.acao === "tipo_chamado_alterado" ? `${getTipoChamadoNome(h.de)} → ${getTipoChamadoNome(h.para)}` : h.acao === "status_alterado" ? `${statusLabel(h.de)} → ${statusLabel(h.para)}` : h.acao === "avaliacao_registrada" ? h.para : `${h.de || "—"} → ${h.para || "—"}`}</span><span className="ml-2 text-xs">por <strong className="no-underline">{h.autor?.nome ?? "Sistema"}{historicoRoleLabel(getHistoricoAutorRole(h)) ? ` (${historicoRoleLabel(getHistoricoAutorRole(h))})` : ""}</strong> · {fmt(h.criado_em)}</span></li>); })}</ul></CardContent></Card>
     </div><div><Card><CardContent className="space-y-3 p-4 text-sm"><Info label="Solicitante" value={(chamado.solicitante as any)?.nome} /><Info label="Departamento" value={(chamado.solicitante as any)?.departamento} /><Info label="Atendente" value={(chamado.atendente as any)?.nome ?? "Sem atendente atribuído"} /><Info label="Tipo de Chamado" value={(chamado.tipo as any)?.nome} /><Info label="Categoria" value={(chamado.categoria as any)?.nome} /><Info label="Subcategoria" value={(chamado.subcategoria as any)?.nome} /><Info label="Aberto em" value={fmt(chamado.aberto_em)} /><Info label="Resolvido em" value={fmt(chamado.resolvido_em)} />{chamado.prazo_resolucao && (<div className="border-t pt-3"><div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">SLA de resolução</div><div className={`mt-1 font-semibold ${slaClass(sla.status)}`}>{sla.label}</div><div className="mt-1 text-xs text-muted-foreground">{sla.status === "vencido" ? `Vencido há ${formatDuration(Math.floor((now - new Date(chamado.prazo_resolucao).getTime()) / 1000))}` : `${formatDuration(sla.seconds)} restantes`}</div>{sla.status !== "pausado" && <div className="mt-1 text-[11px] text-muted-foreground">Vencimento: {fmt(chamado.prazo_resolucao)}</div>}{sla.status === "pausado" && <div className="mt-1 flex items-center gap-1 text-xs text-blue-600"><Clock className="h-3 w-3" /> Aguardando resposta do solicitante</div>}</div>)}</CardContent></Card></div></div>
+    <AlertDialog open={confirmacaoReabertura} onOpenChange={setConfirmacaoReabertura}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Reabrir chamado?</AlertDialogTitle><AlertDialogDescription>A avaliação atual será removida e o chamado voltará para <strong>Reaberto</strong>. O prazo de 48 horas é contado a partir da resolução original.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={reabrir.isPending}>Cancelar</AlertDialogCancel><AlertDialogAction disabled={reabrir.isPending} onClick={() => reabrir.mutate()}>{reabrir.isPending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}Reabrir chamado</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
     <AlertDialog open={!!confirmacao} onOpenChange={(open) => !open && setConfirmacao(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Confirmar alteração</AlertDialogTitle><AlertDialogDescription>Confirma a alteração de <strong>{confirmacao?.atualLabel}</strong> para <strong>{confirmacao?.label}</strong>?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel onClick={() => setConfirmacao(null)}>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => { if (!confirmacao) return; const c = confirmacao; setConfirmacao(null); if (c.campo === "status") atualizar.mutate({ status: c.valor }); if (c.campo === "prioridade") atualizar.mutate({ prioridade: c.valor }); if (c.campo === "atendente") atualizar.mutate({ atendente_id: c.valor }); if (c.campo === "tipo") atualizar.mutate({ tipoChamadoId: c.valor }); }}>Confirmar</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
   </div>);
 }
