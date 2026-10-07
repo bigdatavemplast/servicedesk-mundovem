@@ -27,10 +27,14 @@ function statusStyle(s:string){ if(s==="aberto")return "bg-sky-100 text-sky-700"
 function prioridadeStyle(p:string){ if(p==="critica")return "bg-red-100 text-red-700 border-red-200"; if(p==="alta")return "bg-amber-100 text-amber-700 border-amber-200"; if(p==="media")return "bg-blue-100 text-blue-700 border-blue-200"; return "bg-emerald-100 text-emerald-700 border-emerald-200"; }
 
 function DashboardPage(){
-  const {user}=Route.useRouteContext(); const navigate=useNavigate(); const area=getArea();
+  const {user}=Route.useRouteContext(); const navigate=useNavigate(); const areaSelecionada=getArea();
   const [now,setNow]=useState(Date.now()); const [dias,setDias]=useState<number>(30); const [filtroStatus,setFiltroStatus]=useState("todos");
-  useEffect(()=>{if(!area) navigate({to:"/areas",replace:true}); const t=window.setInterval(()=>setNow(Date.now()),30000); return()=>window.clearInterval(t);},[area,navigate]);
+  useEffect(()=>{if(!area && !isGestor) navigate({to:"/areas",replace:true}); const t=window.setInterval(()=>setNow(Date.now()),30000); return()=>window.clearInterval(t);},[area,isGestor,navigate]);
   const {data:roles=[],isLoading:loadingRoles}=useQuery({queryKey:["my-roles",user.id],queryFn:async()=>{const {data,error}=await supabase.from("user_roles").select("role").eq("user_id",user.id);if(error)throw error;return(data??[]).map(r=>String(r.role));}});
+  const isGestor=roles.includes("gestor");
+  const {data:perfil}=useQuery({queryKey:["dashboard-profile-area",user.id],enabled:isGestor,queryFn:async()=>{const {data,error}=await supabase.from("profiles").select("area_id").eq("id",user.id).maybeSingle();if(error)throw error;return data as {area_id:string|null}|null;}});
+  const {data:areaGestor}=useQuery({queryKey:["dashboard-gestor-area",perfil?.area_id],enabled:isGestor&&!!perfil?.area_id,queryFn:async()=>{const {data,error}=await supabase.from("segmentos").select("id,nome").eq("id",perfil!.area_id!).maybeSingle();if(error)throw error;return data as Area|null;}});
+  const area=isGestor?(areaGestor??null):areaSelecionada;
   const isAtendente=roles.includes("atendente");
   const {modo}=useModoAtendimento(user.id,isAtendente);
   const perfil=modo==="colaborador"&&isAtendente?"colaborador":roles.includes("admin")?"admin":roles.includes("gestor")?"gestor":isAtendente?"atendente":"colaborador";
@@ -44,7 +48,7 @@ function DashboardPage(){
   const recentes=useMemo(()=>{let b=chamados;if(filtroStatus!=="todos")b=b.filter(c=>filtroStatus==="abertos"?c.status==="aberto":filtroStatus==="andamento"?c.status==="em_andamento":resolved(c));return b.slice(0,10);},[chamados,filtroStatus]);
   const volume=useMemo(()=>{if(!isFull)return[];const m=new Map<string,{dia:string;abertos:number;resolvidos:number}>();for(let i=dias-1;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const k=d.toISOString().slice(0,10);m.set(k,{dia:k.slice(5),abertos:0,resolvidos:0});}chamados.forEach(c=>{const a=m.get(c.criado_em.slice(0,10));if(a)a.abertos++;if(c.resolvido_em){const r=m.get(c.resolvido_em.slice(0,10));if(r)r.resolvidos++;}});return Array.from(m.values());},[chamados,dias,isFull]);
   const slaPorPrioridade=useMemo(()=>["baixa","media","alta","critica"].map(p=>{const i=chamados.filter(c=>c.prioridade===p);const v=i.filter(c=>c.sla_resolucao_violado||slaStatus(c,now)==="vencido").length;return{prioridade:p,taxa_pct:i.length?Math.round(((i.length-v)/i.length)*100):0};}),[chamados,now]);
-  if(!area||loadingRoles||isLoading)return <div className="p-8 text-center text-sm text-muted-foreground">Carregando dashboard…</div>;
+  if(!area||loadingRoles||(isGestor&&!areaGestor)||isLoading)return <div className="p-8 text-center text-sm text-muted-foreground">Carregando dashboard…</div>;
   if(perfil==="colaborador")return <CollaboratorDashboard area={area} resumo={resumo} porCategoria={porCategoria} slaPorPrioridade={slaPorPrioridade}/>;
   if(perfil==="atendente")return <AttendantDashboard area={area} resumo={resumo} porCategoria={porCategoria}/>;
   return <div className="space-y-4">
