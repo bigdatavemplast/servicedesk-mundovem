@@ -232,7 +232,7 @@ function GestaoPage() {
   useQuery({
     queryKey: ["gestao-atualizar-abandonos"],
 
-    enabled: !!segmentoValido,
+    enabled: !loadingRoles && (!isGestor || !!segmentoGestor),
 
     queryFn: async () => {
       const { error } = await (
@@ -261,7 +261,7 @@ function GestaoPage() {
       inicio,
     ],
 
-    enabled: !!segmentoValido,
+    enabled: !loadingRoles && (!isGestor || !!segmentoGestor),
 
     queryFn: async () => {
       const { data, error } = await (
@@ -290,7 +290,7 @@ function GestaoPage() {
       inicio,
     ],
 
-    enabled: !!segmentoValido,
+    enabled: !loadingRoles && (!isGestor || !!segmentoGestor),
 
     queryFn: async () => {
       const { data, error } = await (
@@ -999,6 +999,12 @@ function GestaoPage() {
     chamados,
     catMap,
   ]);
+
+  if (loadingRoles || (isGestor && !segmentoGestor)) {
+    return (
+      <div className="p-8 text-center text-sm text-muted-foreground">Carregando indicadores de gestão…</div>
+    );
+  }
 
   if (!segmentoValido) {
     return (
