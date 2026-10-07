@@ -29,12 +29,12 @@ function prioridadeStyle(p:string){ if(p==="critica")return "bg-red-100 text-red
 function DashboardPage(){
   const {user}=Route.useRouteContext(); const navigate=useNavigate(); const areaSelecionada=getArea();
   const [now,setNow]=useState(Date.now()); const [dias,setDias]=useState<number>(30); const [filtroStatus,setFiltroStatus]=useState("todos");
-  useEffect(()=>{if(!area && !isGestor) navigate({to:"/areas",replace:true}); const t=window.setInterval(()=>setNow(Date.now()),30000); return()=>window.clearInterval(t);},[area,isGestor,navigate]);
   const {data:roles=[],isLoading:loadingRoles}=useQuery({queryKey:["my-roles",user.id],queryFn:async()=>{const {data,error}=await supabase.from("user_roles").select("role").eq("user_id",user.id);if(error)throw error;return(data??[]).map(r=>String(r.role));}});
-  const isGestor=roles.includes("gestor");
+  const isGestor=roles.includes("gestor")&&!roles.includes("admin");
   const {data:perfil}=useQuery({queryKey:["dashboard-profile-area",user.id],enabled:isGestor,queryFn:async()=>{const {data,error}=await supabase.from("profiles").select("area_id").eq("id",user.id).maybeSingle();if(error)throw error;return data as {area_id:string|null}|null;}});
   const {data:areaGestor}=useQuery({queryKey:["dashboard-gestor-area",perfil?.area_id],enabled:isGestor&&!!perfil?.area_id,queryFn:async()=>{const {data,error}=await supabase.from("areas").select("id,nome,ativo").eq("id",perfil!.area_id!).maybeSingle();if(error)throw error;if(!data)return null;const {data:segmentos,error:segError}=await supabase.from("segmentos").select("id,nome").eq("ativo",true).order("ordem").order("nome");if(segError)throw segError;const normalizar=(nome:string)=>nome.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase().replace(/[^A-Z0-9]+/g,"");return (segmentos??[]).find((s)=>normalizar(s.nome)===normalizar(data.nome)) as Area|null;}});
   const area=isGestor?(areaGestor??null):areaSelecionada;
+  useEffect(()=>{if(!area && !isGestor) navigate({to:"/areas",replace:true}); const t=window.setInterval(()=>setNow(Date.now()),30000); return()=>window.clearInterval(t);},[area,isGestor,navigate]);
   const isAtendente=roles.includes("atendente");
   const {modo}=useModoAtendimento(user.id,isAtendente);
   const perfil=modo==="colaborador"&&isAtendente?"colaborador":roles.includes("admin")?"admin":roles.includes("gestor")?"gestor":isAtendente?"atendente":"colaborador";
