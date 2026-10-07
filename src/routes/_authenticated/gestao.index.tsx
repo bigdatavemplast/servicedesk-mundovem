@@ -323,7 +323,7 @@ function GestaoPage() {
       inicio,
     ],
 
-    enabled: !!segmentoValido,
+    enabled: !loadingRoles && (!isGestor || !!segmentoGestor),
 
     queryFn: async () => {
       const { data, error } = await (
@@ -418,7 +418,7 @@ function GestaoPage() {
       segmentoValido,
     ],
 
-    enabled: !!segmentoValido,
+    enabled: !loadingRoles && (!isGestor || !!segmentoGestor),
 
     queryFn: async () => {
       const { data, error } = await (
@@ -456,7 +456,8 @@ function GestaoPage() {
       ],
 
       enabled:
-        !!segmentoValido &&
+        !loadingRoles &&
+        (!isGestor || !!segmentoGestor) &&
         (agentIds.length > 0 ||
           grupoIds.length > 0),
 
