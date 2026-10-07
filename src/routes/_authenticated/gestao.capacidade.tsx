@@ -16,7 +16,7 @@ export const Route = createFileRoute("/_authenticated/gestao/capacidade")({
     const { data } = await supabase.auth.getUser();
     if (!data.user) throw redirect({ to: "/auth" });
     const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", data.user.id);
-    if (!(roles ?? []).some((r) => ["gestor", "admin"].includes(String(r.role)))) throw redirect({ to: "/dashboard" });
+    if (!(roles ?? []).some((r) => String(r.role) === "admin")) throw redirect({ to: "/dashboard" });
   },
   component: CapacidadePage,
 });
