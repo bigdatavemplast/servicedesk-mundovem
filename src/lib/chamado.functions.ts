@@ -75,7 +75,10 @@ async function canEditFilaTicket(supabase: any, userId: string, ticket: any) {
     .eq("grupos_atendimento.ativo", true);
 
   if (ticket.grupo_atendimento_id) {
-    q = q.eq("grupos_atendimento.id", ticket.grupo_atendimento_id);
+    q = q.or(
+      `id.eq.${ticket.grupo_atendimento_id},segmento_id.eq.${ticket.segmento_id}`,
+      { foreignTable: "grupos_atendimento" },
+    );
   } else {
     q = q.eq("grupos_atendimento.segmento_id", ticket.segmento_id);
   }
