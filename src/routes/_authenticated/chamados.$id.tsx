@@ -173,11 +173,12 @@ function DetalheChamadoPage() {
         .eq("usuario_id", user.id)
         .eq("ativo", true)
         .eq("grupos_atendimento.ativo", true);
-      if (chamado.grupo_atendimento_id) {
-        q = q.eq("grupos_atendimento.id", chamado.grupo_atendimento_id);
-      } else {
-        q = q.eq("grupos_atendimento.segmento_id", chamado.segmento_id);
-      }
+      q = q.or(
+        chamado.grupo_atendimento_id
+          ? `id.eq.${chamado.grupo_atendimento_id},segmento_id.eq.${chamado.segmento_id}`
+          : `segmento_id.eq.${chamado.segmento_id}`,
+        { foreignTable: "grupos_atendimento" }
+      );
       const { data, error } = await q.limit(1);
       if (error) throw error;
       return (data ?? []).length > 0;
