@@ -17,6 +17,16 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 const ENCERRADOS = ["resolvido", "fechado", "cancelado"];
 const PERIODOS = [7,15,30,90] as const;
 const COR_GRAFICO = "hsl(214 70% 55%)";
+const COR_CATEGORIA = [
+  "hsl(210 38% 78%)",
+  "hsl(145 24% 72%)",
+  "hsl(270 25% 78%)",
+  "hsl(38 42% 76%)",
+  "hsl(350 30% 76%)",
+  "hsl(190 30% 74%)",
+  "hsl(75 24% 72%)",
+  "hsl(320 24% 77%)",
+];
 const COR_SLA_PRIORIDADE: Record<string,string> = {
   baixa: "hsl(152 28% 62%)",
   media: "hsl(210 38% 65%)",
@@ -61,7 +71,7 @@ function DashboardPage(){
     <div className="flex flex-wrap items-end justify-between gap-3"><div><h1 className="text-2xl font-bold">Dashboard Gerencial — {area.nome}</h1><p className="text-sm text-muted-foreground">{perfil==="gestor"?"Métricas somente dos chamados da sua equipe nesta área.":"Métricas da área selecionada."}</p></div><div className="flex gap-2">{PERIODOS.map(d=><Button key={d} size="sm" variant={dias===d?"default":"outline"} onClick={()=>setDias(d)}>{d}d</Button>)}</div></div>
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6"><Kpi label="Total chamados" valor={resumo.total}/><Kpi label="Abertos agora" valor={resumo.abertosAgora}/><Kpi label="Resolvidos" valor={resumo.resolvidos}/><Kpi label="Taxa SLA" valor={resumo.taxaSla!==null?`${resumo.taxaSla}%`:"—"} destaque={resumo.taxaSla!==null&&resumo.taxaSla>=80}/><Kpi label="T. médio resolução" valor={resumo.tMedio!==null?(resumo.tMedio<1?`${Math.round(resumo.tMedio*60)}min`:`${resumo.tMedio}h`):"—"}/><Kpi label="Críticos abertos" valor={resumo.criticosAbertos}/><Kpi label="SLA vencendo" valor={resumo.vencendo}/><Kpi label="SLA vencido" valor={resumo.vencidos}/><Kpi label="SLA pausado" valor={resumo.pausados}/></div>
     <div className="grid gap-4 lg:grid-cols-2"><Card><CardHeader className="pb-2"><CardTitle className="text-sm">Volume de chamados</CardTitle><p className="text-xs text-muted-foreground">Aberturas e resoluções no período selecionado.</p></CardHeader><CardContent><ResponsiveContainer width="100%" height={220}><LineChart data={volume}><CartesianGrid strokeDasharray="3 3" className="stroke-border"/><XAxis dataKey="dia" tick={{fontSize:10}}/><YAxis tick={{fontSize:10}} allowDecimals={false}/><Tooltip/><Legend/><Line type="monotone" dataKey="abertos" stroke={COR_GRAFICO} strokeWidth={2} name="Abertos"/><Line type="monotone" dataKey="resolvidos" stroke="hsl(var(--muted-foreground))" strokeWidth={2} name="Resolvidos"/></LineChart></ResponsiveContainer></CardContent></Card><Card><CardHeader className="pb-2"><CardTitle className="text-sm">Desempenho de SLA</CardTitle><p className="text-xs text-muted-foreground">Percentual de chamados dentro do prazo.</p></CardHeader><CardContent><ResponsiveContainer width="100%" height={220}><BarChart data={slaPorPrioridade}><CartesianGrid strokeDasharray="3 3" className="stroke-border"/><XAxis dataKey="prioridade" tick={{fontSize:10}}/><YAxis unit="%" domain={[0,100]} tick={{fontSize:10}}/><Tooltip/><Bar dataKey="taxa_pct" name="Taxa SLA" radius={[4,4,0,0]}>{slaPorPrioridade.map((item)=><Cell key={item.prioridade} fill={COR_SLA_PRIORIDADE[item.prioridade]}/>)}</Bar></BarChart></ResponsiveContainer></CardContent></Card></div>
-    <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Chamados por categoria</CardTitle><p className="text-xs text-muted-foreground">Onde está concentrado o volume de atendimento.</p></CardHeader><CardContent><ResponsiveContainer width="100%" height={240}><BarChart data={porCategoria} layout="vertical"><CartesianGrid strokeDasharray="3 3" className="stroke-border"/><XAxis type="number" allowDecimals={false}/><YAxis dataKey="categoria" type="category" width={130}/><Tooltip/><Bar dataKey="total" fill={COR_GRAFICO} name="Total" radius={[0,4,4,0]}/></BarChart></ResponsiveContainer></CardContent></Card>
+    <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Chamados por categoria</CardTitle><p className="text-xs text-muted-foreground">Onde está concentrado o volume de atendimento.</p></CardHeader><CardContent><ResponsiveContainer width="100%" height={240}><BarChart data={porCategoria} layout="vertical"><CartesianGrid strokeDasharray="3 3" className="stroke-border"/><XAxis type="number" allowDecimals={false}/><YAxis dataKey="categoria" type="category" width={130}/><Tooltip/><Bar dataKey="total" name="Total" radius={[0,4,4,0]}>{porCategoria.map((item,index)=><Cell key={item.categoria} fill={COR_CATEGORIA[index % COR_CATEGORIA.length]}/>)}</Bar></BarChart></ResponsiveContainer></CardContent></Card>
     <Recentes recentes={recentes} catMap={catMap} filtroStatus={filtroStatus} setFiltroStatus={setFiltroStatus}/>
   </div>;
 }
