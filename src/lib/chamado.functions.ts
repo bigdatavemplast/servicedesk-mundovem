@@ -65,7 +65,7 @@ async function canEditFilaTicket(supabase: any, userId: string, ticket: any) {
   const roles = await getRoles(supabase, userId);
   if (roles.includes("admin")) return true;
   if (!roles.includes("atendente") || roles.includes("gestor")) return false;
-  if (ticket.atendente_id != null) return ticket.atendente_id === userId;
+  if (ticket.atendente_id != null) return false;
 
   let q = supabase
     .from("grupo_atendentes")
