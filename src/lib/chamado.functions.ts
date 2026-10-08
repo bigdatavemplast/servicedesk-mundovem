@@ -130,7 +130,7 @@ export const comentarChamado = createServerFn({ method: "POST" }).middleware([re
   const roles = await getRoles(supabase, context.userId);
   const isAdmin = roles.includes("admin");
   if (roles.includes("gestor") && !isAdmin) throw new Error("Gestores podem apenas visualizar chamados.");
-  const canInteract = isRequester || await canEditFilaTicket(supabase, context.userId, ticket);
+  const canInteract = isRequester || await canEditFilaTicket(admin, context.userId, ticket);
   if (!canInteract) throw new Error("Somente o solicitante, o admin ou o atendente autorizado pode comentar neste chamado.");
   if (data.interno && !isRequester && !(await hasPermission(supabase, context.userId, "ticket.comment.internal"))) throw new Error("Nota interna disponível somente para atendimento.");
   if (data.interno && isRequester) throw new Error("Solicitantes não podem adicionar notas internas.");
@@ -157,7 +157,7 @@ export const atualizarChamado = createServerFn({ method: "POST" }).middleware([r
   const isAdmin = roles.includes("admin");
   const isGestor = roles.includes("gestor");
   if (isGestor && !isAdmin) throw new Error("Gestores podem apenas visualizar chamados.");
-  const canEditFila = await canEditFilaTicket(supabase, context.userId, ticket);
+  const canEditFila = await canEditFilaTicket(admin, context.userId, ticket);
   if (data.status === "cancelado" && !isAdmin) throw new Error("Somente administradores podem cancelar chamados.");
   if (data.status === "fechado" && ticket.avaliacao_nota == null) throw new Error("O chamado só pode ser fechado após a avaliação do colaborador.");
   if (!isAdmin && !canEditFila) {
