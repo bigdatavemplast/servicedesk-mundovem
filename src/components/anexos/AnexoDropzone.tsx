@@ -17,9 +17,10 @@ type Props = {
   progresso?: Record<string, number>;
   onRemover?: (index: number) => void;
   disabled?: boolean;
+  onTentativaSemPermissao?: () => void;
 };
 
-export function AnexoDropzone({ onArquivos, pendentes = [], progresso, onRemover, disabled }: Props) {
+export function AnexoDropzone({ onArquivos, pendentes = [], progresso, onRemover, disabled, onTentativaSemPermissao }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [arrastando, setArrastando] = useState(false);
 
@@ -40,7 +41,8 @@ export function AnexoDropzone({ onArquivos, pendentes = [], progresso, onRemover
   }
 
   function abrirSeletor() {
-    if (!disabled) inputRef.current?.click();
+    if (disabled) onTentativaSemPermissao?.();
+    else inputRef.current?.click();
   }
 
   return (
@@ -64,7 +66,8 @@ export function AnexoDropzone({ onArquivos, pendentes = [], progresso, onRemover
         onDrop={(e) => {
           e.preventDefault();
           setArrastando(false);
-          if (!disabled) processar(e.dataTransfer.files);
+          if (disabled) onTentativaSemPermissao?.();
+          else processar(e.dataTransfer.files);
         }}
         className={`cursor-pointer rounded-lg border border-dashed p-4 text-center transition-colors ${
           arrastando ? "border-primary bg-primary/5" : "border-border"
