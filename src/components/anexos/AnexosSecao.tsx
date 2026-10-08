@@ -50,7 +50,7 @@ function PreviewImagem({ anexo, onAmpliar }: { anexo: Anexo; onAmpliar: (url: st
   );
 }
 
-export function AnexosSecao({ chamadoId, userId, podeRemoverTodos = false }: { chamadoId: string; userId: string; podeRemoverTodos?: boolean }) {
+export function AnexosSecao({ chamadoId, userId, podeRemoverTodos = false, podeAdicionar = true, onTentativaSemPermissao }: { chamadoId: string; userId: string; podeRemoverTodos?: boolean; podeAdicionar?: boolean; onTentativaSemPermissao?: () => void }) {
   const qc = useQueryClient();
   const registrarHistoricoServer = useServerFn(registrarHistoricoAnexo);
   const [progresso, setProgresso] = useState<Record<string, number>>({});
@@ -117,7 +117,7 @@ export function AnexosSecao({ chamadoId, userId, podeRemoverTodos = false }: { c
     <Card>
       <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-sm"><Paperclip className="h-4 w-4" aria-hidden="true" />Anexos ({anexos.length})</CardTitle></CardHeader>
       <CardContent className="space-y-3">
-        <AnexoDropzone onArquivos={subir} pendentes={enviando} progresso={progresso} disabled={enviando.length > 0} />
+        <AnexoDropzone onArquivos={subir} pendentes={enviando} progresso={progresso} disabled={enviando.length > 0 || !podeAdicionar} onTentativaSemPermissao={onTentativaSemPermissao} />
         {anexos.length === 0 && enviando.length === 0 && <p className="text-xs text-muted-foreground">Nenhum anexo neste chamado.</p>}
         <ul className="space-y-4">
           {anexos.map((a) => (
