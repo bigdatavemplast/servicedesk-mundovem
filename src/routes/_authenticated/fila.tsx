@@ -130,7 +130,6 @@ function FilaPage() {
       if (status !== "__all_status__") q = q.eq("status", status as any); if (prioridade !== "__all__") q = q.eq("prioridade", prioridade as any);
       if (somenteMeus && contexto?.userId) q = q.eq("atendente_id", contexto.userId); else if (segmentoSelecionado !== "todos") q = q.eq("segmento_id", segmentoSelecionado);
       if (contexto?.role === "colaborador" && contexto.userId) q = q.eq("solicitante_id", contexto.userId);
-      if (contexto?.role === "atendente" && contexto.userId) q = q.or(`atendente_id.eq.${contexto.userId},atendente_id.is.null`);
       if (contexto?.role === "gestor" && !contexto.isGestorTI && contexto.departamento) q = q.eq("solicitante.departamento", contexto.departamento);
       const { data, error } = await q; if (error) throw error; return data ?? [];
     },
