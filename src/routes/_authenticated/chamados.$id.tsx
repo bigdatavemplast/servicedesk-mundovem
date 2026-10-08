@@ -173,15 +173,15 @@ function DetalheChamadoPage() {
         .eq("usuario_id", user.id)
         .eq("ativo", true)
         .eq("grupos_atendimento.ativo", true);
-      q = q.or(
-        chamado.grupo_atendimento_id
-          ? `id.eq.${chamado.grupo_atendimento_id},segmento_id.eq.${chamado.segmento_id}`
-          : `segmento_id.eq.${chamado.segmento_id}`,
-        { foreignTable: "grupos_atendimento" }
-      );
-      const { data, error } = await q.limit(1);
+      const { data, error } = await q.limit(100);
       if (error) throw error;
-      return (data ?? []).length > 0;
+      return (data ?? []).some((row: any) => {
+        const grupo = Array.isArray(row.grupos_atendimento) ? row.grupos_atendimento[0] : row.grupos_atendimento;
+        return grupo && (
+          grupo.segmento_id === chamado.segmento_id ||
+          (chamado.grupo_atendimento_id != null && grupo.id === chamado.grupo_atendimento_id)
+        );
+      });
     },
   });
   const bloquearAlteracaoAtendente = () => {
