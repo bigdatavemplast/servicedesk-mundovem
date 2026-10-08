@@ -152,18 +152,18 @@ function DetalheChamadoPage() {
   const getTipoChamadoNome = (id: string | null | undefined) => id ? ((historicoTipos as any[]).find((tipo) => tipo.id === id)?.nome ?? "Tipo removido") : "Sem tipo definido";
 
   const { data: tecnicos = [] } = useQuery({
-    queryKey: ["tecnicos", chamado?.segmento_id],
-    enabled: isStaff && !!chamado?.segmento_id,
+    queryKey: ["tecnicos"],
+    enabled: isStaff,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("grupo_atendentes")
-        .select("usuario_id, usuario:profiles(id,nome), grupo:grupos_atendimento!inner(segmento_id,ativo)")
+        .from("profiles")
+        .select("id,nome,user_roles!inner(role)")
         .eq("ativo", true)
-        .eq("grupo.ativo", true)
-        .eq("grupo.segmento_id", chamado!.segmento_id as string);
+        .eq("user_roles.role", "atendente")
+        .order("nome", { ascending: true });
       if (error) throw error;
       const seen = new Set<string>();
-      return (data ?? []).map((r: any) => r.usuario).filter((p: any) => {
+      return (data ?? []).filter((p: any) => {
         if (!p || seen.has(p.id)) return false;
         seen.add(p.id); return true;
       });
