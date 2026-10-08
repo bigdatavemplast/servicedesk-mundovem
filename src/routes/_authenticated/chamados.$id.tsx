@@ -152,17 +152,36 @@ function DetalheChamadoPage() {
   const getTipoChamadoNome = (id: string | null | undefined) => id ? ((historicoTipos as any[]).find((tipo) => tipo.id === id)?.nome ?? "Tipo removido") : "Sem tipo definido";
 
   const { data: tecnicos = [] } = useQuery({
-    queryKey: ["tecnicos", chamado?.segmento_id],
-    enabled: isStaff && !!chamado?.segmento_id,
+    queryKey: ["tecnicos", chamado?.segmento_id, chamado?.grupo_atendimento_id, roles.includes("admin")],
+    enabled: isStaff && (!!chamado?.segmento_id || roles.includes("admin")),
     queryFn: async () => {
-      const { data, error } = await supabase
+      if (roles.includes("admin")) {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id,nome,ativo,user_roles!inner(role)")
+          .eq("ativo", true)
+          .eq("user_roles.role", "atendente")
+          .order("nome", { ascending: true });
+        if (error) throw error;
+        return data ?? [];
+      }
+
+      if (!chamado?.segmento_id) return [];
+
+      let q = supabase
         .from("grupo_atendentes")
         .select("usuario_id, profiles!inner(id,nome,ativo), grupos_atendimento!inner(id,ativo,segmento_id)")
         .eq("ativo", true)
         .eq("profiles.ativo", true)
-        .eq("grupos_atendimento.ativo", true)
-        .eq("grupos_atendimento.segmento_id", chamado!.segmento_id as string);
+        .eq("grupos_atendimento.ativo", true);
 
+      if (chamado.grupo_atendimento_id) {
+        q = q.eq("grupos_atendimento.id", chamado.grupo_atendimento_id);
+      } else {
+        q = q.eq("grupos_atendimento.segmento_id", chamado.segmento_id as string);
+      }
+
+      const { data, error } = await q;
       if (error) throw error;
 
       const seen = new Set<string>();
@@ -237,7 +256,7 @@ function DetalheChamadoPage() {
         <div className="min-w-[160px] space-y-1"><label className="text-xs text-muted-foreground">Prioridade</label><Select disabled={!podeAlterarChamado} value={chamado.prioridade} onValueChange={(v) => { const item = PRIOS.find((x) => x.v === v); if (v !== chamado.prioridade) setConfirmacao({ campo: "prioridade", valor: v, label: item?.l ?? v, atual: chamado.prioridade, atualLabel: PRIOS.find((x) => x.v === chamado.prioridade)?.l ?? chamado.prioridade }); }}><SelectTrigger className="h-9"><SelectValue /></SelectTrigger><SelectContent>{PRIOS.map((s) => <SelectItem key={s.v} value={s.v}>{s.l}</SelectItem>)}</SelectContent></Select></div>
         <div className="min-w-[220px] flex-1 space-y-1"><label className="text-xs text-muted-foreground">Atendente</label><Select disabled={!podeAlterarChamado} value={chamado.atendente_id ?? "__none__"} onValueChange={(v) => { const value = v === "__none__" ? null : v; const tecnico = value ? tecnicos.find((t: any) => t.id === value) : null; if (value !== (chamado.atendente_id ?? null)) setConfirmacao({ campo: "atendente", valor: value, label: tecnico?.nome ?? "Não atribuído", atual: chamado.atendente_id ?? "", atualLabel: (chamado.atendente as any)?.nome ?? "Não atribuído" }); }}><SelectTrigger className="h-9"><SelectValue placeholder="Não atribuído" /></SelectTrigger><SelectContent><SelectItem value="__none__">Não atribuído</SelectItem>{tecnicos.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)}</SelectContent></Select></div>
         <div className="min-w-[220px] flex-1 space-y-1"><label className="text-xs text-muted-foreground">Tipo de Chamado</label><Select disabled={!podeAlterarChamado} value={chamado.tipo_chamado_id ?? "__none__"} onValueChange={(v) => { const tipo = tiposChamado.find((t: any) => t.id === v); if (v !== (chamado.tipo_chamado_id ?? null) && v !== "__none__") setConfirmacao({ campo: "tipo", valor: v, label: tipo?.nome ?? v, atual: chamado.tipo_chamado_id ?? "", atualLabel: (chamado.tipo as any)?.nome ?? "Sem tipo definido" }); }}><SelectTrigger className="h-9"><SelectValue placeholder="Selecione o tipo" /></SelectTrigger><SelectContent>{tiposChamado.map((tipo: any) => <SelectItem key={tipo.id} value={tipo.id}>{tipo.nome}</SelectItem>)}</SelectContent></Select></div>
-        {chamado.atendente_id !== user.id && (<Button variant="outline" size="sm" className="self-end" disabled={!podeAlterarChamado} onClick={() => setConfirmacao({ campo: "atendente", valor: user.id, label: "Você", atual: chamado.atendente_id ?? "", atualLabel: (chamado.atendente as any)?.nome ?? "Não atribuído" })}>Atribuir a mim</Button>)}
+        {(roles.includes("admin") || (isAttendant && tecnicos.some((t: any) => t.id === user.id))) && chamado.atendente_id !== user.id && (<Button variant="outline" size="sm" className="self-end" disabled={!podeAlterarChamado} onClick={() => setConfirmacao({ campo: "atendente", valor: user.id, label: "Você", atual: chamado.atendente_id ?? "", atualLabel: (chamado.atendente as any)?.nome ?? "Não atribuído" })}>Atribuir a mim</Button>)}
       </CardContent></Card>)}
       <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Adicionar resposta</CardTitle></CardHeader><CardContent className="space-y-3"><Textarea disabled={paginaSomenteLeitura} rows={4} value={comentario} onChange={(e) => setComentario(e.target.value)} placeholder={interno ? "Nota interna (não visível ao solicitante)" : "Escreva sua resposta…"} /><div className="flex items-center justify-between">{isAttendant ? (<label className={`flex items-center gap-2 text-xs ${paginaSomenteLeitura ? "opacity-50" : ""}`}><input type="checkbox" disabled={paginaSomenteLeitura} checked={interno} onChange={(e) => setInterno(e.target.checked)} />Nota interna</label>) : <div /> }<Button size="sm" disabled={paginaSomenteLeitura || !comentario.trim() || comentar.isPending} onClick={() => comentar.mutate()}>{comentar.isPending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}Enviar</Button></div></CardContent></Card>
       <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Conversas</CardTitle></CardHeader><CardContent className="space-y-3">{comentarios.length === 0 && <p className="text-sm text-muted-foreground">Nenhum comentário ainda.</p>}{comentarios.map((c: any) => (<div key={c.id} className={`rounded-md border-l-4 p-3 text-sm ${c.interno ? "border-amber-400 bg-amber-50" : "border-slate-300 bg-muted/40"}`}><div className="mb-1 flex justify-between text-xs text-muted-foreground"><span>{c.autor?.nome ?? "Sistema"} {c.interno && <span className="font-medium text-amber-700">(interno)</span>}</span><span>{fmt(c.criado_em)}</span></div><p className="whitespace-pre-wrap">{c.conteudo}</p></div>))}</CardContent></Card>
