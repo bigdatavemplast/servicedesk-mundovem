@@ -231,12 +231,9 @@ function DetalheChamadoPage() {
   });
 
   const sla = slaInfo(chamado, now);
-  const atendentePodeOperar = isAttendant
-    && chamado.atendente_id == null
-    && tecnicos.some((t: any) => t.id === user.id);
-  const atendenteSemPermissao = isAttendant && !atendentePodeOperar;
+  const atendenteSemPermissao = isAttendant && chamado.atendente_id != null && chamado.atendente_id !== user.id;
   const paginaSomenteLeitura = isManager;
-  const podeAlterarChamado = !paginaSomenteLeitura && !atendenteSemPermissao;
+  const podeAlterarChamado = !paginaSomenteLeitura;
   const podeAvaliar = !!chamado && chamado.solicitante_id === user.id && chamado.status === "resolvido" && chamado.avaliacao_nota == null && !!chamado.resolvido_em && (Date.now() - new Date(chamado.resolvido_em).getTime() <= 48 * 60 * 60 * 1000);
   const jaAvaliado = chamado?.avaliacao_nota != null;
   const podeReabrir = !!chamado && chamado.solicitante_id === user.id && ["resolvido", "fechado"].includes(chamado.status) && !!chamado.resolvido_em && (Date.now() - new Date(chamado.resolvido_em).getTime() < 48 * 60 * 60 * 1000);
