@@ -120,26 +120,25 @@ function FilaPage() {
       return { userId, role, departamento: profile?.departamento ?? null, areaId: profile?.area_id ?? null, isGestorTI };
     },
   });
-  const { data: gruposAtendente = [], isLoading: loadingGruposAtendente } = useQuery({
-    queryKey: ["fila-grupos-atendente", contexto?.userId, contexto?.role],
-    enabled: !!contexto?.userId && contexto?.role === "atendente",
+  const { data: segmentos = [], isLoading: loadingSegmentos } = useQuery({
+    queryKey: ["fila-segmentos-operacional", contexto?.role, contexto?.areaId],
+    enabled: !!contexto,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("grupo_atendentes")
-        .select("grupos_atendimento!inner(id,ativo,segmento_id)")
-        .eq("usuario_id", contexto!.userId)
-        .eq("ativo", true)
-        .eq("grupos_atendimento.ativo", true);
+      let q = supabase.from("segmentos").select("id,nome,ativo").eq("ativo", true).order("nome");
+      if (contexto?.role === "atendente") {
+        if (!contexto.areaId) return [];
+        const { data: area, error: areaError } = await supabase.from("areas").select("id,nome,ativo").eq("id", contexto.areaId).eq("ativo", true).maybeSingle();
+        if (areaError) throw areaError;
+        if (!area) return [];
+        const { data, error } = await q.eq("nome", area.nome);
+        if (error) throw error;
+        return (data ?? []) as Segmento[];
+      }
+      const { data, error } = await q;
       if (error) throw error;
-      return (data ?? []) as any[];
+      return (data ?? []) as Segmento[];
     },
   });
-  const segmentoIdsAtendente = useMemo(() => new Set(
-    gruposAtendente
-      .map((row: any) => Array.isArray(row.grupos_atendimento) ? row.grupos_atendimento[0]?.segmento_id : row.grupos_atendimento?.segmento_id)
-      .filter(Boolean)
-  ), [gruposAtendente]);
-
   const { data: segmentos = [], isLoading: loadingSegmentos } = useQuery({ queryKey: ["fila-segmentos-operacional", contexto?.role, [...segmentoIdsAtendente].sort().join(",")], enabled: !!contexto && (contexto.role !== "atendente" || !loadingGruposAtendente), queryFn: async () => {
     let q = supabase.from("segmentos").select("id,nome,ativo").eq("ativo", true).order("nome");
     if (contexto?.role === "atendente") {
@@ -157,7 +156,7 @@ function FilaPage() {
     queryFn: async () => {
       let q = supabase.from("chamados").select(`id,numero,titulo,status,prioridade,aberto_em,prazo_resolucao,sla_regra_id,sla_pausado,sla_tempo_restante_segundos,sla_resolucao_violado,segmento_id,atendente_id,tipo:tipos_chamado(id,nome),categoria:categorias(nome),solicitante:profiles!chamados_solicitante_profile_fkey(nome,departamento,area_id),atendente:profiles!chamados_atendente_profile_fkey(nome)`).order("aberto_em", { ascending: false }).limit(200);
       if (status !== "__all_status__") q = q.eq("status", status as any); if (prioridade !== "__all__") q = q.eq("prioridade", prioridade as any);
-      if (somenteMeus && contexto?.userId) q = q.eq("atendente_id", contexto.userId); else if (segmentoSelecionado !== "todos") q = q.eq("segmento_id", segmentoSelecionado);
+      if (somenteMeus && contexto?.userId) q = q.eq("atendente_id", contexto.userId); else if (segmentoSelecionado !== "todos") q = q.eq("segmento_id", segmentoSelecionado); else if (contexto?.role === "atendente" && contexto.areaId) { const { data: area, error: areaError } = await supabase.from("areas").select("nome").eq("id", contexto.areaId).maybeSingle(); if (areaError) throw areaError; if (area?.nome) { const { data: setor, error: setorError } = await supabase.from("segmentos").select("id").eq("nome", area.nome).maybeSingle(); if (setorError) throw setorError; if (setor?.id) q = q.eq("segmento_id", setor.id); else return []; } }
       if (contexto?.role === "atendente" && segmentoIdsAtendente.size > 0) q = q.in("segmento_id", [...segmentoIdsAtendente]);
       if (contexto?.role === "atendente" && segmentoIdsAtendente.size === 0) return [];
       if (contexto?.role === "colaborador" && contexto.userId) q = q.eq("solicitante_id", contexto.userId);
