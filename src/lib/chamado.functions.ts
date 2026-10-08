@@ -43,18 +43,27 @@ async function criarNotificacao(admin: any, args: { destinatarioId: string; tipo
 
 async function atendenteTemAcessoAoSetor(supabase: any, userId: string, ticket: any) {
   const { data, error } = await supabase
-    .from("grupo_atendentes")
-    .select("usuario_id, grupos_atendimento!inner(id,ativo,segmento_id)")
-    .eq("usuario_id", userId)
+    .from("profiles")
+    .select("id, ativo, areas!inner(id, nome, ativo)")
+    .eq("id", userId)
     .eq("ativo", true)
-    .eq("grupos_atendimento.ativo", true)
-    .limit(100);
+    .eq("areas.ativo", true)
+    .maybeSingle();
   if (error) throw new Error(error.message);
 
-  return (data ?? []).some((row: any) => {
-    const grupo = Array.isArray(row.grupos_atendimento) ? row.grupos_atendimento[0] : row.grupos_atendimento;
-    return grupo?.segmento_id === ticket.segmento_id;
-  });
+  const area = Array.isArray(data?.areas) ? data.areas[0] : data?.areas;
+  const normalize = (value: unknown) => String(value ?? "").trim().toLowerCase();
+  if (!area?.nome || !ticket?.segmento_id) return false;
+
+  const { data: segmento, error: segmentoError } = await supabase
+    .from("segmentos")
+    .select("id, nome, ativo")
+    .eq("id", ticket.segmento_id)
+    .eq("ativo", true)
+    .maybeSingle();
+  if (segmentoError) throw new Error(segmentoError.message);
+
+  return !!segmento && normalize(area.nome) === normalize(segmento.nome);
 }
 
 async function canAccessTicket(supabase: any, userId: string, ticket: any) {
