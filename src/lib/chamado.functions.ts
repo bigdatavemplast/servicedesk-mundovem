@@ -74,18 +74,15 @@ async function canEditFilaTicket(supabase: any, userId: string, ticket: any) {
     .eq("ativo", true)
     .eq("grupos_atendimento.ativo", true);
 
-  if (ticket.grupo_atendimento_id) {
-    q = q.or(
-      `id.eq.${ticket.grupo_atendimento_id},segmento_id.eq.${ticket.segmento_id}`,
-      { foreignTable: "grupos_atendimento" },
-    );
-  } else {
-    q = q.eq("grupos_atendimento.segmento_id", ticket.segmento_id);
-  }
-
-  const { data, error } = await q.limit(1);
+  const { data, error } = await q.limit(100);
   if (error) throw new Error(error.message);
-  return (data ?? []).length > 0;
+  return (data ?? []).some((row: any) => {
+    const grupo = Array.isArray(row.grupos_atendimento) ? row.grupos_atendimento[0] : row.grupos_atendimento;
+    return grupo && (
+      grupo.segmento_id === ticket.segmento_id ||
+      (ticket.grupo_atendimento_id != null && grupo.id === ticket.grupo_atendimento_id)
+    );
+  });
 }
 
 export const registrarHistoricoAnexo = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((d) => z.object({
