@@ -65,7 +65,24 @@ async function canEditFilaTicket(supabase: any, userId: string, ticket: any) {
   const roles = await getRoles(supabase, userId);
   if (roles.includes("admin")) return true;
   if (!roles.includes("atendente") || roles.includes("gestor")) return false;
-  return ticket.atendente_id == null || ticket.atendente_id === userId;
+  if (ticket.atendente_id != null) return ticket.atendente_id === userId;
+
+  let q = supabase
+    .from("grupo_atendentes")
+    .select("usuario_id, grupos_atendimento!inner(id,ativo,segmento_id)")
+    .eq("usuario_id", userId)
+    .eq("ativo", true)
+    .eq("grupos_atendimento.ativo", true);
+
+  if (ticket.grupo_atendimento_id) {
+    q = q.eq("grupos_atendimento.id", ticket.grupo_atendimento_id);
+  } else {
+    q = q.eq("grupos_atendimento.segmento_id", ticket.segmento_id);
+  }
+
+  const { data, error } = await q.limit(1);
+  if (error) throw new Error(error.message);
+  return (data ?? []).length > 0;
 }
 
 export const registrarHistoricoAnexo = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((d) => z.object({
