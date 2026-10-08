@@ -41,6 +41,22 @@ async function criarNotificacao(admin: any, args: { destinatarioId: string; tipo
   return !!data;
 }
 
+async function atendenteTemAcessoAoSetor(supabase: any, userId: string, ticket: any) {
+  const { data, error } = await supabase
+    .from("grupo_atendentes")
+    .select("usuario_id, grupos_atendimento!inner(id,ativo,segmento_id)")
+    .eq("usuario_id", userId)
+    .eq("ativo", true)
+    .eq("grupos_atendimento.ativo", true)
+    .limit(100);
+  if (error) throw new Error(error.message);
+
+  return (data ?? []).some((row: any) => {
+    const grupo = Array.isArray(row.grupos_atendimento) ? row.grupos_atendimento[0] : row.grupos_atendimento;
+    return grupo?.segmento_id === ticket.segmento_id;
+  });
+}
+
 async function canAccessTicket(supabase: any, userId: string, ticket: any) {
   const roles = await getRoles(supabase, userId);
   if (roles.includes("admin")) return true;
@@ -57,7 +73,7 @@ async function canAccessTicket(supabase: any, userId: string, ticket: any) {
     if (error) throw new Error(error.message);
     return !!ok;
   }
-  if (roles.includes("atendente")) return hasAnyRolePermission(roles, "ticket.view.queue");
+  if (roles.includes("atendente")) return atendenteTemAcessoAoSetor(supabase, userId, ticket);
   return ticket.solicitante_id === userId;
 }
 
@@ -66,23 +82,7 @@ async function canEditFilaTicket(supabase: any, userId: string, ticket: any) {
   if (roles.includes("admin")) return true;
   if (!roles.includes("atendente") || roles.includes("gestor")) return false;
   if (ticket.atendente_id != null) return false;
-
-  let q = supabase
-    .from("grupo_atendentes")
-    .select("usuario_id, grupos_atendimento!inner(id,ativo,segmento_id)")
-    .eq("usuario_id", userId)
-    .eq("ativo", true)
-    .eq("grupos_atendimento.ativo", true);
-
-  const { data, error } = await q.limit(100);
-  if (error) throw new Error(error.message);
-  return (data ?? []).some((row: any) => {
-    const grupo = Array.isArray(row.grupos_atendimento) ? row.grupos_atendimento[0] : row.grupos_atendimento;
-    return grupo && (
-      grupo.segmento_id === ticket.segmento_id ||
-      (ticket.grupo_atendimento_id != null && grupo.id === ticket.grupo_atendimento_id)
-    );
-  });
+  return atendenteTemAcessoAoSetor(supabase, userId, ticket);
 }
 
 export const registrarHistoricoAnexo = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((d) => z.object({
