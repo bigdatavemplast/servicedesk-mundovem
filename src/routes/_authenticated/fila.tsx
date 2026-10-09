@@ -28,11 +28,9 @@ type Horario = { calendario_id: string; dia_semana: number; hora_inicio: string;
 type Regra = { id: string; calendario_id: string | null; usa_sla_resolucao: boolean };
 
 function statusStyle(s: string) {
-  if (s === "aberto" || s === "em_triagem" || s === "em_andamento" || s === "reaberto") return "bg-blue-50 text-blue-700 border border-blue-200";
-  if (s === "aguardando_usuario" || s === "aguardando_terceiro") return "bg-amber-50 text-amber-800 border border-amber-200";
-  if (s === "resolvido") return "bg-emerald-50 text-emerald-700 border border-emerald-200";
-  if (s === "fechado" || s === "cancelado") return "bg-slate-100 text-slate-600 border border-slate-200";
-  return "bg-muted text-muted-foreground border border-border";
+  if (["resolvido", "fechado"].includes(s)) return "bg-muted/60 text-muted-foreground border border-border";
+  if (s === "cancelado") return "bg-muted/40 text-muted-foreground border border-border";
+  return "bg-muted/40 text-foreground/80 border border-border";
 }
 function statusLabel(s: string) {
   if (s === "aberto") return "Aberto";
