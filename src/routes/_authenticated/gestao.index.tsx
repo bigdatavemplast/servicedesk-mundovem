@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Bar,
   BarChart,
+  Cell,
   CartesianGrid,
   Legend,
   Line,
@@ -1441,7 +1442,20 @@ function GestaoPage() {
                   <Bar
                     dataKey="total"
                     name="Chamados"
-                  />
+                    radius={[4, 4, 0, 0]}
+                  >
+                    {priorities.map((item) => (
+                      <Cell
+                        key={item.prioridade}
+                        fill={{
+                          baixa: "hsl(210 38% 72%)",
+                          media: "hsl(210 65% 58%)",
+                          alta: "hsl(38 70% 62%)",
+                          critica: "hsl(4 62% 60%)",
+                        }[item.prioridade] ?? "hsl(210 38% 72%)"}
+                      />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
