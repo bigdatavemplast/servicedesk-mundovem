@@ -60,11 +60,9 @@ function slaInfo(chamado: any, now: number) {
 function formatDuration(seconds: number | null) { if (seconds == null) return "—"; const s = Math.max(0, Math.floor(seconds)); const h = Math.floor(s / 3600); const m = Math.floor((s % 3600) / 60); if (h > 0) return `${h}h ${m}min`; return `${m}min`; }
 function slaClass(status: string) { if (status === "vencido" || status === "finalizado_vencido") return "text-red-600"; if (status === "vencendo") return "text-amber-600"; if (status === "pausado") return "text-blue-600"; if (status === "finalizado_cancelado") return "text-slate-600"; if (status === "finalizado") return "text-emerald-700"; return "text-emerald-600"; }
 function statusClass(s: string) {
-  if (s === "aberto" || s === "em_triagem" || s === "em_andamento" || s === "reaberto") return "bg-blue-50 text-blue-700 border border-blue-200";
-  if (s === "aguardando_usuario" || s === "aguardando_terceiro") return "bg-amber-50 text-amber-800 border border-amber-200";
-  if (s === "resolvido") return "bg-emerald-50 text-emerald-700 border border-emerald-200";
-  if (s === "fechado" || s === "cancelado") return "bg-slate-100 text-slate-600 border border-slate-200";
-  return "bg-muted text-muted-foreground border border-border";
+  if (["resolvido", "fechado"].includes(s)) return "bg-muted/60 text-muted-foreground border border-border";
+  if (s === "cancelado") return "bg-muted/40 text-muted-foreground border border-border";
+  return "bg-muted/40 text-foreground/80 border border-border";
 }
 function statusLabel(s: string | null | undefined) { return STATUS.find((item) => item.v === s)?.l ?? (s ? s.replaceAll("_", " ") : "—"); }
 function dateKey(d: string | null | undefined) { return d ? new Date(d).toLocaleDateString("pt-BR") : ""; }
