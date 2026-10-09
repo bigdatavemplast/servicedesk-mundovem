@@ -255,9 +255,9 @@ function DetalheChamadoPage() {
         {chamado.status === "resolvido" ? <CheckCircle2 className="h-5 w-5" aria-hidden="true" /> : <LockKeyhole className="h-5 w-5" aria-hidden="true" />}
       </div>
       <div className="min-w-0">
-        <div className="font-semibold">{chamado.status === "resolvido" ? "Seu chamado foi resolvido" : "Este chamado foi encerrado"}</div>
-        <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{chamado.status === "resolvido" ? "Confira a solução e confirme se está tudo certo. Se o problema continuar, você pode reabrir este chamado dentro do prazo indicado abaixo." : "O atendimento foi finalizado. Se precisar de ajuda com o mesmo assunto, confira abaixo se ainda é possível reabrir; caso contrário, você pode abrir um novo chamado."}</p>
-        {chamado.resolvido_em && <p className="mt-2 text-xs text-muted-foreground">{chamado.status === "resolvido" ? "Resolvido em" : "Encerrado em"} {fmt(chamado.resolvido_em)}</p>}
+        <div className="font-semibold">{prazoReaberturaExpirado ? (chamado.status === "resolvido" ? "Resolvido — prazo de reabertura encerrado" : "Fechado — prazo de reabertura encerrado") : chamado.resolvido_em ? (chamado.status === "resolvido" ? "Resolvido — você ainda pode reabrir" : "Fechado — você ainda pode reabrir") : (chamado.status === "resolvido" ? "Seu chamado foi resolvido" : "Este chamado foi encerrado")}</div>
+        <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{prazoReaberturaExpirado ? "As 48 horas para reabrir este chamado já passaram. Se o problema continuar, abra um novo chamado." : chamado.resolvido_em ? <>Se o problema continuar, você pode reabrir este chamado até <strong className="font-semibold text-foreground">{fmt(new Date(new Date(chamado.resolvido_em).getTime() + 48 * 60 * 60 * 1000).toISOString())}</strong>.</> : "Não foi possível confirmar a data da resolução para calcular o prazo. Verifique abaixo se a opção de reabertura está disponível."}</p>
+        {chamado.resolvido_em && <p className="mt-2 text-xs text-muted-foreground">{chamado.status === "resolvido" ? "Resolvido em" : "Data da resolução"} {fmt(chamado.resolvido_em)}</p>}
       </div>
     </div>}
     {paginaSomenteLeitura && <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">Você está em modo de visualização. Gestores não podem alterar chamados.</div>}
