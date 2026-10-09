@@ -42,11 +42,6 @@ function statusLabel(s:string){ return ({aberto:"Aberto",em_triagem:"Em triagem"
 function statusStyle(s:string){
   if(s==="resolvido"||s==="fechado") return "bg-muted/60 text-muted-foreground border border-border";
   if(s==="cancelado") return "bg-muted/40 text-muted-foreground border border-border";
-  if(s==="aberto") return "bg-sky-100 text-sky-800 border border-sky-200 dark:bg-sky-950/50 dark:text-sky-200 dark:border-sky-900";
-  if(s==="em andamento") return "bg-blue-100 text-blue-800 border border-blue-200 dark:bg-blue-950/50 dark:text-blue-200 dark:border-blue-900";
-  if(s==="reaberto") return "bg-violet-100 text-violet-800 border border-violet-200 dark:bg-violet-950/50 dark:text-violet-200 dark:border-violet-900";
-  if(s==="aguardando") return "bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-950/50 dark:text-amber-200 dark:border-amber-900";
-  if(s==="pausado") return "bg-fuchsia-100 text-fuchsia-800 border border-fuchsia-200 dark:bg-fuchsia-950/50 dark:text-fuchsia-200 dark:border-fuchsia-900";
   return "bg-muted/40 text-foreground/80 border border-border";
 }
 function prioridadeStyle(p:string){
