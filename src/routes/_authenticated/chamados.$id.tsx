@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectValue, SelectTrigger } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { ArrowLeft, AlertTriangle, Clock, Loader2, RotateCcw, Star } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Clock, Loader2, RotateCcw, Star, CheckCircle2, LockKeyhole } from "lucide-react";
 import { AnexosSecao } from "@/components/anexos/AnexosSecao";
 import { useServerFn } from "@tanstack/react-start";
 import { atualizarChamado, comentarChamado, avaliarChamado } from "@/lib/chamado.functions";
@@ -250,6 +250,16 @@ function DetalheChamadoPage() {
   return (<div className="mx-auto max-w-6xl p-4 md:p-6">
     <div className="mb-4 flex items-center justify-between gap-3"><div><Button variant="ghost" size="sm" asChild><Link to="/chamados"><ArrowLeft className="mr-2 h-4 w-4" />Voltar</Link></Button><h1 className="mt-2 text-xl font-semibold">{chamado.numero} — {chamado.titulo}</h1></div><Badge className={statusClass(chamado.status)}>{statusLabel(chamado.status)}</Badge></div>
     {chamadoEmAbertoAposVirada && <div className="mb-4 flex items-start gap-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" /><div><div className="font-semibold">Atenção: este chamado atravessou o dia</div><div className="mt-0.5 text-amber-800">Aberto em {fmt(chamado.aberto_em)} e ainda não foi resolvido. Priorize o atendimento para evitar novo atraso.</div></div></div>}
+    {!isStaff && ["resolvido", "fechado"].includes(chamado.status) && <div role="status" className={`mb-4 flex items-start gap-3 rounded-lg border px-4 py-4 shadow-sm ${chamado.status === "resolvido" ? "border-emerald-200 bg-emerald-50/70 text-emerald-950 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-100" : "border-border bg-muted/40 text-foreground"}`}>
+      <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${chamado.status === "resolvido" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-200" : "bg-muted text-muted-foreground"}`}>
+        {chamado.status === "resolvido" ? <CheckCircle2 className="h-5 w-5" aria-hidden="true" /> : <LockKeyhole className="h-5 w-5" aria-hidden="true" />}
+      </div>
+      <div className="min-w-0">
+        <div className="font-semibold">{chamado.status === "resolvido" ? "Seu chamado foi resolvido" : "Este chamado foi encerrado"}</div>
+        <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{chamado.status === "resolvido" ? "Confira a solução e confirme se está tudo certo. Se o problema continuar, você pode reabrir este chamado dentro do prazo indicado abaixo." : "O atendimento foi finalizado. Se precisar de ajuda com o mesmo assunto, confira abaixo se ainda é possível reabrir; caso contrário, você pode abrir um novo chamado."}</p>
+        {chamado.resolvido_em && <p className="mt-2 text-xs text-muted-foreground">{chamado.status === "resolvido" ? "Resolvido em" : "Encerrado em"} {fmt(chamado.resolvido_em)}</p>}
+      </div>
+    </div>}
     {paginaSomenteLeitura && <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">Você está em modo de visualização. Gestores não podem alterar chamados.</div>}
     <div className="grid gap-4 lg:grid-cols-[2fr_1fr]"><div className="space-y-4">
       <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Descrição</CardTitle></CardHeader><CardContent><p className="whitespace-pre-wrap text-sm">{chamado.descricao}</p></CardContent></Card>
