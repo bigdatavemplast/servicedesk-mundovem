@@ -139,26 +139,14 @@ function FilaPage() {
       return (data ?? []) as Segmento[];
     },
   });
-  const { data: segmentos = [], isLoading: loadingSegmentos } = useQuery({ queryKey: ["fila-segmentos-operacional", contexto?.role, [...segmentoIdsAtendente].sort().join(",")], enabled: !!contexto && (contexto.role !== "atendente" || !loadingGruposAtendente), queryFn: async () => {
-    let q = supabase.from("segmentos").select("id,nome,ativo").eq("ativo", true).order("nome");
-    if (contexto?.role === "atendente") {
-      if (segmentoIdsAtendente.size === 0) return [];
-      q = q.in("id", [...segmentoIdsAtendente]);
-    }
-    const { data, error } = await q;
-    if (error) throw error;
-    return (data ?? []) as Segmento[];
-  } });
   const segmentoIdsPermitidos = useMemo(() => new Set(segmentos.map(s => s.id)), [segmentos]);
   useEffect(() => { if (segmentoSelecionado !== "todos" && !segmentoIdsPermitidos.has(segmentoSelecionado)) setSegmentoSelecionado("todos"); }, [segmentoSelecionado, segmentoIdsPermitidos]);
   const { data: chamados = [], isLoading: loadingChamados } = useQuery({
-    queryKey: ["fila", status, prioridade, segmentoSelecionado, somenteMeus, contexto?.userId, contexto?.role, contexto?.departamento, contexto?.areaId, contexto?.isGestorTI], enabled: !!contexto && !loadingSegmentos && (contexto.role !== "atendente" || !loadingGruposAtendente),
+    queryKey: ["fila", status, prioridade, segmentoSelecionado, somenteMeus, contexto?.userId, contexto?.role, contexto?.departamento, contexto?.areaId, contexto?.isGestorTI], enabled: !!contexto && !loadingSegmentos,
     queryFn: async () => {
       let q = supabase.from("chamados").select(`id,numero,titulo,status,prioridade,aberto_em,prazo_resolucao,sla_regra_id,sla_pausado,sla_tempo_restante_segundos,sla_resolucao_violado,segmento_id,atendente_id,tipo:tipos_chamado(id,nome),categoria:categorias(nome),solicitante:profiles!chamados_solicitante_profile_fkey(nome,departamento,area_id),atendente:profiles!chamados_atendente_profile_fkey(nome)`).order("aberto_em", { ascending: false }).limit(200);
       if (status !== "__all_status__") q = q.eq("status", status as any); if (prioridade !== "__all__") q = q.eq("prioridade", prioridade as any);
       if (somenteMeus && contexto?.userId) q = q.eq("atendente_id", contexto.userId); else if (segmentoSelecionado !== "todos") q = q.eq("segmento_id", segmentoSelecionado); else if (contexto?.role === "atendente" && contexto.areaId) { const { data: area, error: areaError } = await supabase.from("areas").select("nome").eq("id", contexto.areaId).maybeSingle(); if (areaError) throw areaError; if (area?.nome) { const { data: setor, error: setorError } = await supabase.from("segmentos").select("id").eq("nome", area.nome).maybeSingle(); if (setorError) throw setorError; if (setor?.id) q = q.eq("segmento_id", setor.id); else return []; } }
-      if (contexto?.role === "atendente" && segmentoIdsAtendente.size > 0) q = q.in("segmento_id", [...segmentoIdsAtendente]);
-      if (contexto?.role === "atendente" && segmentoIdsAtendente.size === 0) return [];
       if (contexto?.role === "colaborador" && contexto.userId) q = q.eq("solicitante_id", contexto.userId);
       if (contexto?.role === "gestor" && !contexto.isGestorTI && contexto.departamento) q = q.eq("solicitante.departamento", contexto.departamento);
       const { data, error } = await q; if (error) throw error; return data ?? [];
