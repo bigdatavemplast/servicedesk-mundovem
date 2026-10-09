@@ -39,7 +39,13 @@ const PRIOS = [
   { v: "baixa", l: "Baixa" }, { v: "media", l: "Média" }, { v: "alta", l: "Alta" }, { v: "critica", l: "Crítica" },
 ];
 function fmt(d: string | null) { if (!d) return "—"; return new Date(d).toLocaleString("pt-BR"); }
-function prioClass(p: string) { return p === "critica" ? "bg-red-100 text-red-700" : p === "alta" ? "bg-amber-100 text-amber-700" : p === "media" ? "bg-blue-100 text-blue-700" : "bg-emerald-100 text-emerald-700"; }
+function prioClass(p: string) {
+  if (p === "critica") return "bg-red-100 text-red-800";
+  if (p === "alta") return "bg-orange-100 text-orange-800";
+  if (p === "media") return "bg-blue-100 text-blue-800";
+  if (p === "baixa") return "bg-emerald-100 text-emerald-800";
+  return "bg-muted text-muted-foreground";
+}
 function slaInfo(chamado: any, now: number) {
   const slaDeveEstarPausado = !!chamado?.sla_pausado && ["aguardando_usuario", "aguardando_terceiro"].includes(chamado?.status);
   if (slaDeveEstarPausado) { const sec = Math.max(0, Number(chamado.sla_tempo_restante_segundos ?? 0)); return { status: "pausado", label: "Pausado", seconds: sec }; }
@@ -51,7 +57,17 @@ function slaInfo(chamado: any, now: number) {
 }
 function formatDuration(seconds: number | null) { if (seconds == null) return "—"; const s = Math.max(0, Math.floor(seconds)); const h = Math.floor(s / 3600); const m = Math.floor((s % 3600) / 60); if (h > 0) return `${h}h ${m}min`; return `${m}min`; }
 function slaClass(status: string) { if (status === "vencido") return "text-red-600"; if (status === "vencendo") return "text-amber-600"; if (status === "pausado") return "text-blue-600"; return "text-emerald-600"; }
-function statusClass(s: string) { if (s === "aberto") return "bg-sky-100 text-sky-700"; if (s === "em_andamento") return "bg-amber-100 text-amber-700"; if (s.startsWith("aguardando")) return "bg-orange-100 text-orange-700"; if (s === "resolvido") return "bg-emerald-100 text-emerald-700"; if (s === "fechado") return "bg-violet-100 text-violet-700"; if (s === "reaberto") return "bg-sky-100 text-sky-700"; return "bg-muted text-muted-foreground"; }
+function statusClass(s: string) {
+  if (s === "aberto") return "bg-blue-100 text-blue-800";
+  if (s === "em_triagem") return "bg-violet-100 text-violet-800";
+  if (s === "em_andamento") return "bg-cyan-100 text-cyan-800";
+  if (s === "aguardando_usuario") return "bg-amber-100 text-amber-800";
+  if (s === "aguardando_terceiro") return "bg-orange-100 text-orange-800";
+  if (s === "resolvido") return "bg-emerald-100 text-emerald-800";
+  if (s === "fechado" || s === "cancelado") return "bg-slate-100 text-slate-700";
+  if (s === "reaberto") return "bg-pink-100 text-pink-800";
+  return "bg-muted text-muted-foreground";
+}
 function statusLabel(s: string | null | undefined) { return STATUS.find((item) => item.v === s)?.l ?? (s ? s.replaceAll("_", " ") : "—"); }
 function dateKey(d: string | null | undefined) { return d ? new Date(d).toLocaleDateString("pt-BR") : ""; }
 function dayLabel(d: string | null | undefined, now: number) {
