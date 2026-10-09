@@ -40,11 +40,9 @@ function getArea(): Area|null { try { const raw=localStorage.getItem("service_de
 function slaStatus(c:Chamado,now:number){ if(c.sla_pausado)return "pausado"; if(!c.prazo_resolucao)return "sem_sla"; const sec=(new Date(c.prazo_resolucao).getTime()-now)/1000; if(sec<=0)return "vencido"; if(sec<=3600)return "vencendo"; return "ok"; }
 function statusLabel(s:string){ return ({aberto:"Aberto",em_triagem:"Em triagem",em_andamento:"Em andamento",aguardando_usuario:"Aguardando usuário",aguardando_terceiro:"Aguardando terceiro",resolvido:"Resolvido",fechado:"Fechado",reaberto:"Reaberto",cancelado:"Cancelado"} as Record<string,string>)[s]??s; }
 function statusStyle(s:string){
-  if(s==="aberto"||s==="em_triagem"||s==="em_andamento"||s==="reaberto") return "bg-blue-50 text-blue-700 border border-blue-200";
-  if(s==="aguardando_usuario"||s==="aguardando_terceiro") return "bg-amber-50 text-amber-800 border border-amber-200";
-  if(s==="resolvido") return "bg-emerald-50 text-emerald-700 border border-emerald-200";
-  if(s==="fechado"||s==="cancelado") return "bg-slate-100 text-slate-600 border border-slate-200";
-  return "bg-muted text-muted-foreground border border-border";
+  if(s==="resolvido"||s==="fechado") return "bg-muted/60 text-muted-foreground border border-border";
+  if(s==="cancelado") return "bg-muted/40 text-muted-foreground border border-border";
+  return "bg-muted/40 text-foreground/80 border border-border";
 }
 function prioridadeStyle(p:string){
   if(p==="critica") return "bg-red-50 text-red-700 border border-red-200";
