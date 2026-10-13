@@ -25,7 +25,7 @@ type CatalogoItem = {
 };
 
 function removerPrefixoExemplo(texto: string | null | undefined) {
-  return (texto ?? "").replace(/^\\s*(?:exemplo|ex)\\s*:?\\s*/i, "").trim();
+  return (texto ?? "").replace(/^\s*(?:exemplo|ex)\s*:?\s*/i, "").trim();
 }
 
 type CatalogoData = {
