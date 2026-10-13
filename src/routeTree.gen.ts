@@ -18,6 +18,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as AuthenticatedAreasRouteImport } from './routes/_authenticated/areas'
 import { Route as AuthenticatedCatalogoRouteImport } from './routes/_authenticated/catalogo'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedInicioRouteImport } from './routes/_authenticated/inicio'
 import { Route as AuthenticatedFilaRouteImport } from './routes/_authenticated/fila'
 import { Route as AuthenticatedGestaoRouteImport } from './routes/_authenticated/gestao'
 import { Route as AuthenticatedItsmAtivosRouteImport } from './routes/_authenticated/itsm-ativos'
@@ -96,6 +97,11 @@ const AuthenticatedCatalogoRoute = AuthenticatedCatalogoRouteImport.update({
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedInicioRoute = AuthenticatedInicioRouteImport.update({
+  id: '/inicio',
+  path: '/inicio',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedFilaRoute = AuthenticatedFilaRouteImport.update({
@@ -312,6 +318,7 @@ export interface FileRoutesByFullPath {
   '/areas': typeof AuthenticatedAreasRoute
   '/catalogo': typeof AuthenticatedCatalogoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/inicio': typeof AuthenticatedInicioRoute
   '/fila': typeof AuthenticatedFilaRoute
   '/gestao': typeof AuthenticatedGestaoRouteWithChildren
   '/itsm-ativos': typeof AuthenticatedItsmAtivosRoute
@@ -357,6 +364,7 @@ export interface FileRoutesByTo {
   '/areas': typeof AuthenticatedAreasRoute
   '/catalogo': typeof AuthenticatedCatalogoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/inicio': typeof AuthenticatedInicioRoute
   '/fila': typeof AuthenticatedFilaRoute
   '/itsm-ativos': typeof AuthenticatedItsmAtivosRoute
   '/itsm-auditoria': typeof AuthenticatedItsmAuditoriaRoute
@@ -403,6 +411,7 @@ export interface FileRoutesById {
   '/_authenticated/areas': typeof AuthenticatedAreasRoute
   '/_authenticated/catalogo': typeof AuthenticatedCatalogoRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/inicio': typeof AuthenticatedInicioRoute
   '/_authenticated/fila': typeof AuthenticatedFilaRoute
   '/_authenticated/gestao': typeof AuthenticatedGestaoRouteWithChildren
   '/_authenticated/itsm-ativos': typeof AuthenticatedItsmAtivosRoute
@@ -450,6 +459,7 @@ export interface FileRouteTypes {
     | '/areas'
     | '/catalogo'
     | '/dashboard'
+    | '/inicio'
     | '/fila'
     | '/gestao'
     | '/itsm-ativos'
@@ -495,6 +505,7 @@ export interface FileRouteTypes {
     | '/areas'
     | '/catalogo'
     | '/dashboard'
+    | '/inicio'
     | '/fila'
     | '/itsm-ativos'
     | '/itsm-auditoria'
@@ -650,6 +661,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/inicio': {
+      id: '/_authenticated/inicio'
+      path: '/inicio'
+      fullPath: '/inicio'
+      preLoaderRoute: typeof AuthenticatedInicioRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/fila': {
@@ -932,6 +950,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAreasRoute: typeof AuthenticatedAreasRoute
   AuthenticatedCatalogoRoute: typeof AuthenticatedCatalogoRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedInicioRoute: typeof AuthenticatedInicioRoute
   AuthenticatedFilaRoute: typeof AuthenticatedFilaRoute
   AuthenticatedGestaoRoute: typeof AuthenticatedGestaoRouteWithChildren
   AuthenticatedItsmAtivosRoute: typeof AuthenticatedItsmAtivosRoute
@@ -969,6 +988,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAreasRoute: AuthenticatedAreasRoute,
   AuthenticatedCatalogoRoute: AuthenticatedCatalogoRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedInicioRoute: AuthenticatedInicioRoute,
   AuthenticatedFilaRoute: AuthenticatedFilaRoute,
   AuthenticatedGestaoRoute: AuthenticatedGestaoRouteWithChildren,
   AuthenticatedItsmAtivosRoute: AuthenticatedItsmAtivosRoute,
