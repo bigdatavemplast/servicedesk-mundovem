@@ -221,7 +221,7 @@ function DetalheChamadoPage() {
 
   const reabrir = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.rpc("reabrir_chamado", { _chamado_id: id });
+      const { error } = await (supabase.rpc as any)("reabrir_chamado", { _chamado_id: id });
       if (error) throw error;
     },
     onSuccess: () => {
