@@ -1,4 +1,5 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useModoAtendimento } from "@/hooks/use-modo-atendimento";
@@ -8,15 +9,6 @@ import { ArrowRight, BookOpen, ChartNoAxesCombined, ClipboardList, PlusCircle, T
 
 export const Route = createFileRoute("/_authenticated/inicio")({
   head: () => ({ meta: [{ title: "Início | Mundo Vem Service Desk" }, { name: "description", content: "Acesse rapidamente os serviços e chamados da sua área." }, { name: "robots", content: "noindex, follow" }] }),
-  beforeLoad: async () => {
-    try {
-      const raw = typeof localStorage !== "undefined" ? localStorage.getItem("service_desk_segmento") : null;
-      if (!raw || !JSON.parse(raw)?.id) throw redirect({ to: "/areas" });
-    } catch (error) {
-      if (error && typeof error === "object" && "to" in error) throw error;
-      throw redirect({ to: "/areas" });
-    }
-  },
   component: InicioPage,
 });
 
@@ -33,7 +25,10 @@ function lerArea() {
 
 function InicioPage() {
   const { user } = Route.useRouteContext();
+  const navigate = useNavigate();
   const area = lerArea();
+  useEffect(() => { if (!area) navigate({ to: "/areas", replace: true }); }, [area, navigate]);
+  if (!area) return <div className="p-8 text-center text-sm text-muted-foreground">Carregando sua área...</div>;
   const { data: roles = [] } = useQuery({
     queryKey: ["inicio-roles", user.id],
     queryFn: async () => {
