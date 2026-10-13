@@ -72,7 +72,7 @@ function InicioPage() {
                 <CardDescription>Consulte o andamento, as atualizações e os chamados concluídos.</CardDescription>
               </CardHeader>
               <CardContent className="mt-auto">
-                <Link to="/chamados/" className="block"><Button variant="outline" className="w-full justify-between">Consultar chamados <ArrowRight className="h-4 w-4" /></Button></Link>
+                <Link to="/chamados" className="block"><Button variant="outline" className="w-full justify-between">Consultar chamados <ArrowRight className="h-4 w-4" /></Button></Link>
               </CardContent>
             </Card>
           </div>
@@ -106,7 +106,7 @@ function InicioPage() {
               </CardContent>
             </Card>
           </Link>
-          <Link to="/base-conhecimento/" className="group">
+          <Link to="/base-conhecimento" className="group">
             <Card className="h-full transition-colors group-hover:border-primary/50">
               <CardContent className="flex items-center gap-3 p-4">
                 <div className="grid h-10 w-10 place-items-center rounded-lg bg-muted"><BookOpen className="h-5 w-5" /></div>
