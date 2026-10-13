@@ -2,9 +2,9 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge";\nimport { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, ListChecks, Search } from "lucide-react";
+import { Loader2, ListChecks, Search, AlertCircle } from "lucide-react";
 import { useMemo, useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/catalogo")({
@@ -107,11 +107,12 @@ function CatalogoPage() {
 
       <div className="flex items-center gap-2">
         <Search className="h-4 w-4 text-muted-foreground" />
-        <input
+        <Input
           value={busca}
           onChange={(event) => setBusca(event.target.value)}
           placeholder="Buscar serviço..."
-          className="h-10 w-full max-w-md rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+          aria-label="Buscar serviços por nome ou descrição"
+          className="h-10 w-full max-w-md"
         />
       </div>
 
@@ -124,15 +125,13 @@ function CatalogoPage() {
 
       {error && !isLoading && (
         <Card>
-          <CardContent className="p-6 text-sm text-destructive">Não foi possível carregar o catálogo.</CardContent>
+          <CardContent className="flex flex-col items-center gap-2 p-8 text-center"><AlertCircle className="h-6 w-6 text-destructive" /><p className="font-medium">Não foi possível carregar o catálogo.</p><p className="text-sm text-muted-foreground">Verifique sua conexão e tente novamente em instantes.</p></CardContent>
         </Card>
       )}
 
       {!isLoading && !error && itens.length === 0 && (
         <Card>
-          <CardContent className="p-8 text-center text-sm text-muted-foreground">
-            {data?.itens.length ? "Nenhum serviço encontrado para a busca informada." : "Nenhum serviço publicado está disponível no momento."}
-          </CardContent>
+          <CardContent className="flex flex-col items-center gap-2 p-8 text-center"><Search className="h-6 w-6 text-muted-foreground" /><p className="font-medium text-foreground">{data?.itens.length ? "Nenhum serviço encontrado" : "Nenhum serviço disponível"}</p><p className="max-w-md text-sm text-muted-foreground">{data?.itens.length ? "Tente buscar por outro termo ou confira a digitação." : "Nenhum serviço publicado está disponível no momento."}</p>{busca && data?.itens.length > 0 && <Button variant="outline" size="sm" onClick={() => setBusca("")}>Limpar busca</Button>}</CardContent>
         </Card>
       )}
 
