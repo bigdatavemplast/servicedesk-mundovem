@@ -1,62 +1,36 @@
-# Service Desk Vemplast — Reconstrução no Lovable
+# Auditoria da experiência do Colaborador — diagnóstico (somente leitura)
 
-Alinhado ao seu retorno: sem SSO Microsoft por enquanto, tudo em português, banco começa **zerado** e as **categorias/subcategorias/SLAs seguem exatamente o que já existe no repositório atual** (`001_service_desk_schema.sql`).
+Nenhum arquivo foi alterado. Esta é uma auditoria; aprovar o plano NÃO implementa nada — as correções só serão feitas se você pedir depois.
 
-## Fundação
-- **Lovable Cloud** (Postgres + Auth + Storage) — substitui o Postgres/FastAPI mantendo mesma modelagem
-- **Auth**: e-mail + senha (Lovable Auth). SSO Microsoft **não** entra agora
-- **Papéis** (`app_role`): `colaborador`, `atendente`, `gestor`, `admin` em tabela separada `user_roles` (segurança)
-- **Idioma**: 100% português em UI, campos e mensagens
+## Limitação
+- Tela aberta: não autenticada nesta sessão. Não há conta de colaborador autorizada para teste; não usei login real. Achados vêm da leitura do código atual.
 
-## Banco (migration única, banco zerado)
-Espelhando o schema atual da Vemplast:
-- `profiles` (nome, email, departamento, ramal, avatar_url, ativo)
-- `user_roles` + enum `app_role` + função `has_role()`
-- `categorias` e `subcategorias` — **seed idêntico ao SQL atual**: Suporte, Acesso e Permissões, Hardware, Sistemas, Projetos, RH, Financeiro (com as mesmas subcategorias)
-- `slas` — seed **idêntico**: Baixa 24/72h, Média 8/24h, Alta 4/8h, Crítica 1/4h
-- `chamados` (numeração `SD-00001` via sequence + trigger), com prioridade, status, prazos, violações de SLA, avaliação, tags
-- `comentarios_chamado` (público/interno)
-- `anexos_chamado` (Storage bucket `chamados-anexos`)
-- `historico_chamado` (auditoria de mudanças de status/atendente)
-- `notificacoes` + enum `tipo_notificacao`
-- `base_conhecimento` (artigos)
-- Todas as tabelas com RLS + GRANT explícito
+## Achados confirmados no código
 
-## Backend (server functions TanStack)
-- Chamados: criar / listar (fila para atendente, meus para colaborador) / detalhe / atualizar status / atribuir / avaliar
-- Comentários + anexos
-- Notificações (marcar lida, listar)
-- Base de conhecimento (CRUD + sugestões)
-- Dashboard (contadores por status, SLA, categoria)
-- Job de SLA (via pg_cron marcando violações)
-- **Email M365** e **Teams (canal + 1:1)** entram na **fase 2** — endpoint público `/api/public/*` já pronto, integração ativa quando você fornecer credenciais Graph API
+### P0 — bloqueia o uso
+1. **Celular sem menu.** O menu lateral só aparece em telas médias/grandes (`hidden md:flex`) e não há botão de menu no celular. No celular o colaborador só vê logo, sino e "Sair": não consegue ir para Novo chamado, Meus chamados, Catálogo nem trocar de área. — `src/routes/_authenticated/route.tsx`
+2. **Detalhe do chamado carrega para sempre** quando o chamado não existe, foi negado pelas permissões ou deu erro: a tela mostra "Carregando…" sem mensagem nem volta. — `src/routes/_authenticated/chamados.$id.tsx` (linha ~249)
 
-## Frontend (mesma estrutura de páginas do repo atual)
-- **Login** (e-mail + senha)
-- **Colaborador**: Novo Chamado, Meus Chamados, Detalhe do Chamado
-- **Atendente**: Dashboard, Fila de Chamados, Detalhe do Chamado
-- **Admin**: Categorias, Usuários
-- **Base de Conhecimento**: Lista, Detalhe do Artigo, Editor
-- **Sininho de Notificações** no header
-- Componentes UI reaproveitados (AppShell, AuthGuard, Badge, Modal, Select, Spinner)
+### P1 — confuso ou incorreto
+3. **"Meus chamados" diz "Chamados da área X" mas não filtra pela área**: mostra chamados de todas as áreas. — `chamados.index.tsx` (consulta sem `segmento_id`)
+4. **Painel trava em "Carregando dashboard…" sem área escolhida** (ex.: acesso direto pelo link, localStorage limpo), em vez de mandar para "Áreas". — `dashboard.tsx` (linha ~77)
+5. **Erros silenciosos**: Meus chamados, Conversas e o detalhe não mostram estado de erro; uma falha aparece como "Nenhum chamado encontrado" ou lista vazia. — `chamados.index.tsx`, `chamados.$id.tsx`
+6. **Catálogo ignora a área atual**: lista itens de todas as áreas, enquanto o resto do portal é por área. — `catalogo.tsx`
+7. **Rótulos duplicados/inconsistentes**: cartão "Total de chamados" com o mesmo texto nos dois casos; o mesmo botão de abrir chamado aparece duas vezes na mesma tela; marca "Vemplast SD" no celular vs "Mundo Vem" nos títulos. — `chamados.index.tsx`, `route.tsx`
+8. **Saber para onde ir é difícil**: o login cai em "Áreas" (tela cheia, sem menu) e depois no painel; não há uma página inicial do colaborador com "Abrir chamado / Chamados aguardando você". — `index.tsx`, `areas.tsx`
+9. **Abrir chamado — validação só por aviso (toast)**: os campos com erro não ficam destacados nem anunciados; se um anexo falhar, o chamado é criado mesmo assim e o aviso some. — `chamados.novo.tsx` (linhas ~84–88)
 
-## Detalhes técnicos
-- Roteamento file-based TanStack Router em `src/routes/` (não `src/pages/`)
-- Layout `_authenticated/` protege rotas logadas; `/auth` pública
-- Reads via `useSuspenseQuery` + `ensureQueryData` em loaders
-- Trigger `gerar_numero_chamado` mantido (formato `SD-00001`)
-- SLA calculado no insert via trigger a partir da prioridade
+### P2 — melhorias
+10. Acessibilidade: notas de avaliação (estrelas) e badges de status dependem só da cor/ícone; o carregamento não é anunciado para leitores de tela; as cores dos selos são fixas (não seguem a paleta).
+11. Data/hora completa em cada linha da lista; não há paginação além de 100 chamados.
+12. Pasta duplicada `routes/` na raiz do projeto (fora de `src/`), com cópias antigas de telas — risco de editar o arquivo errado.
 
-## Fase 1 (este ciclo)
-1. Habilita Lovable Cloud
-2. Cria migration completa com schema + seeds
-3. Configura Auth (e-mail/senha) e página `/auth`
-4. Estrutura base do frontend: layout, rotas protegidas, contextos
+## Hipóteses (precisam de login real como colaborador)
+- Se as permissões deixam o colaborador comentar/anexar após o fechamento.
+- Se o fluxo de avaliação + reabertura em 48h funciona do começo ao fim.
+- Se comentários internos ficam realmente escondidos do colaborador (o código filtra; as permissões do banco não foram testadas).
+- Layout real do formulário e do detalhe no celular (além do menu ausente).
+- Lentidão no detalhe do chamado (tela grande, muitas consultas).
 
-## Fase 2 (ciclos seguintes)
-5. CRUD de chamados end-to-end
-6. Comentários, anexos, notificações
-7. Dashboard, base de conhecimento
-8. Integração Teams + Email M365 (quando você fornecer as credenciais Graph)
-
-Confirma que posso iniciar a Fase 1?
+## Próximo passo sugerido (só se você pedir)
+Corrigir na ordem P0 → P1. Para validar as hipóteses, autorize um login de colaborador de teste.
