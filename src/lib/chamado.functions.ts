@@ -218,7 +218,7 @@ export const avaliarChamado = createServerFn({ method: "POST" }).middleware([req
   const { data: resultado, error } = await context.supabase.rpc("avaliar_chamado", {
     _chamado_id: data.chamadoId,
     _nota: data.nota,
-    _comentario: data.comentario ?? null,
+    _comentario: data.comentario ?? undefined,
   });
 
   if (error) throw new Error(error.message);

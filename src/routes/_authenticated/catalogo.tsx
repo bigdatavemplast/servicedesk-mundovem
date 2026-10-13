@@ -132,7 +132,7 @@ function CatalogoPage() {
 
       {!isLoading && !error && itens.length === 0 && (
         <Card>
-          <CardContent className="flex flex-col items-center gap-2 p-8 text-center"><Search className="h-6 w-6 text-muted-foreground" /><p className="font-medium text-foreground">{data?.itens.length ? "Nenhum serviço encontrado" : "Nenhum serviço disponível"}</p><p className="max-w-md text-sm text-muted-foreground">{data?.itens.length ? "Tente buscar por outro termo ou confira a digitação." : "Nenhum serviço publicado está disponível no momento."}</p>{busca && data?.itens.length > 0 && <Button variant="outline" size="sm" onClick={() => setBusca("")}>Limpar busca</Button>}</CardContent>
+          <CardContent className="flex flex-col items-center gap-2 p-8 text-center"><Search className="h-6 w-6 text-muted-foreground" /><p className="font-medium text-foreground">{data?.itens.length ? "Nenhum serviço encontrado" : "Nenhum serviço disponível"}</p><p className="max-w-md text-sm text-muted-foreground">{data?.itens.length ? "Tente buscar por outro termo ou confira a digitação." : "Nenhum serviço publicado está disponível no momento."}</p>{busca && (data?.itens.length ?? 0) > 0 && <Button variant="outline" size="sm" onClick={() => setBusca("")}>Limpar busca</Button>}</CardContent>
         </Card>
       )}
 
