@@ -24,6 +24,10 @@ type CatalogoItem = {
   ordem: number;
 };
 
+function removerPrefixoExemplo(texto: string | null | undefined) {
+  return (texto ?? "").replace(/^\s*(?:exemplo|ex)\s*:?\s*/i, "").trim();
+}
+
 type CatalogoData = {
   itens: CatalogoItem[];
   segmentos: { id: string; nome: string }[];
@@ -80,8 +84,8 @@ function CatalogoPage() {
       "service_desk_catalogo_item",
       JSON.stringify({
         id: item.id,
-        nome: item.nome,
-        descricao: item.descricao ?? "",
+        nome: removerPrefixoExemplo(item.nome),
+        descricao: removerPrefixoExemplo(item.descricao),
         segmentoId: item.segmento_id,
         categoriaId: item.categoria_id,
         subcategoriaId: item.subcategoria_id,
@@ -148,13 +152,13 @@ function CatalogoPage() {
               <Card key={item.id} className="flex flex-col">
                 <CardHeader>
                   <div className="flex items-start justify-between gap-3">
-                    <CardTitle className="text-base">{item.nome}</CardTitle>
+                    <CardTitle className="text-base">{removerPrefixoExemplo(item.nome)}</CardTitle>
                     {item.requer_aprovacao && <Badge variant="outline">Aprovação</Badge>}
                   </div>
                   <p className="text-xs text-muted-foreground">{segmento} · {categoria}{subcategoria ? ` · ${subcategoria}` : ""} · {tipo}</p>
                 </CardHeader>
                 <CardContent className="flex flex-1 flex-col">
-                  {item.descricao && <p className="text-sm text-muted-foreground">{item.descricao}</p>}
+                  {removerPrefixoExemplo(item.descricao) && <p className="text-sm text-muted-foreground">{removerPrefixoExemplo(item.descricao)}</p>}
                   <Button className="mt-auto w-full" onClick={() => solicitar(item)}>Solicitar</Button>
                 </CardContent>
               </Card>
