@@ -1082,38 +1082,24 @@ function GestaoPage() {
         </div>
 
         <div className="flex gap-2">
-          <Select
-            value={
-              segmentoValido
-            }
-            onValueChange={
-              setSegmentoId
-            }
-            disabled={isGestor}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue />
-            </SelectTrigger>
+          {!isGestor && (
+            <Select
+              value={segmentoValido}
+              onValueChange={setSegmentoId}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
 
-            <SelectContent>
-              {segmentos.map(
-                (segmento) => (
-                  <SelectItem
-                    key={
-                      segmento.id
-                    }
-                    value={
-                      segmento.id
-                    }
-                  >
-                    {
-                      segmento.nome
-                    }
+              <SelectContent>
+                {segmentos.map((segmento) => (
+                  <SelectItem key={segmento.id} value={segmento.id}>
+                    {segmento.nome}
                   </SelectItem>
-                ),
-              )}
-            </SelectContent>
-          </Select>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
 
           <Select
             value={dias}
