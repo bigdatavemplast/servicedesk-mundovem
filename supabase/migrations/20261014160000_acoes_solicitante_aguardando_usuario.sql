@@ -40,12 +40,11 @@ begin
     and new.prazo_resposta is not distinct from old.prazo_resposta
     and new.prazo_resolucao is not distinct from old.prazo_resolucao
     and new.tipo_chamado_id is not distinct from old.tipo_chamado_id
-    and new.resolvido_em is not distinct from old.resolvido_em
     and new.sla_pausado is false
     and (
-      (new.status = 'reaberto' and new.reaberto_em is not null and new.fechado_em is not distinct from old.fechado_em)
+      (new.status = 'reaberto' and new.reaberto_em is not null and new.fechado_em is not distinct from old.fechado_em and new.resolvido_em is not distinct from old.resolvido_em)
       or
-      (new.status = 'fechado' and new.fechado_em is not null and new.reaberto_em is not distinct from old.reaberto_em)
+      (new.status = 'fechado' and new.fechado_em is not null and new.reaberto_em is not distinct from old.reaberto_em and new.resolvido_em is not null)
     );
 
   if v_requester_action then return new; end if;
@@ -210,6 +209,7 @@ begin
   set status = v_novo_status,
       reaberto_em = case when _acao = 'retomar' then v_agora else reaberto_em end,
       fechado_em = case when _acao = 'fechar' then v_agora else fechado_em end,
+      resolvido_em = case when _acao = 'fechar' then coalesce(resolvido_em, v_agora) else resolvido_em end,
       sla_pausado = false
   where id = v_ticket.id;
 
@@ -230,3 +230,64 @@ $$;
 
 revoke all on function public.acao_solicitante_chamado(uuid, text) from public, anon;
 grant execute on function public.acao_solicitante_chamado(uuid, text) to authenticated;
+-- A exceção da ação do solicitante também precisa ser reconhecida pelos
+-- validadores de fluxo/fechamento, sem alterar o fluxo normal de avaliação.
+create or replace function public.impedir_fechamento_sem_avaliacao()
+returns trigger
+language plpgsql
+security definer
+set search_path to 'public'
+as $function$
+begin
+  if new.status = 'fechado'
+     and (old.status is null or old.status <> 'fechado')
+     and new.avaliacao_nota is null
+     and not (
+       current_setting('app.solicitante_acao_chamado', true) = 'on'
+       and auth.uid() = new.solicitante_id
+       and old.status = 'aguardando_usuario'
+     ) then
+    raise exception 'O chamado só pode ser fechado após a avaliação do colaborador.' using errcode = '42501';
+  end if;
+  return new;
+end;
+$function$;
+
+create or replace function public.validar_fluxo_status_chamado()
+returns trigger
+language plpgsql
+security definer
+set search_path to 'public'
+as $function$
+declare
+  v_user uuid := auth.uid();
+  v_is_requester boolean := new.solicitante_id = v_user;
+  v_is_attendant boolean := exists (select 1 from public.user_roles ur where ur.user_id = v_user and ur.role = 'atendente');
+  v_is_manager boolean := exists (select 1 from public.user_roles ur where ur.user_id = v_user and ur.role = 'gestor');
+  v_is_admin boolean := exists (select 1 from public.user_roles ur where ur.user_id = v_user and ur.role = 'admin');
+  v_is_evaluation_close boolean :=
+    new.status = 'fechado' and old.status = 'resolvido'
+    and old.avaliacao_nota is null and new.avaliacao_nota is not null and v_is_requester;
+begin
+  if current_setting('app.solicitante_acao_chamado', true) = 'on'
+     and v_is_requester
+     and old.status = 'aguardando_usuario'
+     and new.status in ('fechado', 'reaberto')
+     and (v_is_manager or exists (
+       select 1 from public.user_roles ur where ur.user_id = v_user and ur.role = 'colaborador'
+     )) then
+    return new;
+  end if;
+
+  if new.status = 'fechado' and not (v_is_requester or v_is_admin or v_is_evaluation_close) then
+    raise exception 'Somente o solicitante pode fechar o chamado.';
+  end if;
+  if new.status = 'resolvido' and v_is_requester and not (v_is_admin or v_is_manager) then
+    raise exception 'O solicitante não pode resolver o chamado. Aguarde o atendimento.';
+  end if;
+  if new.status = 'fechado' and v_is_attendant and not (v_is_requester or v_is_admin or v_is_evaluation_close) then
+    raise exception 'Atendente deve colocar o chamado como Resolvido. O fechamento é feito pelo solicitante.';
+  end if;
+  return new;
+end;
+$function$;
