@@ -109,7 +109,7 @@ FOR INSERT
 TO authenticated
 WITH CHECK (
   bucket_id = 'chamados-anexos'
-  AND owner = (SELECT auth.uid())::text
+  AND owner = (SELECT auth.uid())
   AND EXISTS (
     SELECT 1
     FROM public.chamados c
@@ -161,7 +161,7 @@ USING (
   AND (
     public.has_role((SELECT auth.uid()), 'admin'::public.app_role)
     OR (
-      owner = (SELECT auth.uid())::text
+      owner = (SELECT auth.uid())
       AND NOT public.has_role((SELECT auth.uid()), 'gestor'::public.app_role)
     )
   )
