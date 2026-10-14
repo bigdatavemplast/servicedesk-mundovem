@@ -99,9 +99,26 @@ export const registrarHistoricoAnexo = createServerFn({ method: "POST" }).middle
   nomeArquivo: z.string().trim().min(1).max(500),
 }).parse(d)).handler(async ({ data, context }) => {
   const admin = await getAdminClient(context.supabase);
-  const atorRole = getPrimaryRole(await getRoles(context.supabase, context.userId));
-  const { data: ticket, error: ticketError } = await admin.from("chamados").select("id").eq("id", data.chamadoId).maybeSingle();
+  const roles = await getRoles(context.supabase, context.userId);
+  const atorRole = getPrimaryRole(roles);
+  const { data: ticket, error: ticketError } = await admin.from("chamados").select("id,solicitante_id,segmento_id").eq("id", data.chamadoId).maybeSingle();
   if (ticketError || !ticket) throw new Error(ticketError?.message ?? "Chamado não encontrado");
+  if (!(await canAccessTicket(admin, context.userId, ticket))) throw new Error("Você não tem permissão para complementar este chamado.");
+  const isManager = roles.includes("gestor") && !roles.includes("admin");
+  if (isManager && !["foto_adicionada", "anexo_adicionado"].includes(data.acao)) {
+    throw new Error("Gestores podem adicionar anexos, mas não removê-los.");
+  }
+  if (isManager && ["foto_adicionada", "anexo_adicionado"].includes(data.acao)) {
+    const { data: anexo, error: anexoError } = await admin
+      .from("anexos_chamado")
+      .select("id,storage_path")
+      .eq("chamado_id", data.chamadoId)
+      .eq("autor_id", context.userId)
+      .eq("nome_arquivo", data.nomeArquivo)
+      .limit(1)
+      .maybeSingle();
+    if (anexoError || !anexo) throw new Error("O anexo precisa ser enviado antes de registrar o histórico.");
+  }
   const { error } = await admin.from("historico_chamado").insert({
     chamado_id: data.chamadoId,
     autor_id: context.userId,
@@ -110,7 +127,22 @@ export const registrarHistoricoAnexo = createServerFn({ method: "POST" }).middle
     para: data.nomeArquivo,
     ator_role: atorRole,
   } as never);
-  if (error) throw new Error(`Falha ao registrar histórico do anexo: ${error.message}`);
+  if (error) {
+    // Não deixa um arquivo de gestor persistido sem o evento correspondente no histórico.
+    if (isManager && ["foto_adicionada", "anexo_adicionado"].includes(data.acao)) {
+      const { data: anexo } = await admin
+        .from("anexos_chamado")
+        .select("id,storage_path")
+        .eq("chamado_id", data.chamadoId)
+        .eq("autor_id", context.userId)
+        .eq("nome_arquivo", data.nomeArquivo)
+        .limit(1)
+        .maybeSingle();
+      if (anexo?.storage_path) await admin.storage.from("chamados-anexos").remove([anexo.storage_path]);
+      if (anexo?.id) await admin.from("anexos_chamado").delete().eq("id", anexo.id);
+    }
+    throw new Error(`Falha ao registrar histórico do anexo: ${error.message}`);
+  }
   return { ok: true };
 });
 
