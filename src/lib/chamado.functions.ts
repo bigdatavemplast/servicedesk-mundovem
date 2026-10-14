@@ -231,13 +231,14 @@ export const atualizarChamado = createServerFn({ method: "POST" }).middleware([r
 
 export const acaoSolicitanteChamado = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((d) => z.object({
   chamadoId: z.string().uuid(),
-  acao: z.enum(["retomar", "resolver"]),
+  acao: z.enum(["retomar", "fechar"]),
 }).parse(d)).handler(async ({ data, context }) => {
   const supabase = context.supabase as any;
   const admin = await getAdminClient(supabase);
   const roles = await getRoles(supabase, context.userId);
-  const isManager = roles.includes("gestor") && !roles.includes("admin");
-  if (!isManager) throw new Error("Esta ação está disponível para gestores nos chamados que registraram.");
+  const isAdmin = roles.includes("admin");
+  const isRequesterRole = roles.includes("colaborador") || roles.includes("gestor");
+  if (isAdmin || !isRequesterRole) throw new Error("Esta ação está disponível para solicitantes nos chamados que registraram.");
 
   const { data: ticket, error: ticketError } = await admin
     .from("chamados")
@@ -253,7 +254,7 @@ export const acaoSolicitanteChamado = createServerFn({ method: "POST" }).middlew
     _acao: data.acao,
   });
   if (acaoError) throw new Error(acaoError.message);
-  if (!resultado || resultado.status !== (data.acao === "retomar" ? "reaberto" : "resolvido")) {
+  if (!resultado || resultado.status !== (data.acao === "retomar" ? "reaberto" : "fechado")) {
     throw new Error("O banco não confirmou a mudança de status do chamado.");
   }
 
@@ -261,16 +262,15 @@ export const acaoSolicitanteChamado = createServerFn({ method: "POST" }).middlew
     await criarNotificacao(admin, {
       destinatarioId: ticket.atendente_id,
       tipo: "status_alterado",
-      titulo: data.acao === "retomar" ? "Solicitante retomou o chamado" : "Solicitante marcou o chamado como resolvido",
+      titulo: data.acao === "retomar" ? "Solicitante pediu retorno do atendimento" : "Solicitante fechou o chamado",
       mensagem: data.acao === "retomar"
-        ? `O solicitante retomou o chamado ${ticket.numero} e ele voltou para o atendimento.`
-        : `O solicitante marcou o chamado ${ticket.numero} como resolvido.`,
+        ? `O solicitante pediu retorno do atendimento no chamado ${ticket.numero}.`
+        : `O solicitante fechou o chamado ${ticket.numero}.`,
       chamadoId: ticket.id,
     });
   }
-  return { ok: true, status: novoStatus };
+  return { ok: true, status: resultado.status };
 });
-
 export const avaliarChamado = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((d) => z.object({ chamadoId: z.string().uuid(), nota: z.number().int().min(1).max(5), comentario: z.string().nullable().optional() }).parse(d)).handler(async ({ data, context }) => {
   const roles = await getRoles(context.supabase, context.userId);
   if (roles.includes("gestor") && !roles.includes("admin")) {
