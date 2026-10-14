@@ -117,6 +117,7 @@ export const removerAnexoChamado = createServerFn({ method: "POST" }).middleware
     .eq("chamado_id", data.chamadoId)
     .maybeSingle();
   if (anexoError || !anexo) throw new Error(anexoError?.message ?? "Anexo não encontrado");
+  if (roles.includes("gestor") && !isAdmin && ticket.solicitante_id === context.userId) throw new Error("Você não pode remover anexos de um chamado que registrou.");
   if (!isAdmin && anexo.autor_id !== context.userId) {
     throw new Error("Você só pode remover anexos que adicionou.");
   }
@@ -154,6 +155,7 @@ export const comentarChamado = createServerFn({ method: "POST" }).middleware([re
   const roles = await getRoles(supabase, context.userId);
   const isAdmin = roles.includes("admin");
   const isManager = roles.includes("gestor") && !isAdmin;
+  if (isManager && isRequester) throw new Error("Você não pode comentar em um chamado que registrou; somente adicionar imagens aos anexos.");
   if (isManager && data.interno) throw new Error("Gestores podem adicionar apenas comentários públicos.");
   const canInteract = isManager ? await canAccessTicket(admin, context.userId, ticket) : isRequester || await canEditFilaTicket(admin, context.userId, ticket);
   if (!canInteract) throw new Error("Somente o solicitante, o admin ou o atendente autorizado pode comentar neste chamado.");
@@ -177,6 +179,7 @@ export const atualizarChamado = createServerFn({ method: "POST" }).middleware([r
   const isAdmin = roles.includes("admin");
   const isGestor = roles.includes("gestor");
   const isManager = isGestor && !isAdmin;
+  if (isManager && isRequester) throw new Error("Você não pode alterar um chamado que registrou; somente adicionar imagens aos anexos.");
   const managerPriorityOnly = isManager && data.prioridade !== undefined && data.status === undefined && data.atendenteId === undefined && data.tipoChamadoId === undefined;
   if (isManager && !managerPriorityOnly) throw new Error("Gestores só podem alterar a prioridade dos chamados da própria área.");
   if (managerPriorityOnly && !data.justificativa?.trim()) throw new Error("Informe a justificativa para alterar a prioridade.");
@@ -227,6 +230,12 @@ export const atualizarChamado = createServerFn({ method: "POST" }).middleware([r
 });
 
 export const avaliarChamado = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((d) => z.object({ chamadoId: z.string().uuid(), nota: z.number().int().min(1).max(5), comentario: z.string().nullable().optional() }).parse(d)).handler(async ({ data, context }) => {
+  const roles = await getRoles(context.supabase, context.userId);
+  if (roles.includes("gestor") && !roles.includes("admin")) {
+    const { data: ticket, error } = await context.supabase.from("chamados").select("solicitante_id").eq("id", data.chamadoId).maybeSingle();
+    if (error) throw new Error(error.message);
+    if (ticket?.solicitante_id === context.userId) throw new Error("Gestores não podem avaliar chamados que registraram.");
+  }
   // A avaliação usa a sessão autenticada para que a RPC valide auth.uid().
   // A RPC também fecha o chamado e grava o histórico de forma atômica.
   const { data: resultado, error } = await context.supabase.rpc("avaliar_chamado", {
