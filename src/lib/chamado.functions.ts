@@ -248,43 +248,14 @@ export const acaoSolicitanteChamado = createServerFn({ method: "POST" }).middlew
   if (ticket.solicitante_id !== context.userId) throw new Error("Você só pode executar esta ação em um chamado que registrou.");
   if (ticket.status !== "aguardando_usuario") throw new Error("Estas ações só estão disponíveis quando o chamado está aguardando o usuário.");
 
-  const novoStatus = data.acao === "retomar" ? "reaberto" : "resolvido";
-  const agora = new Date().toISOString();
-  const patch: Record<string, unknown> = { status: novoStatus };
-  if (data.acao === "retomar") {
-    patch.reaberto_em = agora;
-    patch.sla_pausado = false;
-  } else {
-    patch.resolvido_em = agora;
-    patch.sla_pausado = false;
+  const { data: resultado, error: acaoError } = await supabase.rpc("acao_solicitante_chamado", {
+    _chamado_id: ticket.id,
+    _acao: data.acao,
+  });
+  if (acaoError) throw new Error(acaoError.message);
+  if (!resultado || resultado.status !== (data.acao === "retomar" ? "reaberto" : "resolvido")) {
+    throw new Error("O banco não confirmou a mudança de status do chamado.");
   }
-  const { error: updateError } = await admin
-    .from("chamados")
-    .update(patch as never)
-    .eq("id", ticket.id);
-  if (updateError) throw new Error(`Não foi possível atualizar o status do chamado: ${updateError.message}`);
-
-  // Não depender do retorno de UPDATE ... SELECT: algumas policies podem
-  // permitir a alteração sem retornar a linha na mesma operação.
-  const { data: atualizado, error: confirmError } = await admin
-    .from("chamados")
-    .select("id,status")
-    .eq("id", ticket.id)
-    .maybeSingle();
-  if (confirmError) throw new Error(`O status foi enviado, mas não foi possível confirmar a alteração: ${confirmError.message}`);
-  if (!atualizado || atualizado.status !== novoStatus) {
-    throw new Error("O sistema não confirmou a mudança de status. Atualize a página; se o problema continuar, peça ao administrador para verificar as permissões de alteração de chamados.");
-  }
-
-  const { error: historyError } = await admin.from("historico_chamado").insert({
-    chamado_id: ticket.id,
-    autor_id: context.userId,
-    acao: "status_alterado",
-    de: "aguardando_usuario",
-    para: novoStatus,
-    ator_role: getPrimaryRole(roles),
-  } as never);
-  if (historyError) throw new Error(`Status atualizado, mas não foi possível registrar o histórico: ${historyError.message}`);
 
   if (ticket.atendente_id) {
     await criarNotificacao(admin, {
