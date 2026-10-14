@@ -95,38 +95,12 @@ export const criarChamadoComCatalogo = createServerFn({ method: "POST" })
       .eq("user_id", context.userId);
     if (userRolesError) throw new Error(userRolesError.message);
 
-    let segmentoId = data.segmentoId;
+    // Gestores podem abrir chamados para qualquer área ativa.
+    // A área selecionada no formulário é validada com a categoria abaixo;
+    // não substituímos a escolha pela área do perfil.
+    const segmentoId = data.segmentoId;
     const roles = (userRoles ?? []).map((item: { role: string }) => item.role);
     const isManager = roles.includes("gestor") && !roles.includes("admin");
-    if (isManager) {
-      const { data: perfil, error: perfilError } = await admin
-        .from("profiles")
-        .select("area_id")
-        .eq("id", context.userId)
-        .maybeSingle();
-      if (perfilError) throw new Error(perfilError.message);
-      if (!perfil?.area_id) throw new Error("Seu perfil de gestor não possui uma área configurada.");
-
-      const { data: areaPerfil, error: areaError } = await admin
-        .from("areas")
-        .select("nome,ativo")
-        .eq("id", perfil.area_id)
-        .maybeSingle();
-      if (areaError) throw new Error(areaError.message);
-      if (!areaPerfil?.ativo || !areaPerfil.nome) throw new Error("A área do seu perfil está inativa ou não foi encontrada.");
-
-      const { data: segmentosAtivos, error: segmentosError } = await admin
-        .from("segmentos")
-        .select("id,nome")
-        .eq("ativo", true);
-      if (segmentosError) throw new Error(segmentosError.message);
-      const normalizarArea = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
-      const segmentoPerfil = (segmentosAtivos ?? []).find(
-        (item: { id: string; nome: string }) => normalizarArea(item.nome) === normalizarArea(areaPerfil.nome),
-      );
-      if (!segmentoPerfil) throw new Error("Não foi possível localizar o segmento correspondente à área do seu perfil.");
-      segmentoId = segmentoPerfil.id;
-    }
 
     const { data: tipo, error: tipoError } = await admin
       .from("tipos_chamado")
@@ -171,7 +145,7 @@ export const criarChamadoComCatalogo = createServerFn({ method: "POST" })
     if (!categoria) throw new Error("A categoria selecionada não está disponível.");
     if (categoria.segmento_id !== segmentoId) {
       throw new Error(isManager
-        ? "Seu perfil está vinculado à área correta, mas a categoria selecionada pertence a outra área. Atualize a página e selecione uma categoria da sua área."
+        ? "A categoria selecionada não pertence à área escolhida. Selecione uma categoria dessa área."
         : "A categoria selecionada não pertence ao segmento informado.");
     }
 
