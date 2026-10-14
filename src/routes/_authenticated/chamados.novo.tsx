@@ -80,7 +80,7 @@ function NovoChamadoPage() {
       if (!areaPerfil?.nome) return null;
       const { data: segmentos, error: segmentosError } = await supabase.from("segmentos").select("id,nome").eq("ativo", true);
       if (segmentosError) throw new Error(segmentosError.message);
-      const normalizar = (value: string) => value.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").trim().toLowerCase();
+      const normalizar = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
       return (segmentos ?? []).find((item) => normalizar(item.nome) === normalizar(areaPerfil.nome)) ?? null;
     },
   });
