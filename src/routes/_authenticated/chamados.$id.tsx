@@ -260,7 +260,7 @@ function DetalheChamadoPage() {
         {chamado.resolvido_em && <p className="mt-2 text-xs text-muted-foreground">{chamado.status === "resolvido" ? "Resolvido em" : "Data da resolução"} {fmt(chamado.resolvido_em)}</p>}
       </div>
     </div>}
-    {paginaSomenteLeitura && <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">Você pode consultar detalhes, incluir comentários públicos e alterar a prioridade com justificativa. Status, responsável e tipo do chamado permanecem restritos.</div>}
+    {paginaSomenteLeitura && <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">Você pode consultar detalhes, complementar informações com comentários públicos e anexos, e alterar a prioridade com justificativa. Status, responsável e tipo do chamado permanecem restritos.</div>}
     <div className="grid gap-4 lg:grid-cols-[2fr_1fr]"><div className="space-y-4">
       <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Descrição</CardTitle></CardHeader><CardContent><p className="whitespace-pre-wrap text-sm">{chamado.descricao}</p></CardContent></Card>
       <AnexosSecao chamadoId={id} userId={user.id} podeRemoverTodos={roles.includes("admin") && !paginaSomenteLeitura} podeAdicionar={!isManager && (!isAttendant || atendentePodeAlterar)} onTentativaSemPermissao={() => { if (isAttendant && !atendentePodeAlterar) toast.error("Você não pode alterar este chamado. Ele já possui um atendente ou não pertence ao seu grupo/área."); }} />
