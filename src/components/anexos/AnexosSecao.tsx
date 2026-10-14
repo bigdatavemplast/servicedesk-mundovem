@@ -9,7 +9,7 @@ import { Paperclip, Download, Trash2, FileText, Loader2, Maximize2 } from "lucid
 import { AnexoDropzone } from "./AnexoDropzone";
 import { ehImagem, enviarAnexo, formatarTamanho, urlAssinada } from "@/lib/anexos";
 import { useServerFn } from "@tanstack/react-start";
-import { registrarHistoricoAnexo, removerAnexoChamado } from "@/lib/chamado.functions";
+import { removerAnexoChamado } from "@/lib/chamado.functions";
 
 type Anexo = {
   id: string;
@@ -52,7 +52,6 @@ function PreviewImagem({ anexo, onAmpliar }: { anexo: Anexo; onAmpliar: (url: st
 
 export function AnexosSecao({ chamadoId, userId, podeRemoverTodos = false, podeRemoverProprio = true, podeAdicionar = true, onTentativaSemPermissao }: { chamadoId: string; userId: string; podeRemoverTodos?: boolean; podeRemoverProprio?: boolean; podeAdicionar?: boolean; onTentativaSemPermissao?: () => void }) {
   const qc = useQueryClient();
-  const registrarHistoricoServer = useServerFn(registrarHistoricoAnexo);
   const removerAnexoServer = useServerFn(removerAnexoChamado);
   const [progresso, setProgresso] = useState<Record<string, number>>({});
   const [enviando, setEnviando] = useState<File[]>([]);
@@ -76,8 +75,8 @@ export function AnexosSecao({ chamadoId, userId, podeRemoverTodos = false, podeR
     for (const file of arquivos) {
       try {
         await enviarAnexo({ chamadoId, autorId: userId, file, onProgress: (pct) => setProgresso((p) => ({ ...p, [file.name]: pct })) });
-        const acao = ehImagem(file.name, file.type) ? "foto_adicionada" : "anexo_adicionado";
-        await registrarHistoricoServer({ data: { chamadoId, acao, nomeArquivo: file.name } });
+        // O trigger trg_historico_anexos_chamado registra o upload
+        // quando a linha é inserida em anexos_chamado; não duplicar aqui.
         toast.success(`${file.name} enviado`);
         atualizarHistorico();
       } catch (e) {
