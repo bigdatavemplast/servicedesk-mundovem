@@ -18,9 +18,10 @@ type Props = {
   onRemover?: (index: number) => void;
   disabled?: boolean;
   onTentativaSemPermissao?: () => void;
+  somenteImagens?: boolean;
 };
 
-export function AnexoDropzone({ onArquivos, pendentes = [], progresso, onRemover, disabled, onTentativaSemPermissao }: Props) {
+export function AnexoDropzone({ onArquivos, pendentes = [], progresso, onRemover, disabled, onTentativaSemPermissao, somenteImagens = false }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [arrastando, setArrastando] = useState(false);
 
@@ -29,7 +30,7 @@ export function AnexoDropzone({ onArquivos, pendentes = [], progresso, onRemover
 
     const validos: File[] = [];
     for (const file of Array.from(lista)) {
-      const erro = validarAnexo(file);
+      const erro = somenteImagens && !ehImagem(file.name, file.type) ? `${file.name}: somente imagens são permitidas neste chamado` : validarAnexo(file);
       if (erro) {
         toast.error(erro);
       } else {
@@ -78,7 +79,7 @@ export function AnexoDropzone({ onArquivos, pendentes = [], progresso, onRemover
           id="anexo-arquivo"
           type="file"
           multiple
-          accept={ACCEPT_ANEXOS}
+          accept={somenteImagens ? ".png,.jpg,.jpeg,.webp" : ACCEPT_ANEXOS}
           className="sr-only"
           disabled={disabled}
           onChange={(e) => {
@@ -93,7 +94,7 @@ export function AnexoDropzone({ onArquivos, pendentes = [], progresso, onRemover
           Arraste os arquivos aqui ou <span className="font-medium text-primary underline underline-offset-2">clique para anexar</span>
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
-          {EXTENSOES_PERMITIDAS.join(", ").toUpperCase()} · até 10 MB por arquivo
+          {(somenteImagens ? ["PNG", "JPG", "JPEG", "WEBP"] : EXTENSOES_PERMITIDAS.map((ext) => ext.toUpperCase())).join(", ")} · até 10 MB por arquivo
         </p>
       </div>
 
