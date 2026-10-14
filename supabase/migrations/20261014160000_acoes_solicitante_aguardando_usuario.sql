@@ -19,30 +19,6 @@ begin
   select ur.role into v_role from public.user_roles ur where ur.user_id = v_actor limit 1;
   if v_role = 'admin' then return new; end if;
 
-  v_requester_action :=
-    current_setting('app.solicitante_acao_chamado', true) = 'on'
-    and v_role in ('colaborador'::public.app_role, 'gestor'::public.app_role)
-    and old.solicitante_id = v_actor
-    and new.solicitante_id = v_actor
-    and old.status = 'aguardando_usuario'
-    and new.status in ('reaberto', 'fechado')
-    and new.atendente_id is not distinct from old.atendente_id
-    and new.grupo_atendimento_id is not distinct from old.grupo_atendimento_id
-    and new.segmento_id is not distinct from old.segmento_id
-    and new.categoria_id is not distinct from old.categoria_id
-    and new.subcategoria_id is not distinct from old.subcategoria_id
-    and new.prioridade is not distinct from old.prioridade
-    and new.impacto is not distinct from old.impacto
-    and new.urgencia is not distinct from old.urgencia
-    and new.sla_id is not distinct from old.sla_id
-    and new.sla_regra_id is not distinct from old.sla_regra_id
-    and new.prazo_resposta is not distinct from old.prazo_resposta
-    and new.prazo_resolucao is not distinct from old.prazo_resolucao
-    and new.solicitante_id is not distinct from old.solicitante_id
-    and new.tipo_chamado_id is not distinct from old.tipo_chamado_id
-    and new.resolvido_em is not distinct from old.resolvido_em
-    and new.reaberto_em is distinct from old.reaberto_em or false;
-
   -- Reavalia a condição sem precedência ambígua: só timestamps pertinentes podem mudar.
   v_requester_action :=
     current_setting('app.solicitante_acao_chamado', true) = 'on'
