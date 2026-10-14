@@ -121,28 +121,10 @@ export const removerAnexoChamado = createServerFn({ method: "POST" }).middleware
     throw new Error("Você só pode remover anexos que adicionou.");
   }
 
-  const acao = /^(foto|imagem)\b/i.test(anexo.nome_arquivo) || /^image\//i.test(anexo.content_type ?? "")
-    || /\.(png|jpe?g|gif|webp|bmp|svg|heic|heif)$/i.test(anexo.nome_arquivo)
-    ? "foto_removida"
-    : "anexo_removido";
-  const atorRole = getPrimaryRole(roles);
-  // Registra a auditoria antes da exclusão; se o arquivo não puder ser removido,
-  // tenta retirar o evento para não deixar um registro falso no histórico.
-  const { data: evento, error: historicoError } = await admin.from("historico_chamado").insert({
-    chamado_id: data.chamadoId,
-    autor_id: context.userId,
-    acao,
-    de: "\u200B",
-    para: anexo.nome_arquivo,
-    ator_role: atorRole,
-  } as never).select("id").single();
-  if (historicoError || !evento) throw new Error(historicoError?.message ?? "Falha ao registrar histórico da remoção");
-
+  // A exclusão dos metadados em anexos_chamado dispara o trigger
+  // trg_historico_anexos_chamado, que registra a remoção uma única vez.
   const { error: storageError } = await admin.storage.from("chamados-anexos").remove([anexo.storage_path]);
-  if (storageError) {
-    await admin.from("historico_chamado").delete().eq("id", evento.id);
-    throw new Error(`Falha ao remover o arquivo: ${storageError.message}`);
-  }
+  if (storageError) throw new Error(`Falha ao remover o arquivo: ${storageError.message}`);
 
   const { error: deleteError } = await admin.from("anexos_chamado").delete().eq("id", anexo.id);
   if (deleteError) {
