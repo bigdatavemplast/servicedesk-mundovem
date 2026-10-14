@@ -258,14 +258,23 @@ export const acaoSolicitanteChamado = createServerFn({ method: "POST" }).middlew
     patch.resolvido_em = agora;
     patch.sla_pausado = false;
   }
-  const { data: atualizado, error: updateError } = await admin
+  const { error: updateError } = await admin
     .from("chamados")
     .update(patch as never)
-    .eq("id", ticket.id)
-    .eq("status", "aguardando_usuario")
+    .eq("id", ticket.id);
+  if (updateError) throw new Error(`Não foi possível atualizar o status do chamado: ${updateError.message}`);
+
+  // Não depender do retorno de UPDATE ... SELECT: algumas policies podem
+  // permitir a alteração sem retornar a linha na mesma operação.
+  const { data: atualizado, error: confirmError } = await admin
+    .from("chamados")
     .select("id,status")
+    .eq("id", ticket.id)
     .maybeSingle();
-  if (updateError || !atualizado) throw new Error(updateError?.message ?? "O chamado mudou de status. Atualize a página e tente novamente.");
+  if (confirmError) throw new Error(`O status foi enviado, mas não foi possível confirmar a alteração: ${confirmError.message}`);
+  if (!atualizado || atualizado.status !== novoStatus) {
+    throw new Error("O sistema não confirmou a mudança de status. Atualize a página; se o problema continuar, peça ao administrador para verificar as permissões de alteração de chamados.");
+  }
 
   const { error: historyError } = await admin.from("historico_chamado").insert({
     chamado_id: ticket.id,
