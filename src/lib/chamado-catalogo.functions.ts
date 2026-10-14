@@ -190,7 +190,10 @@ export const criarChamadoComCatalogo = createServerFn({ method: "POST" })
       throw new Error(`Não existe uma regra de SLA configurada para o fluxo ${fluxo}.`);
     }
 
-    const { data: criado, error } = await admin
+    // A inserção deve usar o cliente autenticado do solicitante, não o cliente
+    // administrativo/fallback. Assim o RLS recebe auth.uid() real e aplica
+    // as políticas de abertura (inclusive para gestores) corretamente.
+    const { data: criado, error } = await context.supabase
       .from("chamados")
       .insert({
         titulo: data.titulo,
