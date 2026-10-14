@@ -232,7 +232,11 @@ export const atualizarChamado = createServerFn({ method: "POST" }).middleware([r
 export const acaoSolicitanteChamado = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((d) => z.object({
   chamadoId: z.string().uuid(),
   acao: z.enum(["retomar", "fechar"]),
+  motivo: z.string().max(2000).optional(),
 }).parse(d)).handler(async ({ data, context }) => {
+  const motivo = data.motivo?.trim() ?? "";
+  if (data.acao === "retomar" && !motivo) throw new Error("Informe por que você precisa de mais ajuda.");
+
   const supabase = context.supabase as any;
   const admin = await getAdminClient(supabase);
   const roles = await getRoles(supabase, context.userId);
@@ -252,6 +256,7 @@ export const acaoSolicitanteChamado = createServerFn({ method: "POST" }).middlew
   const { data: resultado, error: acaoError } = await supabase.rpc("acao_solicitante_chamado", {
     _chamado_id: ticket.id,
     _acao: data.acao,
+    _motivo: data.acao === "retomar" ? motivo : null,
   });
   if (acaoError) throw new Error(acaoError.message);
   if (!resultado || resultado.status !== (data.acao === "retomar" ? "aberto" : "fechado")) {
@@ -264,7 +269,7 @@ export const acaoSolicitanteChamado = createServerFn({ method: "POST" }).middlew
       tipo: "status_alterado",
       titulo: data.acao === "retomar" ? "Solicitante pediu retorno do atendimento" : "Solicitante fechou o chamado",
       mensagem: data.acao === "retomar"
-        ? `O solicitante pediu retorno do atendimento no chamado ${ticket.numero}.`
+        ? `O solicitante pediu retorno do atendimento no chamado ${ticket.numero}. Motivo: ${motivo}`
         : `O solicitante fechou o chamado ${ticket.numero}.`,
       chamadoId: ticket.id,
     });
