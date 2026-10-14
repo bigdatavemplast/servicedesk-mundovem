@@ -267,9 +267,9 @@ export const acaoSolicitanteChamado = createServerFn({ method: "POST" }).middlew
     await criarNotificacao(admin, {
       destinatarioId: ticket.atendente_id,
       tipo: "status_alterado",
-      titulo: data.acao === "retomar" ? "Solicitante pediu retorno do atendimento" : "Solicitante fechou o chamado",
+      titulo: data.acao === "retomar" ? "Continuidade do atendimento solicitada" : "Solicitante encerrou o chamado",
       mensagem: data.acao === "retomar"
-        ? `O solicitante pediu retorno do atendimento no chamado ${ticket.numero}. Motivo: ${motivo}`
+        ? `O solicitante informou que o atendimento ainda não foi concluído no chamado ${ticket.numero}. Justificativa: ${motivo}`
         : `O solicitante fechou o chamado ${ticket.numero}.`,
       chamadoId: ticket.id,
     });
