@@ -111,7 +111,7 @@ export const registrarHistoricoAnexo = createServerFn({ method: "POST" }).middle
   if (isManager && ["foto_adicionada", "anexo_adicionado"].includes(data.acao)) {
     const { data: anexo, error: anexoError } = await admin
       .from("anexos_chamado")
-      .select("id")
+      .select("id,storage_path")
       .eq("chamado_id", data.chamadoId)
       .eq("autor_id", context.userId)
       .eq("nome_arquivo", data.nomeArquivo)
@@ -127,7 +127,22 @@ export const registrarHistoricoAnexo = createServerFn({ method: "POST" }).middle
     para: data.nomeArquivo,
     ator_role: atorRole,
   } as never);
-  if (error) throw new Error(`Falha ao registrar histórico do anexo: ${error.message}`);
+  if (error) {
+    // Não deixa um arquivo de gestor persistido sem o evento correspondente no histórico.
+    if (isManager && ["foto_adicionada", "anexo_adicionado"].includes(data.acao)) {
+      const { data: anexo } = await admin
+        .from("anexos_chamado")
+        .select("id,storage_path")
+        .eq("chamado_id", data.chamadoId)
+        .eq("autor_id", context.userId)
+        .eq("nome_arquivo", data.nomeArquivo)
+        .limit(1)
+        .maybeSingle();
+      if (anexo?.storage_path) await admin.storage.from("chamados-anexos").remove([anexo.storage_path]);
+      if (anexo?.id) await admin.from("anexos_chamado").delete().eq("id", anexo.id);
+    }
+    throw new Error(`Falha ao registrar histórico do anexo: ${error.message}`);
+  }
   return { ok: true };
 });
 
