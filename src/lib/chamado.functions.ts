@@ -108,6 +108,17 @@ export const registrarHistoricoAnexo = createServerFn({ method: "POST" }).middle
   if (isManager && !["foto_adicionada", "anexo_adicionado"].includes(data.acao)) {
     throw new Error("Gestores podem adicionar anexos, mas não removê-los.");
   }
+  if (isManager && ["foto_adicionada", "anexo_adicionado"].includes(data.acao)) {
+    const { data: anexo, error: anexoError } = await admin
+      .from("anexos_chamado")
+      .select("id")
+      .eq("chamado_id", data.chamadoId)
+      .eq("autor_id", context.userId)
+      .eq("nome_arquivo", data.nomeArquivo)
+      .limit(1)
+      .maybeSingle();
+    if (anexoError || !anexo) throw new Error("O anexo precisa ser enviado antes de registrar o histórico.");
+  }
   const { error } = await admin.from("historico_chamado").insert({
     chamado_id: data.chamadoId,
     autor_id: context.userId,
