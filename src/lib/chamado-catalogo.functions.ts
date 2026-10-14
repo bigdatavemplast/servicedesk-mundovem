@@ -89,6 +89,45 @@ export const criarChamadoComCatalogo = createServerFn({ method: "POST" })
     }
 
     const admin = await getAdminClient(context.supabase);
+    const { data: userRoles, error: userRolesError } = await admin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId);
+    if (userRolesError) throw new Error(userRolesError.message);
+
+    let segmentoId = data.segmentoId;
+    const roles = (userRoles ?? []).map((item: { role: string }) => item.role);
+    const isManager = roles.includes("gestor") && !roles.includes("admin");
+    if (isManager) {
+      const { data: perfil, error: perfilError } = await admin
+        .from("profiles")
+        .select("area_id")
+        .eq("id", context.userId)
+        .maybeSingle();
+      if (perfilError) throw new Error(perfilError.message);
+      if (!perfil?.area_id) throw new Error("Seu perfil de gestor não possui uma área configurada.");
+
+      const { data: areaPerfil, error: areaError } = await admin
+        .from("areas")
+        .select("nome,ativo")
+        .eq("id", perfil.area_id)
+        .maybeSingle();
+      if (areaError) throw new Error(areaError.message);
+      if (!areaPerfil?.ativo || !areaPerfil.nome) throw new Error("A área do seu perfil está inativa ou não foi encontrada.");
+
+      const { data: segmentosAtivos, error: segmentosError } = await admin
+        .from("segmentos")
+        .select("id,nome")
+        .eq("ativo", true);
+      if (segmentosError) throw new Error(segmentosError.message);
+      const normalizarArea = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+      const segmentoPerfil = (segmentosAtivos ?? []).find(
+        (item: { id: string; nome: string }) => normalizarArea(item.nome) === normalizarArea(areaPerfil.nome),
+      );
+      if (!segmentoPerfil) throw new Error("Não foi possível localizar o segmento correspondente à área do seu perfil.");
+      segmentoId = segmentoPerfil.id;
+    }
+
     const { data: tipo, error: tipoError } = await admin
       .from("tipos_chamado")
       .select("id,nome")
@@ -114,7 +153,7 @@ export const criarChamadoComCatalogo = createServerFn({ method: "POST" })
     const { data: segmento, error: segmentoError } = await admin
       .from("segmentos")
       .select("id")
-      .eq("id", data.segmentoId)
+      .eq("id", segmentoId)
       .eq("ativo", true)
       .maybeSingle();
 
@@ -130,8 +169,10 @@ export const criarChamadoComCatalogo = createServerFn({ method: "POST" })
 
     if (categoriaError) throw new Error(categoriaError.message);
     if (!categoria) throw new Error("A categoria selecionada não está disponível.");
-    if (categoria.segmento_id !== data.segmentoId) {
-      throw new Error("A categoria selecionada não pertence ao segmento informado.");
+    if (categoria.segmento_id !== segmentoId) {
+      throw new Error(isManager
+        ? "Seu perfil está vinculado à área correta, mas a categoria selecionada pertence a outra área. Atualize a página e selecione uma categoria da sua área."
+        : "A categoria selecionada não pertence ao segmento informado.");
     }
 
     if (data.subcategoriaId) {
@@ -152,7 +193,7 @@ export const criarChamadoComCatalogo = createServerFn({ method: "POST" })
     const { data: grupos, error: gruposError } = await admin
       .from("grupos_atendimento")
       .select("id,nome,ordem,prefixo")
-      .eq("segmento_id", data.segmentoId)
+      .eq("segmento_id", segmentoId)
       .eq("ativo", true)
       .order("ordem")
       .order("nome");
@@ -170,7 +211,7 @@ export const criarChamadoComCatalogo = createServerFn({ method: "POST" })
     if (fluxo !== "projeto") {
       const { data: regras, error: regraSlaError } = await admin.rpc("selecionar_regra_sla", {
         p_tipo_fluxo: fluxo,
-        p_segmento_id: data.segmentoId,
+        p_segmento_id: segmentoId,
         p_categoria_id: data.categoriaId,
         p_prioridade: prioridadeCalculada,
         p_impacto: impacto,
@@ -207,7 +248,7 @@ export const criarChamadoComCatalogo = createServerFn({ method: "POST" })
         sla_tempo_resolucao_segundos: regraAplicada?.tempo_resolucao_segundos ?? null,
         sla_tempo_pausado_segundos: 0,
         tipo_chamado_id: data.tipoChamadoId,
-        segmento_id: data.segmentoId,
+        segmento_id: segmentoId,
         grupo_atendimento_id: grupoAtendimentoId,
         solicitante_id: context.userId,
         categoria_id: data.categoriaId,
