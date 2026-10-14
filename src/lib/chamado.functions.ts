@@ -254,7 +254,7 @@ export const acaoSolicitanteChamado = createServerFn({ method: "POST" }).middlew
     _acao: data.acao,
   });
   if (acaoError) throw new Error(acaoError.message);
-  if (!resultado || resultado.status !== (data.acao === "retomar" ? "reaberto" : "fechado")) {
+  if (!resultado || resultado.status !== (data.acao === "retomar" ? "aberto" : "fechado")) {
     throw new Error("O banco não confirmou a mudança de status do chamado.");
   }
 
