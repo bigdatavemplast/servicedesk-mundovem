@@ -229,6 +229,68 @@ export const atualizarChamado = createServerFn({ method: "POST" }).middleware([r
   return { ok: true, chamado: updated };
 });
 
+export const acaoSolicitanteChamado = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((d) => z.object({
+  chamadoId: z.string().uuid(),
+  acao: z.enum(["retomar", "resolver"]),
+}).parse(d)).handler(async ({ data, context }) => {
+  const supabase = context.supabase as any;
+  const admin = await getAdminClient(supabase);
+  const roles = await getRoles(supabase, context.userId);
+  const isManager = roles.includes("gestor") && !roles.includes("admin");
+  if (!isManager) throw new Error("Esta ação está disponível para gestores nos chamados que registraram.");
+
+  const { data: ticket, error: ticketError } = await admin
+    .from("chamados")
+    .select("id,numero,titulo,status,solicitante_id,atendente_id,sla_pausado")
+    .eq("id", data.chamadoId)
+    .maybeSingle();
+  if (ticketError || !ticket) throw new Error(ticketError?.message ?? "Chamado não encontrado");
+  if (ticket.solicitante_id !== context.userId) throw new Error("Você só pode executar esta ação em um chamado que registrou.");
+  if (ticket.status !== "aguardando_usuario") throw new Error("Estas ações só estão disponíveis quando o chamado está aguardando o usuário.");
+
+  const novoStatus = data.acao === "retomar" ? "reaberto" : "resolvido";
+  const agora = new Date().toISOString();
+  const patch: Record<string, unknown> = { status: novoStatus };
+  if (data.acao === "retomar") {
+    patch.reaberto_em = agora;
+    patch.sla_pausado = false;
+  } else {
+    patch.resolvido_em = agora;
+    patch.sla_pausado = false;
+  }
+  const { data: atualizado, error: updateError } = await admin
+    .from("chamados")
+    .update(patch as never)
+    .eq("id", ticket.id)
+    .eq("status", "aguardando_usuario")
+    .select("id,status")
+    .maybeSingle();
+  if (updateError || !atualizado) throw new Error(updateError?.message ?? "O chamado mudou de status. Atualize a página e tente novamente.");
+
+  const { error: historyError } = await admin.from("historico_chamado").insert({
+    chamado_id: ticket.id,
+    autor_id: context.userId,
+    acao: "status_alterado",
+    de: "aguardando_usuario",
+    para: novoStatus,
+    ator_role: getPrimaryRole(roles),
+  } as never);
+  if (historyError) throw new Error(`Status atualizado, mas não foi possível registrar o histórico: ${historyError.message}`);
+
+  if (ticket.atendente_id) {
+    await criarNotificacao(admin, {
+      destinatarioId: ticket.atendente_id,
+      tipo: "status_alterado",
+      titulo: data.acao === "retomar" ? "Solicitante retomou o chamado" : "Solicitante marcou o chamado como resolvido",
+      mensagem: data.acao === "retomar"
+        ? `O solicitante retomou o chamado ${ticket.numero} e ele voltou para o atendimento.`
+        : `O solicitante marcou o chamado ${ticket.numero} como resolvido.`,
+      chamadoId: ticket.id,
+    });
+  }
+  return { ok: true, status: novoStatus };
+});
+
 export const avaliarChamado = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((d) => z.object({ chamadoId: z.string().uuid(), nota: z.number().int().min(1).max(5), comentario: z.string().nullable().optional() }).parse(d)).handler(async ({ data, context }) => {
   const roles = await getRoles(context.supabase, context.userId);
   if (roles.includes("gestor") && !roles.includes("admin")) {
