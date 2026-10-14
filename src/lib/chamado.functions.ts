@@ -99,9 +99,15 @@ export const registrarHistoricoAnexo = createServerFn({ method: "POST" }).middle
   nomeArquivo: z.string().trim().min(1).max(500),
 }).parse(d)).handler(async ({ data, context }) => {
   const admin = await getAdminClient(context.supabase);
-  const atorRole = getPrimaryRole(await getRoles(context.supabase, context.userId));
-  const { data: ticket, error: ticketError } = await admin.from("chamados").select("id").eq("id", data.chamadoId).maybeSingle();
+  const roles = await getRoles(context.supabase, context.userId);
+  const atorRole = getPrimaryRole(roles);
+  const { data: ticket, error: ticketError } = await admin.from("chamados").select("id,solicitante_id,segmento_id").eq("id", data.chamadoId).maybeSingle();
   if (ticketError || !ticket) throw new Error(ticketError?.message ?? "Chamado não encontrado");
+  if (!(await canAccessTicket(admin, context.userId, ticket))) throw new Error("Você não tem permissão para complementar este chamado.");
+  const isManager = roles.includes("gestor") && !roles.includes("admin");
+  if (isManager && !["foto_adicionada", "anexo_adicionado"].includes(data.acao)) {
+    throw new Error("Gestores podem adicionar anexos, mas não removê-los.");
+  }
   const { error } = await admin.from("historico_chamado").insert({
     chamado_id: data.chamadoId,
     autor_id: context.userId,
