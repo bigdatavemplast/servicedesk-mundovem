@@ -50,7 +50,7 @@ function PreviewImagem({ anexo, onAmpliar }: { anexo: Anexo; onAmpliar: (url: st
   );
 }
 
-export function AnexosSecao({ chamadoId, userId, podeRemoverTodos = false, podeRemoverProprio = true, podeAdicionar = true, onTentativaSemPermissao }: { chamadoId: string; userId: string; podeRemoverTodos?: boolean; podeAdicionar?: boolean; onTentativaSemPermissao?: () => void }) {
+export function AnexosSecao({ chamadoId, userId, podeRemoverTodos = false, podeRemoverProprio = true, podeAdicionar = true, onTentativaSemPermissao }: { chamadoId: string; userId: string; podeRemoverTodos?: boolean; podeRemoverProprio?: boolean; podeAdicionar?: boolean; onTentativaSemPermissao?: () => void }) {
   const qc = useQueryClient();
   const registrarHistoricoServer = useServerFn(registrarHistoricoAnexo);
   const [progresso, setProgresso] = useState<Record<string, number>>({});
