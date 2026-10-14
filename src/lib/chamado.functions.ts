@@ -100,7 +100,6 @@ export const removerAnexoChamado = createServerFn({ method: "POST" }).middleware
   const admin = await getAdminClient(context.supabase);
   const roles = await getRoles(context.supabase, context.userId);
   const isAdmin = roles.includes("admin");
-  const isManager = roles.includes("gestor") && !isAdmin;
   const { data: ticket, error: ticketError } = await admin
     .from("chamados")
     .select("id,solicitante_id,segmento_id")
