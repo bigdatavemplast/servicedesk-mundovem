@@ -63,11 +63,27 @@ function lerItemCatalogoSelecionado() {
 function NovoChamadoPage() {
   const { user } = Route.useRouteContext(); const navigate = useNavigate();
   const { data: roles = [] } = useQuery({ queryKey: ["my-roles", user.id], queryFn: async () => { const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id); return (data ?? []).map((r) => r.role as string); } });
-  const isAtendente = roles.includes("atendente"); const { emModoColaborador } = useModoAtendimento(user.id, isAtendente);
+  const isAtendente = roles.includes("atendente"); const isGestor = roles.includes("gestor") && !roles.includes("admin"); const { emModoColaborador } = useModoAtendimento(user.id, isAtendente);
   const areaInicial = lerAreaSelecionada(); const [area, setArea] = useState<Area | null>(areaInicial);
   const [loading, setLoading] = useState(false); const [titulo, setTitulo] = useState(""); const [descricao, setDescricao] = useState(""); const [prioridade, setPrioridade] = useState<Prioridade>("media"); const [impacto, setImpacto] = useState<Impacto>(""); const [urgencia, setUrgencia] = useState<Urgencia>(""); const [tipoChamadoId, setTipoChamadoId] = useState(""); const [categoriaId, setCategoriaId] = useState(""); const [subcategoriaId, setSubcategoriaId] = useState(""); const [anexos, setAnexos] = useState<File[]>([]); const [progresso, setProgresso] = useState<Record<string, number>>({});
   const criar = useServerFn(criarChamadoComCatalogo);
   const { data: areas = [] } = useQuery({ queryKey: ["segmentos-ativos-novo-chamado"], enabled: emModoColaborador, queryFn: async () => { const { data, error } = await supabase.from("segmentos").select("id,nome").eq("ativo", true).order("ordem").order("nome"); if (error) throw new Error(error.message); return (data ?? []) as Area[]; } });
+  const { data: areaGestorPerfil } = useQuery({
+    queryKey: ["novo-chamado-area-gestor", user.id],
+    enabled: isGestor,
+    queryFn: async () => {
+      const { data: perfil, error: perfilError } = await supabase.from("profiles").select("area_id").eq("id", user.id).maybeSingle();
+      if (perfilError) throw new Error(perfilError.message);
+      if (!perfil?.area_id) return null;
+      const { data: areaPerfil, error: areaError } = await supabase.from("areas").select("nome").eq("id", perfil.area_id).maybeSingle();
+      if (areaError) throw new Error(areaError.message);
+      if (!areaPerfil?.nome) return null;
+      const { data: segmentos, error: segmentosError } = await supabase.from("segmentos").select("id,nome").eq("ativo", true);
+      if (segmentosError) throw new Error(segmentosError.message);
+      const normalizar = (value: string) => value.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").trim().toLowerCase();
+      return (segmentos ?? []).find((item) => normalizar(item.nome) === normalizar(areaPerfil.nome)) ?? null;
+    },
+  });
   const { data: tiposChamado = [] } = useQuery({ queryKey: ["tipos-chamado-ativos"], queryFn: async () => { const { data, error } = await supabase.from("tipos_chamado").select("id,nome").eq("ativo", true).order("ordem").order("nome"); if (error) throw new Error(error.message); return data ?? []; } });
   const tipoSelecionado = tiposChamado.find((tipo) => tipo.id === tipoChamadoId); const incidente = !!tipoSelecionado && ehIncidente(tipoSelecionado.nome); const prioridadeCalculada = incidente && impacto && urgencia ? calcularPrioridade(impacto, urgencia) : null;
   const { data: categorias = [] } = useQuery({ queryKey: ["categorias-ativas-catalogo", area?.id], enabled: !!area?.id, queryFn: async () => { const { data, error } = await supabase.from("categorias").select("id,nome,segmento_id").eq("ativo", true).eq("segmento_id", area!.id).order("ordem").order("nome"); if (error) throw new Error(error.message); return data ?? []; } });
@@ -75,7 +91,14 @@ function NovoChamadoPage() {
   const sugestao = useMemo(() => sugestaoAbertura(`${titulo} ${descricao}`), [titulo, descricao]);
 
   useEffect(() => { const item = lerItemCatalogoSelecionado(); if (!item) return; if (item.segmentoId && emModoColaborador) { const encontrada = areas.find((a) => a.id === item.segmentoId); if (encontrada) setArea(encontrada); } if (item.nome) setTitulo(item.nome); if (item.tipoChamadoId) setTipoChamadoId(item.tipoChamadoId); if (item.categoriaId) setCategoriaId(item.categoriaId); if (item.subcategoriaId) setSubcategoriaId(item.subcategoriaId); localStorage.removeItem("service_desk_catalogo_item"); }, [emModoColaborador, areas]);
-  useEffect(() => { if (!emModoColaborador && areaInicial && area?.id !== areaInicial.id) setArea(areaInicial); }, [emModoColaborador, areaInicial?.id, area?.id]);
+  useEffect(() => { if (!emModoColaborador && !isGestor && areaInicial && area?.id !== areaInicial.id) setArea(areaInicial); }, [emModoColaborador, isGestor, areaInicial?.id, area?.id]);
+  useEffect(() => {
+    if (isGestor && areaGestorPerfil && area?.id !== areaGestorPerfil.id) {
+      setArea({ id: areaGestorPerfil.id, nome: areaGestorPerfil.nome });
+      setCategoriaId("");
+      setSubcategoriaId("");
+    }
+  }, [isGestor, areaGestorPerfil?.id, areaGestorPerfil?.nome, area?.id]);
   useEffect(() => { setCategoriaId(""); setSubcategoriaId(""); }, [area?.id]);
 
   const requisitos = { titulo: titulo.trim().length >= 5, descricao: descricao.trim().length >= 20, tipo: !!tipoChamadoId, categoria: !!categoriaId, incidente: !incidente || (!!impacto && !!urgencia) };
