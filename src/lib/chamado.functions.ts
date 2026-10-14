@@ -93,6 +93,65 @@ async function canEditFilaTicket(supabase: any, userId: string, ticket: any) {
   return atendenteTemAcessoAoSetor(supabase, userId, ticket);
 }
 
+export const removerAnexoChamado = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((d) => z.object({
+  chamadoId: z.string().uuid(),
+  anexoId: z.string().uuid(),
+}).parse(d)).handler(async ({ data, context }) => {
+  const admin = await getAdminClient(context.supabase);
+  const roles = await getRoles(context.supabase, context.userId);
+  const isAdmin = roles.includes("admin");
+  const { data: ticket, error: ticketError } = await admin
+    .from("chamados")
+    .select("id,solicitante_id,segmento_id")
+    .eq("id", data.chamadoId)
+    .maybeSingle();
+  if (ticketError || !ticket) throw new Error(ticketError?.message ?? "Chamado não encontrado");
+  if (!(await canAccessTicket(admin, context.userId, ticket))) {
+    throw new Error("Você não tem permissão para remover anexos deste chamado.");
+  }
+
+  const { data: anexo, error: anexoError } = await admin
+    .from("anexos_chamado")
+    .select("id,nome_arquivo,storage_path,autor_id,content_type")
+    .eq("id", data.anexoId)
+    .eq("chamado_id", data.chamadoId)
+    .maybeSingle();
+  if (anexoError || !anexo) throw new Error(anexoError?.message ?? "Anexo não encontrado");
+  if (!isAdmin && anexo.autor_id !== context.userId) {
+    throw new Error("Você só pode remover anexos que adicionou.");
+  }
+
+  const acao = /^(foto|imagem)\b/i.test(anexo.nome_arquivo) || /^image\//i.test(anexo.content_type ?? "")
+    || /\.(png|jpe?g|gif|webp|bmp|svg|heic|heif)$/i.test(anexo.nome_arquivo)
+    ? "foto_removida"
+    : "anexo_removido";
+  const atorRole = getPrimaryRole(roles);
+  // Registra a auditoria antes da exclusão; se o arquivo não puder ser removido,
+  // tenta retirar o evento para não deixar um registro falso no histórico.
+  const { data: evento, error: historicoError } = await admin.from("historico_chamado").insert({
+    chamado_id: data.chamadoId,
+    autor_id: context.userId,
+    acao,
+    de: "\u200B",
+    para: anexo.nome_arquivo,
+    ator_role: atorRole,
+  } as never).select("id").single();
+  if (historicoError || !evento) throw new Error(historicoError?.message ?? "Falha ao registrar histórico da remoção");
+
+  const { error: storageError } = await admin.storage.from("chamados-anexos").remove([anexo.storage_path]);
+  if (storageError) {
+    await admin.from("historico_chamado").delete().eq("id", evento.id);
+    throw new Error(`Falha ao remover o arquivo: ${storageError.message}`);
+  }
+
+  const { error: deleteError } = await admin.from("anexos_chamado").delete().eq("id", anexo.id);
+  if (deleteError) {
+    // Mantém o evento de auditoria porque o objeto do Storage já foi removido.
+    throw new Error(`Arquivo removido, mas não foi possível excluir seus metadados: ${deleteError.message}`);
+  }
+  return { ok: true };
+});
+
 export const registrarHistoricoAnexo = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((d) => z.object({
   chamadoId: z.string().uuid(),
   acao: z.enum(["foto_adicionada", "foto_removida", "anexo_adicionado", "anexo_removido"]),
