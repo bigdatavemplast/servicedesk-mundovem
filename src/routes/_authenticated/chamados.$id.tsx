@@ -204,7 +204,7 @@ function DetalheChamadoPage() {
   };
 
   const atualizar = useMutation({
-    mutationFn: async (patch: Record<string, unknown>) => { await atualizarServer({ data: { chamadoId: id, status: typeof patch.status === "string" ? patch.status : undefined, prioridade: typeof patch.prioridade === "string" ? patch.prioridade as any : undefined, atendenteId: "atendente_id" in patch ? ((patch.atendente_id as string | null) ?? null) : undefined, tipoChamadoId: typeof patch.tipoChamadoId === "string" ? patch.tipoChamadoId : undefined } }); },
+    mutationFn: async (patch: Record<string, unknown>) => { await atualizarServer({ data: { chamadoId: id, status: typeof patch.status === "string" ? patch.status : undefined, prioridade: typeof patch.prioridade === "string" ? patch.prioridade as any : undefined, atendenteId: "atendente_id" in patch ? ((patch.atendente_id as string | null) ?? null) : undefined, tipoChamadoId: typeof patch.tipoChamadoId === "string" ? patch.tipoChamadoId : undefined, justificativa: typeof patch.justificativa === "string" ? patch.justificativa : undefined } }); },
     onSuccess: () => { toast.success("Chamado atualizado"); qc.invalidateQueries({ queryKey: ["chamado", id] }); qc.invalidateQueries({ queryKey: ["chamado-historico", id] }); qc.invalidateQueries({ queryKey: ["fila"] }); qc.invalidateQueries({ queryKey: ["dashboard"] }); },
     onError: (e: any) => toast.error(e.message),
   });
