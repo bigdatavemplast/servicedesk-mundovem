@@ -9,7 +9,7 @@ import { Paperclip, Download, Trash2, FileText, Loader2, Maximize2 } from "lucid
 import { AnexoDropzone } from "./AnexoDropzone";
 import { ehImagem, enviarAnexo, formatarTamanho, urlAssinada } from "@/lib/anexos";
 import { useServerFn } from "@tanstack/react-start";
-import { registrarHistoricoAnexo } from "@/lib/chamado.functions";
+import { registrarHistoricoAnexo, removerAnexoChamado } from "@/lib/chamado.functions";
 
 type Anexo = {
   id: string;
@@ -53,6 +53,7 @@ function PreviewImagem({ anexo, onAmpliar }: { anexo: Anexo; onAmpliar: (url: st
 export function AnexosSecao({ chamadoId, userId, podeRemoverTodos = false, podeRemoverProprio = true, podeAdicionar = true, onTentativaSemPermissao }: { chamadoId: string; userId: string; podeRemoverTodos?: boolean; podeRemoverProprio?: boolean; podeAdicionar?: boolean; onTentativaSemPermissao?: () => void }) {
   const qc = useQueryClient();
   const registrarHistoricoServer = useServerFn(registrarHistoricoAnexo);
+  const removerAnexoServer = useServerFn(removerAnexoChamado);
   const [progresso, setProgresso] = useState<Record<string, number>>({});
   const [enviando, setEnviando] = useState<File[]>([]);
   const [ampliada, setAmpliada] = useState<string | null>(null);
@@ -99,11 +100,7 @@ export function AnexosSecao({ chamadoId, userId, podeRemoverTodos = false, podeR
 
   const remover = useMutation({
     mutationFn: async (anexo: Anexo) => {
-      await supabase.storage.from("chamados-anexos").remove([anexo.storage_path]);
-      const { error } = await supabase.from("anexos_chamado").delete().eq("id", anexo.id);
-      if (error) throw new Error(error.message);
-      const acao = ehImagem(anexo.nome_arquivo, anexo.content_type) ? "foto_removida" : "anexo_removido";
-      await registrarHistoricoServer({ data: { chamadoId, acao, nomeArquivo: anexo.nome_arquivo } });
+      await removerAnexoServer({ data: { chamadoId, anexoId: anexo.id } });
     },
     onSuccess: () => {
       toast.success("Anexo removido");
@@ -130,7 +127,7 @@ export function AnexosSecao({ chamadoId, userId, podeRemoverTodos = false, podeR
               )}
               <div className="mt-2 flex items-center justify-end gap-1">
                 <Button size="icon" variant="ghost" aria-label={`Baixar ${a.nome_arquivo}`} onClick={() => void baixar(a)}><Download className="h-3 w-3" /></Button>
-                {(a.autor_id === userId || podeRemoverTodos) && <Button size="icon" variant="ghost" aria-label={`Remover ${a.nome_arquivo}`} disabled={remover.isPending} onClick={() => remover.mutate(a)}>{remover.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3 text-red-500" />}</Button>}
+                {((a.autor_id === userId && podeRemoverProprio) || podeRemoverTodos) && <Button size="icon" variant="ghost" aria-label={`Remover ${a.nome_arquivo}`} disabled={remover.isPending} onClick={() => remover.mutate(a)}>{remover.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3 text-red-500" />}</Button>}
               </div>
             </li>
           ))}
