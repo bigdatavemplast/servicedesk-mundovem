@@ -134,59 +134,6 @@ export const removerAnexoChamado = createServerFn({ method: "POST" }).middleware
   return { ok: true };
 });
 
-export const registrarHistoricoAnexo = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((d) => z.object({
-  chamadoId: z.string().uuid(),
-  acao: z.enum(["foto_adicionada", "foto_removida", "anexo_adicionado", "anexo_removido"]),
-  nomeArquivo: z.string().trim().min(1).max(500),
-}).parse(d)).handler(async ({ data, context }) => {
-  const admin = await getAdminClient(context.supabase);
-  const roles = await getRoles(context.supabase, context.userId);
-  const atorRole = getPrimaryRole(roles);
-  const { data: ticket, error: ticketError } = await admin.from("chamados").select("id,solicitante_id,segmento_id").eq("id", data.chamadoId).maybeSingle();
-  if (ticketError || !ticket) throw new Error(ticketError?.message ?? "Chamado não encontrado");
-  if (!(await canAccessTicket(admin, context.userId, ticket))) throw new Error("Você não tem permissão para complementar este chamado.");
-  const isManager = roles.includes("gestor") && !roles.includes("admin");
-  if (isManager && !["foto_adicionada", "anexo_adicionado"].includes(data.acao)) {
-    throw new Error("Gestores podem adicionar anexos, mas não removê-los.");
-  }
-  if (isManager && ["foto_adicionada", "anexo_adicionado"].includes(data.acao)) {
-    const { data: anexo, error: anexoError } = await admin
-      .from("anexos_chamado")
-      .select("id,storage_path")
-      .eq("chamado_id", data.chamadoId)
-      .eq("autor_id", context.userId)
-      .eq("nome_arquivo", data.nomeArquivo)
-      .limit(1)
-      .maybeSingle();
-    if (anexoError || !anexo) throw new Error("O anexo precisa ser enviado antes de registrar o histórico.");
-  }
-  const { error } = await admin.from("historico_chamado").insert({
-    chamado_id: data.chamadoId,
-    autor_id: context.userId,
-    acao: data.acao,
-    de: "\u200B",
-    para: data.nomeArquivo,
-    ator_role: atorRole,
-  } as never);
-  if (error) {
-    // Não deixa um arquivo de gestor persistido sem o evento correspondente no histórico.
-    if (isManager && ["foto_adicionada", "anexo_adicionado"].includes(data.acao)) {
-      const { data: anexo } = await admin
-        .from("anexos_chamado")
-        .select("id,storage_path")
-        .eq("chamado_id", data.chamadoId)
-        .eq("autor_id", context.userId)
-        .eq("nome_arquivo", data.nomeArquivo)
-        .limit(1)
-        .maybeSingle();
-      if (anexo?.storage_path) await admin.storage.from("chamados-anexos").remove([anexo.storage_path]);
-      if (anexo?.id) await admin.from("anexos_chamado").delete().eq("id", anexo.id);
-    }
-    throw new Error(`Falha ao registrar histórico do anexo: ${error.message}`);
-  }
-  return { ok: true };
-});
-
 export const criarChamado = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((d) => z.object({
   titulo: z.string().trim().min(1).max(250), descricao: z.string().trim().min(1), prioridade: z.enum(["baixa", "media", "alta", "critica"]),
   tipoChamadoId: z.string().uuid(), categoriaId: z.string().uuid().nullable(), subcategoriaId: z.string().uuid().nullable(),
@@ -195,11 +142,7 @@ export const criarChamado = createServerFn({ method: "POST" }).middleware([requi
   const admin = await getAdminClient(context.supabase);
   const { data: criado, error } = await admin.from("chamados").insert({ titulo: data.titulo, descricao: data.descricao, prioridade: data.prioridade, tipo_chamado_id: data.tipoChamadoId, solicitante_id: context.userId, categoria_id: data.categoriaId, subcategoria_id: data.subcategoriaId, numero: "" } as never).select("id,numero,titulo,descricao,prioridade,prazo_resolucao,tipo_chamado_id").single();
   if (error || !criado) throw new Error(error?.message ?? "Falha ao criar chamado");
-  const atorRole = getPrimaryRole(await getRoles(context.supabase, context.userId));
-  const { error: historicoError } = await admin.from("historico_chamado").insert({
-    chamado_id: criado.id, autor_id: context.userId, acao: "chamado_criado", de: "\u200B", para: criado.titulo, ator_role: atorRole,
-  } as never);
-  if (historicoError) throw new Error(`Falha ao registrar histórico: ${historicoError.message}`);
+  // O trigger trg_historico_chamado_criado registra a criação automaticamente.
   return criado;
 });
 
@@ -219,12 +162,7 @@ export const comentarChamado = createServerFn({ method: "POST" }).middleware([re
   if (data.interno && !(await hasPermission(supabase, context.userId, "ticket.comment.internal"))) throw new Error("Nota interna disponível somente para atendimento.");
   const { data: inserted, error } = await admin.from("comentarios_chamado").insert({ chamado_id: data.chamadoId, autor_id: context.userId, conteudo: data.conteudo, interno: data.interno } as never).select("id,conteudo,interno,criado_em").single();
   if (error || !inserted) throw new Error(error?.message ?? "Falha ao registrar comentário");
-  const atorRole = getPrimaryRole(roles);
-  const { error: historicoError } = await admin.from("historico_chamado").insert({
-    chamado_id: data.chamadoId, autor_id: context.userId, acao: data.interno ? "nota_interna_adicionada" : "comentario_adicionado",
-    de: "\u200B", para: data.conteudo, ator_role: atorRole,
-  } as never);
-  if (historicoError) throw new Error(`Falha ao registrar histórico: ${historicoError.message}`);
+  // O trigger trg_historico_comentarios_chamado registra o comentário automaticamente.
   return inserted;
 });
 
