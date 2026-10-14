@@ -50,7 +50,7 @@ function PreviewImagem({ anexo, onAmpliar }: { anexo: Anexo; onAmpliar: (url: st
   );
 }
 
-export function AnexosSecao({ chamadoId, userId, podeRemoverTodos = false, podeRemoverProprio = true, podeAdicionar = true, onTentativaSemPermissao }: { chamadoId: string; userId: string; podeRemoverTodos?: boolean; podeRemoverProprio?: boolean; podeAdicionar?: boolean; onTentativaSemPermissao?: () => void }) {
+export function AnexosSecao({ chamadoId, userId, podeRemoverTodos = false, podeRemoverProprio = true, podeAdicionar = true, somenteImagens = false, onTentativaSemPermissao }: { chamadoId: string; userId: string; podeRemoverTodos?: boolean; podeRemoverProprio?: boolean; podeAdicionar?: boolean; somenteImagens?: boolean; onTentativaSemPermissao?: () => void }) {
   const qc = useQueryClient();
   const removerAnexoServer = useServerFn(removerAnexoChamado);
   const [progresso, setProgresso] = useState<Record<string, number>>({});
@@ -71,6 +71,10 @@ export function AnexosSecao({ chamadoId, userId, podeRemoverTodos = false, podeR
   }
 
   async function subir(arquivos: File[]) {
+    const permitidos = somenteImagens ? arquivos.filter((file) => ehImagem(file.name, file.type)) : arquivos;
+    if (somenteImagens && permitidos.length !== arquivos.length) toast.error("Neste chamado, somente imagens podem ser anexadas.");
+    if (!permitidos.length) return;
+    arquivos = permitidos;
     setEnviando((atual) => [...atual, ...arquivos]);
     for (const file of arquivos) {
       try {
@@ -113,7 +117,7 @@ export function AnexosSecao({ chamadoId, userId, podeRemoverTodos = false, podeR
     <Card>
       <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-sm"><Paperclip className="h-4 w-4" aria-hidden="true" />Anexos ({anexos.length})</CardTitle></CardHeader>
       <CardContent className="space-y-3">
-        <AnexoDropzone onArquivos={subir} pendentes={enviando} progresso={progresso} disabled={enviando.length > 0 || !podeAdicionar} onTentativaSemPermissao={onTentativaSemPermissao} />
+        <AnexoDropzone onArquivos={subir} somenteImagens={somenteImagens} pendentes={enviando} progresso={progresso} disabled={enviando.length > 0 || !podeAdicionar} onTentativaSemPermissao={onTentativaSemPermissao} />
         {anexos.length === 0 && enviando.length === 0 && <p className="text-xs text-muted-foreground">Nenhum anexo neste chamado.</p>}
         <ul className="space-y-4">
           {anexos.map((a) => (
