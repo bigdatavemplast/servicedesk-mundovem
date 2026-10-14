@@ -70,17 +70,16 @@ async function canAccessTicket(supabase: any, userId: string, ticket: any) {
   const roles = await getRoles(supabase, userId);
   if (roles.includes("admin")) return true;
   if (roles.includes("gestor")) {
+    if (!ticket?.segmento_id) return false;
     const { data: perfil, error: perfilError } = await supabase.from("profiles").select("area_id").eq("id", userId).maybeSingle();
     if (perfilError) throw new Error(perfilError.message);
-    if (perfil?.area_id) {
-      const { data: area, error: areaError } = await supabase.from("areas").select("nome").eq("id", perfil.area_id).maybeSingle();
-      if (areaError) throw new Error(areaError.message);
-      const areaNome = String(area?.nome ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
-      if (areaNome === "ti") return true;
-    }
-    const { data: ok, error } = await supabase.rpc("gestor_mesma_area", { _gestor_id: userId, _colaborador_id: ticket.solicitante_id });
-    if (error) throw new Error(error.message);
-    return !!ok;
+    if (!perfil?.area_id) return false;
+    const { data: area, error: areaError } = await supabase.from("areas").select("nome").eq("id", perfil.area_id).maybeSingle();
+    if (areaError) throw new Error(areaError.message);
+    const { data: segmento, error: segmentoError } = await supabase.from("segmentos").select("nome").eq("id", ticket.segmento_id).maybeSingle();
+    if (segmentoError) throw new Error(segmentoError.message);
+    const normalize = (value: unknown) => String(value ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    return !!area?.nome && !!segmento?.nome && normalize(area.nome) === normalize(segmento.nome);
   }
   if (roles.includes("atendente")) return atendenteTemAcessoAoSetor(supabase, userId, ticket);
   return ticket.solicitante_id === userId;
@@ -133,13 +132,14 @@ export const criarChamado = createServerFn({ method: "POST" }).middleware([requi
 
 export const comentarChamado = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((d) => z.object({ chamadoId: z.string().uuid(), conteudo: z.string().trim().min(1), interno: z.boolean().default(false) }).parse(d)).handler(async ({ data, context }) => {
   const supabase = context.supabase as any; const admin = await getAdminClient(supabase);
-  const { data: ticket, error: ticketError } = await admin.from("chamados").select("id,numero,titulo,status,prioridade,prazo_resolucao,sla_pausado,solicitante_id,atendente_id").eq("id", data.chamadoId).maybeSingle();
+  const { data: ticket, error: ticketError } = await admin.from("chamados").select("id,numero,titulo,status,prioridade,prazo_resolucao,sla_pausado,solicitante_id,atendente_id,segmento_id").eq("id", data.chamadoId).maybeSingle();
   if (ticketError || !ticket) throw new Error(ticketError?.message ?? "Chamado não encontrado");
   const isRequester = ticket.solicitante_id === context.userId;
   const roles = await getRoles(supabase, context.userId);
   const isAdmin = roles.includes("admin");
-  if (roles.includes("gestor") && !isAdmin) throw new Error("Gestores podem apenas visualizar chamados.");
-  const canInteract = isRequester || await canEditFilaTicket(admin, context.userId, ticket);
+  const isManager = roles.includes("gestor") && !isAdmin;
+  if (isManager && data.interno) throw new Error("Gestores podem adicionar apenas comentários públicos.");
+  const canInteract = isRequester || (isManager ? await canAccessTicket(admin, context.userId, ticket) : await canEditFilaTicket(admin, context.userId, ticket));
   if (!canInteract) throw new Error("Somente o solicitante, o admin ou o atendente autorizado pode comentar neste chamado.");
   if (data.interno && !isRequester && !(await hasPermission(supabase, context.userId, "ticket.comment.internal"))) throw new Error("Nota interna disponível somente para atendimento.");
   if (data.interno && isRequester) throw new Error("Solicitantes não podem adicionar notas internas.");
@@ -156,7 +156,7 @@ export const comentarChamado = createServerFn({ method: "POST" }).middleware([re
 });
 
 export const atualizarChamado = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((d) => z.object({
-  chamadoId: z.string().uuid(), status: z.enum(["aberto", "em_triagem", "em_andamento", "aguardando_usuario", "aguardando_terceiro", "resolvido", "fechado", "reaberto", "cancelado"]).optional(), prioridade: z.enum(["baixa", "media", "alta", "critica"]).optional(), atendenteId: z.string().uuid().nullable().optional(), tipoChamadoId: z.string().uuid().optional(),
+  chamadoId: z.string().uuid(), status: z.enum(["aberto", "em_triagem", "em_andamento", "aguardando_usuario", "aguardando_terceiro", "resolvido", "fechado", "reaberto", "cancelado"]).optional(), prioridade: z.enum(["baixa", "media", "alta", "critica"]).optional(), atendenteId: z.string().uuid().nullable().optional(), tipoChamadoId: z.string().uuid().optional(), justificativa: z.string().trim().max(1000).optional(),
 }).parse(d)).handler(async ({ data, context }) => {
   const supabase = context.supabase as any; const admin = await getAdminClient(supabase);
   const { data: ticket, error: ticketError } = await admin.from("chamados").select("*").eq("id", data.chamadoId).maybeSingle();
@@ -165,11 +165,14 @@ export const atualizarChamado = createServerFn({ method: "POST" }).middleware([r
   const roles = await getRoles(supabase, context.userId);
   const isAdmin = roles.includes("admin");
   const isGestor = roles.includes("gestor");
-  if (isGestor && !isAdmin) throw new Error("Gestores podem apenas visualizar chamados.");
+  const isManager = isGestor && !isAdmin;
+  const managerPriorityOnly = isManager && data.prioridade !== undefined && data.status === undefined && data.atendenteId === undefined && data.tipoChamadoId === undefined;
+  if (isManager && !managerPriorityOnly) throw new Error("Gestores só podem alterar a prioridade dos chamados da própria área.");
+  if (managerPriorityOnly && !data.justificativa?.trim()) throw new Error("Informe a justificativa para alterar a prioridade.");
   const canEditFila = await canEditFilaTicket(admin, context.userId, ticket);
   if (data.status === "cancelado" && !isAdmin) throw new Error("Somente administradores podem cancelar chamados.");
   if (data.status === "fechado" && ticket.avaliacao_nota == null) throw new Error("O chamado só pode ser fechado após a avaliação do colaborador.");
-  if (!isAdmin && !canEditFila) {
+  if (!isAdmin && !canEditFila && !managerPriorityOnly) {
     if (data.status === "reaberto" && isRequester) {
       if (ticket.status !== "fechado" || !ticket.fechado_em) throw new Error("Somente chamados fechados podem ser reabertos.");
       if (Date.now() - new Date(ticket.fechado_em).getTime() > 48 * 60 * 60 * 1000) throw new Error("O prazo de 2 dias para reabrir o chamado expirou.");
@@ -192,7 +195,7 @@ export const atualizarChamado = createServerFn({ method: "POST" }).middleware([r
   const atorRole = getPrimaryRole(roles);
   const patch: Record<string, any> = {}; const historico: any[] = [];
   if (data.status && data.status !== ticket.status) { patch.status = data.status; historico.push({ chamado_id: data.chamadoId, autor_id: context.userId, acao: data.status === "reaberto" ? "chamado_reaberto" : "status_alterado", de: ticket.status, para: data.status, ator_role: atorRole }); if (data.status === "resolvido") patch.resolvido_em = new Date().toISOString(); if (data.status === "fechado") patch.fechado_em = new Date().toISOString(); if (data.status === "reaberto") { patch.reaberto_em = new Date().toISOString(); patch.sla_pausado = false; patch.atendente_id = ticket.atendente_id ?? null; } }
-  if (data.prioridade && data.prioridade !== ticket.prioridade) { patch.prioridade = data.prioridade; historico.push({ chamado_id: data.chamadoId, autor_id: context.userId, acao: "prioridade_alterada", de: ticket.prioridade, para: data.prioridade, ator_role: atorRole }); }
+  if (data.prioridade && data.prioridade !== ticket.prioridade) { patch.prioridade = data.prioridade; historico.push({ chamado_id: data.chamadoId, autor_id: context.userId, acao: "prioridade_alterada", de: ticket.prioridade, para: data.prioridade, ator_role: atorRole }); if (managerPriorityOnly && data.justificativa?.trim()) historico.push({ chamado_id: data.chamadoId, autor_id: context.userId, acao: "justificativa_prioridade", de: "\u200B", para: data.justificativa.trim(), ator_role: atorRole }); }
   if (data.atendenteId !== undefined && data.atendenteId !== ticket.atendente_id) { patch.atendente_id = data.atendenteId; historico.push({ chamado_id: data.chamadoId, autor_id: context.userId, acao: "atendente_alterado", de: ticket.atendente_id ?? "", para: data.atendenteId ?? "", ator_role: atorRole }); }
   if (data.tipoChamadoId !== undefined && data.tipoChamadoId !== ticket.tipo_chamado_id) { patch.tipo_chamado_id = data.tipoChamadoId; historico.push({ chamado_id: data.chamadoId, autor_id: context.userId, acao: "tipo_chamado_alterado", de: ticket.tipo_chamado_id ?? "", para: data.tipoChamadoId, ator_role: atorRole }); }
   if (!Object.keys(patch).length) return { ok: true, chamado: ticket };
