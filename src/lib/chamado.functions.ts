@@ -139,7 +139,7 @@ export const comentarChamado = createServerFn({ method: "POST" }).middleware([re
   const isAdmin = roles.includes("admin");
   const isManager = roles.includes("gestor") && !isAdmin;
   if (isManager && data.interno) throw new Error("Gestores podem adicionar apenas comentários públicos.");
-  const canInteract = isRequester || (isManager ? await canAccessTicket(admin, context.userId, ticket) : await canEditFilaTicket(admin, context.userId, ticket));
+  const canInteract = isManager ? await canAccessTicket(admin, context.userId, ticket) : isRequester || await canEditFilaTicket(admin, context.userId, ticket);
   if (!canInteract) throw new Error("Somente o solicitante, o admin ou o atendente autorizado pode comentar neste chamado.");
   if (data.interno && !isRequester && !(await hasPermission(supabase, context.userId, "ticket.comment.internal"))) throw new Error("Nota interna disponível somente para atendimento.");
   if (data.interno && isRequester) throw new Error("Solicitantes não podem adicionar notas internas.");
