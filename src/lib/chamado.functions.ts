@@ -199,17 +199,17 @@ export const atualizarChamado = createServerFn({ method: "POST" }).middleware([r
   }
 
   const canEditFila = await canEditFilaTicket(admin, context.userId, ticket);
-  if (data.status === "cancelado" && !isAdmin) throw new Error("Somente administradores podem cancelar chamados.");
+  if (data.status === "cancelado" && !isAdmin && !managerOwnAreaEdit) throw new Error("Somente administradores podem cancelar chamados.");
   if (data.status === "fechado" && ticket.avaliacao_nota == null) throw new Error("O chamado só pode ser fechado após a avaliação do colaborador.");
   if (!isAdmin && !canEditFila && !managerOwnAreaEdit) {
     if (data.status === "reaberto" && isRequester) {
       if (ticket.status !== "fechado" || !ticket.fechado_em) throw new Error("Somente chamados fechados podem ser reabertos.");
-      if (Date.now() - new Date(ticket.fechado_em).getTime() > 48 * 60 * 60 * 1000) throw new Error("O prazo de 2 dias para reabrir o chamado expirou.");
+      if (!managerOwnAreaEdit && Date.now() - new Date(ticket.fechado_em).getTime() > 48 * 60 * 60 * 1000) throw new Error("O prazo de 2 dias para reabrir o chamado expirou.");
     } else throw new Error("Somente o admin ou o atendente autorizado pode alterar este chamado.");
   }
   if (!(await canAccessTicket(supabase, context.userId, ticket))) throw new Error("Você não tem permissão para alterar este chamado.");
   if (data.status === "reaberto") {
-    if (!isRequester && !isAdmin) throw new Error("Somente o solicitante pode reabrir o chamado.");
+    if (!isRequester && !isAdmin && !managerOwnAreaEdit) throw new Error("Somente o solicitante ou o gestor da área pode reabrir o chamado.");
     if (ticket.status !== "fechado" || !ticket.fechado_em) throw new Error("Somente chamados fechados podem ser reabertos.");
     if (Date.now() - new Date(ticket.fechado_em).getTime() > 48 * 60 * 60 * 1000) throw new Error("O prazo de 2 dias para reabrir o chamado expirou.");
   } else if (data.status !== undefined && !managerOwnAreaEdit && !(await hasPermission(supabase, context.userId, "ticket.update.status"))) throw new Error("Somente a equipe de atendimento pode alterar o status do chamado.");
