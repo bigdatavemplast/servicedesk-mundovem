@@ -179,14 +179,28 @@ export const atualizarChamado = createServerFn({ method: "POST" }).middleware([r
   const isAdmin = roles.includes("admin");
   const isGestor = roles.includes("gestor");
   const isManager = isGestor && !isAdmin;
-  if (isManager && isRequester) throw new Error("Você não pode alterar um chamado que registrou; somente adicionar imagens aos anexos.");
-  const managerPriorityOnly = isManager && data.prioridade !== undefined && data.status === undefined && data.atendenteId === undefined && data.tipoChamadoId === undefined;
-  if (isManager && !managerPriorityOnly) throw new Error("Gestores só podem alterar a prioridade dos chamados da própria área.");
-  if (managerPriorityOnly && !data.justificativa?.trim()) throw new Error("Informe a justificativa para alterar a prioridade.");
+  // Gestor só pode alterar status em chamados direcionados à sua própria área.
+  // A comparação é feita contra o segmento/área do chamado, nunca contra o solicitante.
+  let managerOwnArea = false;
+  if (isManager && ticket.segmento_id) {
+    const { data: perfil, error: perfilError } = await admin.from("profiles").select("area_id").eq("id", context.userId).maybeSingle();
+    if (perfilError) throw new Error(perfilError.message);
+    if (perfil?.area_id) {
+      const { data: area, error: areaError } = await admin.from("areas").select("nome").eq("id", perfil.area_id).maybeSingle();
+      if (areaError) throw new Error(areaError.message);
+      const { data: segmento, error: segmentoError } = await admin.from("segmentos").select("nome").eq("id", ticket.segmento_id).maybeSingle();
+      if (segmentoError) throw new Error(segmentoError.message);
+      const normalize = (value: unknown) => String(value ?? "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+      managerOwnArea = !!area?.nome && !!segmento?.nome && normalize(area.nome) === normalize(segmento.nome);
+    }
+  }
+  const managerStatusOnly = isManager && managerOwnArea && data.status !== undefined && data.prioridade === undefined && data.atendenteId === undefined && data.tipoChamadoId === undefined;
+  if (isManager && !managerStatusOnly) throw new Error("Gestores só podem alterar o status de chamados da própria área.");
+
   const canEditFila = await canEditFilaTicket(admin, context.userId, ticket);
   if (data.status === "cancelado" && !isAdmin) throw new Error("Somente administradores podem cancelar chamados.");
   if (data.status === "fechado" && ticket.avaliacao_nota == null) throw new Error("O chamado só pode ser fechado após a avaliação do colaborador.");
-  if (!isAdmin && !canEditFila && !managerPriorityOnly) {
+  if (!isAdmin && !canEditFila && !managerStatusOnly) {
     if (data.status === "reaberto" && isRequester) {
       if (ticket.status !== "fechado" || !ticket.fechado_em) throw new Error("Somente chamados fechados podem ser reabertos.");
       if (Date.now() - new Date(ticket.fechado_em).getTime() > 48 * 60 * 60 * 1000) throw new Error("O prazo de 2 dias para reabrir o chamado expirou.");
@@ -197,7 +211,7 @@ export const atualizarChamado = createServerFn({ method: "POST" }).middleware([r
     if (!isRequester && !isAdmin) throw new Error("Somente o solicitante pode reabrir o chamado.");
     if (ticket.status !== "fechado" || !ticket.fechado_em) throw new Error("Somente chamados fechados podem ser reabertos.");
     if (Date.now() - new Date(ticket.fechado_em).getTime() > 48 * 60 * 60 * 1000) throw new Error("O prazo de 2 dias para reabrir o chamado expirou.");
-  } else if (data.status !== undefined && !(await hasPermission(supabase, context.userId, "ticket.update.status"))) throw new Error("Somente a equipe de atendimento pode alterar o status do chamado.");
+  } else if (data.status !== undefined && !managerStatusOnly && !(await hasPermission(supabase, context.userId, "ticket.update.status"))) throw new Error("Somente a equipe de atendimento pode alterar o status do chamado.");
   if (data.prioridade !== undefined && !(await hasPermission(supabase, context.userId, "ticket.update.priority"))) throw new Error("Você não tem permissão para alterar a prioridade.");
   if (data.atendenteId !== undefined && !(await hasPermission(supabase, context.userId, "ticket.assign"))) throw new Error("Você não tem permissão para atribuir o chamado.");
   if (data.tipoChamadoId !== undefined && !(await hasPermission(supabase, context.userId, "ticket.update.status"))) throw new Error("Você não tem permissão para alterar o tipo de chamado.");
