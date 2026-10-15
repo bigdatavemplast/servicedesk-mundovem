@@ -155,7 +155,6 @@ export const comentarChamado = createServerFn({ method: "POST" }).middleware([re
   const roles = await getRoles(supabase, context.userId);
   const isAdmin = roles.includes("admin");
   const isManager = roles.includes("gestor") && !isAdmin;
-  if (isManager && isRequester) throw new Error("Você não pode comentar em um chamado que registrou; somente adicionar imagens aos anexos.");
   if (isManager && data.interno) throw new Error("Gestores podem adicionar apenas comentários públicos.");
   const canInteract = isManager ? await canAccessTicket(admin, context.userId, ticket) : isRequester || await canEditFilaTicket(admin, context.userId, ticket);
   if (!canInteract) throw new Error("Somente o solicitante, o admin ou o atendente autorizado pode comentar neste chamado.");
@@ -179,8 +178,8 @@ export const atualizarChamado = createServerFn({ method: "POST" }).middleware([r
   const isAdmin = roles.includes("admin");
   const isGestor = roles.includes("gestor");
   const isManager = isGestor && !isAdmin;
-  // Gestor só pode alterar status em chamados direcionados à sua própria área.
-  // A comparação é feita contra o segmento/área do chamado, nunca contra o solicitante.
+  // Gestores podem editar os campos do chamado, exceto o atendente,
+  // somente quando o chamado pertence à área vinculada ao seu perfil.
   let managerOwnArea = false;
   if (isManager && ticket.segmento_id) {
     const { data: perfil, error: perfilError } = await admin.from("profiles").select("area_id").eq("id", context.userId).maybeSingle();
@@ -194,27 +193,29 @@ export const atualizarChamado = createServerFn({ method: "POST" }).middleware([r
       managerOwnArea = !!area?.nome && !!segmento?.nome && normalize(area.nome) === normalize(segmento.nome);
     }
   }
-  const managerStatusOnly = isManager && managerOwnArea && data.status !== undefined && data.prioridade === undefined && data.atendenteId === undefined && data.tipoChamadoId === undefined;
-  if (isManager && !managerStatusOnly) throw new Error("Gestores só podem alterar o status de chamados da própria área.");
+  const managerOwnAreaEdit = isManager && managerOwnArea && data.atendenteId === undefined;
+  if (isManager && !managerOwnAreaEdit) {
+    throw new Error("Gestores só podem editar chamados da própria área e não podem alterar o atendente.");
+  }
 
   const canEditFila = await canEditFilaTicket(admin, context.userId, ticket);
-  if (data.status === "cancelado" && !isAdmin) throw new Error("Somente administradores podem cancelar chamados.");
+  if (data.status === "cancelado" && !isAdmin && !managerOwnAreaEdit) throw new Error("Somente administradores podem cancelar chamados.");
   if (data.status === "fechado" && ticket.avaliacao_nota == null) throw new Error("O chamado só pode ser fechado após a avaliação do colaborador.");
-  if (!isAdmin && !canEditFila && !managerStatusOnly) {
+  if (!isAdmin && !canEditFila && !managerOwnAreaEdit) {
     if (data.status === "reaberto" && isRequester) {
       if (ticket.status !== "fechado" || !ticket.fechado_em) throw new Error("Somente chamados fechados podem ser reabertos.");
-      if (Date.now() - new Date(ticket.fechado_em).getTime() > 48 * 60 * 60 * 1000) throw new Error("O prazo de 2 dias para reabrir o chamado expirou.");
+      if (!managerOwnAreaEdit && Date.now() - new Date(ticket.fechado_em).getTime() > 48 * 60 * 60 * 1000) throw new Error("O prazo de 2 dias para reabrir o chamado expirou.");
     } else throw new Error("Somente o admin ou o atendente autorizado pode alterar este chamado.");
   }
   if (!(await canAccessTicket(supabase, context.userId, ticket))) throw new Error("Você não tem permissão para alterar este chamado.");
   if (data.status === "reaberto") {
-    if (!isRequester && !isAdmin) throw new Error("Somente o solicitante pode reabrir o chamado.");
+    if (!isRequester && !isAdmin && !managerOwnAreaEdit) throw new Error("Somente o solicitante ou o gestor da área pode reabrir o chamado.");
     if (ticket.status !== "fechado" || !ticket.fechado_em) throw new Error("Somente chamados fechados podem ser reabertos.");
-    if (Date.now() - new Date(ticket.fechado_em).getTime() > 48 * 60 * 60 * 1000) throw new Error("O prazo de 2 dias para reabrir o chamado expirou.");
-  } else if (data.status !== undefined && !managerStatusOnly && !(await hasPermission(supabase, context.userId, "ticket.update.status"))) throw new Error("Somente a equipe de atendimento pode alterar o status do chamado.");
-  if (data.prioridade !== undefined && !(await hasPermission(supabase, context.userId, "ticket.update.priority"))) throw new Error("Você não tem permissão para alterar a prioridade.");
+    if (!managerOwnAreaEdit && Date.now() - new Date(ticket.fechado_em).getTime() > 48 * 60 * 60 * 1000) throw new Error("O prazo de 2 dias para reabrir o chamado expirou.");
+  } else if (data.status !== undefined && !managerOwnAreaEdit && !(await hasPermission(supabase, context.userId, "ticket.update.status"))) throw new Error("Somente a equipe de atendimento pode alterar o status do chamado.");
+  if (data.prioridade !== undefined && !managerOwnAreaEdit && !(await hasPermission(supabase, context.userId, "ticket.update.priority"))) throw new Error("Você não tem permissão para alterar a prioridade.");
   if (data.atendenteId !== undefined && !(await hasPermission(supabase, context.userId, "ticket.assign"))) throw new Error("Você não tem permissão para atribuir o chamado.");
-  if (data.tipoChamadoId !== undefined && !(await hasPermission(supabase, context.userId, "ticket.update.status"))) throw new Error("Você não tem permissão para alterar o tipo de chamado.");
+  if (data.tipoChamadoId !== undefined && !managerOwnAreaEdit && !(await hasPermission(supabase, context.userId, "ticket.update.status"))) throw new Error("Você não tem permissão para alterar o tipo de chamado.");
   if (data.atendenteId !== undefined && data.atendenteId !== null) {
     const { data: targetRoles, error: targetError } = await admin.from("user_roles").select("role").eq("user_id", data.atendenteId);
     if (targetError) throw new Error(targetError.message);
@@ -223,7 +224,7 @@ export const atualizarChamado = createServerFn({ method: "POST" }).middleware([r
   const atorRole = getPrimaryRole(roles);
   const patch: Record<string, any> = {}; const historico: any[] = [];
   if (data.status && data.status !== ticket.status) { patch.status = data.status; historico.push({ chamado_id: data.chamadoId, autor_id: context.userId, acao: data.status === "reaberto" ? "chamado_reaberto" : "status_alterado", de: ticket.status, para: data.status, ator_role: atorRole }); if (data.status === "resolvido") patch.resolvido_em = new Date().toISOString(); if (data.status === "fechado") patch.fechado_em = new Date().toISOString(); if (data.status === "reaberto") { patch.reaberto_em = new Date().toISOString(); patch.sla_pausado = false; patch.atendente_id = ticket.atendente_id ?? null; } }
-  if (data.prioridade && data.prioridade !== ticket.prioridade) { patch.prioridade = data.prioridade; historico.push({ chamado_id: data.chamadoId, autor_id: context.userId, acao: "prioridade_alterada", de: ticket.prioridade, para: data.prioridade, ator_role: atorRole }); }
+  if (data.prioridade && data.prioridade !== ticket.prioridade) { patch.prioridade = data.prioridade; historico.push({ chamado_id: data.chamadoId, autor_id: context.userId, acao: "prioridade_alterada", de: ticket.prioridade, para: data.prioridade, ator_role: atorRole }); if (data.justificativa?.trim()) historico.push({ chamado_id: data.chamadoId, autor_id: context.userId, acao: "justificativa_prioridade", de: "", para: data.justificativa.trim(), ator_role: atorRole }); }
   if (data.atendenteId !== undefined && data.atendenteId !== ticket.atendente_id) { patch.atendente_id = data.atendenteId; historico.push({ chamado_id: data.chamadoId, autor_id: context.userId, acao: "atendente_alterado", de: ticket.atendente_id ?? "", para: data.atendenteId ?? "", ator_role: atorRole }); }
   if (data.tipoChamadoId !== undefined && data.tipoChamadoId !== ticket.tipo_chamado_id) { patch.tipo_chamado_id = data.tipoChamadoId; historico.push({ chamado_id: data.chamadoId, autor_id: context.userId, acao: "tipo_chamado_alterado", de: ticket.tipo_chamado_id ?? "", para: data.tipoChamadoId, ator_role: atorRole }); }
   if (!Object.keys(patch).length) return { ok: true, chamado: ticket };
