@@ -33,17 +33,7 @@ WITH CHECK (
           NOT public.has_role((SELECT auth.uid()), 'gestor'::public.app_role)
           AND (
             c.solicitante_id = (SELECT auth.uid())
-            OR (
-              public.has_role((SELECT auth.uid()), 'atendente'::public.app_role)
-              AND EXISTS (
-                SELECT 1 FROM public.profiles p
-                JOIN public.areas a ON a.id = p.area_id
-                JOIN public.segmentos s ON s.id = c.segmento_id
-                WHERE p.id = (SELECT auth.uid())
-                  AND regexp_replace(lower(trim(coalesce(a.nome, ''))), '[^a-z0-9]', '', 'g')
-                    = regexp_replace(lower(trim(coalesce(s.nome, ''))), '[^a-z0-9]', '', 'g')
-              )
-            )
+            OR public.has_role((SELECT auth.uid()), 'atendente'::public.app_role)
           )
         )
       )
