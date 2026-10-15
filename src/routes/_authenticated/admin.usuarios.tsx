@@ -52,7 +52,7 @@ const ROLE_LABEL: Record<string, string> = {
   colaborador: "COLABORADOR", atendente: "ATENDENTE", gestor: "GESTOR", admin: "ADMIN",
 };
 const ROLE_BADGE: Record<string, string> = {
-  admin: "bg-amber-100 text-amber-800 border-amber-200",
+  admin: "bg-[#F4EBDD] text-[#9C1917] border-[#D8B9B5]",
   gestor: "bg-blue-100 text-blue-800 border-blue-200",
   atendente: "bg-slate-200 text-slate-800 border-slate-300",
   colaborador: "bg-slate-100 text-slate-700 border-slate-200",

@@ -47,7 +47,7 @@ function statusStyle(s:string){
 }
 function prioridadeStyle(p:string){
   if(p==="critica") return "bg-red-50 text-red-700 border border-red-200";
-  if(p==="alta") return "bg-amber-50 text-amber-800 border border-amber-200";
+  if(p==="alta") return "bg-[#F4EBDD] text-[#9C1917] border border-[#D8B9B5]";
   if(p==="media") return "bg-blue-50 text-blue-700 border border-blue-200";
   if(p==="baixa") return "bg-slate-100 text-slate-600 border border-slate-200";
   return "bg-muted text-muted-foreground border border-border";

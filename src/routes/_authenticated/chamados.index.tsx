@@ -17,7 +17,7 @@ const statusLabel: Record<string, string> = { aberto: "Aberto", em_triagem: "Em 
 const prioLabel: Record<string, string> = { baixa: "Baixa", media: "Média", alta: "Alta", critica: "Crítica" };
 function statusStyle(s: string) {
   if (s === "aberto" || s === "em_triagem" || s === "em_andamento" || s === "reaberto") return "bg-blue-50 text-blue-700 border border-blue-200";
-  if (s === "aguardando_usuario" || s === "aguardando_terceiro") return "bg-amber-50 text-amber-800 border border-amber-200";
+  if (s === "aguardando_usuario" || s === "aguardando_terceiro") return "bg-[#F4EBDD] text-[#9C1917] border border-[#E7DCCB]";
   if (s === "resolvido") return "bg-emerald-50 text-emerald-700 border border-emerald-200";
   if (s === "fechado") return "bg-slate-100 text-slate-600 border border-slate-200";
   if (s === "cancelado") return "bg-red-50 text-red-700 border border-red-200";
@@ -25,7 +25,7 @@ function statusStyle(s: string) {
 }
 function prioridadeStyle(p: string) {
   if (p === "critica") return "bg-red-50 text-red-700 border border-red-200";
-  if (p === "alta") return "bg-amber-50 text-amber-800 border border-amber-200";
+  if (p === "alta") return "bg-[#F4EBDD] text-[#9C1917] border border-[#E7DCCB]";
   if (p === "media") return "bg-blue-50 text-blue-700 border border-blue-200";
   if (p === "baixa") return "bg-slate-100 text-slate-600 border border-slate-200";
   return "bg-muted text-muted-foreground border border-border";

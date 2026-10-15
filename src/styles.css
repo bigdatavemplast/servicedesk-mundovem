@@ -63,7 +63,7 @@
   --secondary-foreground: #3D3D3D;
   --muted: #F7F0E6;
   --muted-foreground: #6B6360;
-  --accent: #E38B41;
+  --accent: #9C1917;
   --accent-foreground: #3D3D3D;
   --destructive: #9C1917;
   --destructive-foreground: #F4EBDD;
@@ -71,18 +71,18 @@
   --input: #E7DCCB;
   --ring: #9C1917;
   --chart-1: #9C1917;
-  --chart-2: #E38B41;
-  --chart-3: #C25A31;
+  --chart-2: #F4EBDD;
+  --chart-3: #B02B26;
   --chart-4: #3D3D3D;
   --chart-5: #F4EBDD;
   --sidebar: #9C1917;
   --sidebar-foreground: #F4EBDD;
-  --sidebar-primary: #E38B41;
+  --sidebar-primary: #F4EBDD;
   --sidebar-primary-foreground: #3D3D3D;
   --sidebar-accent: #B02B26;
   --sidebar-accent-foreground: #F4EBDD;
   --sidebar-border: #B02B26;
-  --sidebar-ring: #E38B41;
+  --sidebar-ring: #F4EBDD;
 }
 
 .dark {
@@ -98,26 +98,26 @@
   --secondary-foreground: #F4EBDD;
   --muted: #3A2321;
   --muted-foreground: #C9BFB2;
-  --accent: #E38B41;
+  --accent: #9C1917;
   --accent-foreground: #3D3D3D;
   --destructive: #C9302C;
   --destructive-foreground: #F4EBDD;
   --border: oklch(1 0 0 / 14%);
   --input: oklch(1 0 0 / 16%);
-  --ring: #E38B41;
+  --ring: #9C1917;
   --chart-1: #C9302C;
-  --chart-2: #E38B41;
-  --chart-3: #D9663A;
+  --chart-2: #F4EBDD;
+  --chart-3: #B02B26;
   --chart-4: #F4EBDD;
   --chart-5: #9C1917;
   --sidebar: #9C1917;
   --sidebar-foreground: #F4EBDD;
-  --sidebar-primary: #E38B41;
+  --sidebar-primary: #F4EBDD;
   --sidebar-primary-foreground: #3D3D3D;
   --sidebar-accent: #B02B26;
   --sidebar-accent-foreground: #F4EBDD;
   --sidebar-border: #B02B26;
-  --sidebar-ring: #E38B41;
+  --sidebar-ring: #F4EBDD;
 }
 
 @layer base {
@@ -131,13 +131,40 @@
   .font-display { font-family: "Clash Grotesk", "Montserrat", ui-sans-serif, system-ui, sans-serif; }
   .area-card { border-top: 3px solid #9C1917; }
   .sla-low { color: #2F7D32; }
-  .sla-medium { color: #B8860B; }
-  .sla-high { color: #D96B1F; }
+  .sla-medium { color: #9C1917; }
+  .sla-high { color: #9C1917; }
   .sla-critical { color: #9C1917; }
   .status-low { background-color: #E8F5E9; color: #2F7D32; }
-  .status-medium { background-color: #FFF4CC; color: #8A6500; }
-  .status-high { background-color: #FFF0E4; color: #B94F0A; }
+  .status-medium { background-color: #F4EBDD; color: #9C1917; }
+  .status-high { background-color: #F4EBDD; color: #9C1917; }
   .status-critical { background-color: #F8E2E1; color: #9C1917; }
+}
+
+
+/* Padronização global: remove tons laranja/âmbar e usa a paleta institucional VEM. */
+:root, .dark {
+  --color-accent: var(--accent);
+}
+
+/* Detalhes de alertas, status e prioridade que ainda usam utilitários Tailwind amber/orange. */
+[class*="bg-amber-"], [class*="bg-orange-"] {
+  background-color: #F4EBDD !important;
+  color: #9C1917 !important;
+}
+[class*="text-amber-"], [class*="text-orange-"] {
+  color: #9C1917 !important;
+}
+[class*="border-amber-"], [class*="border-orange-"] {
+  border-color: #D8B9B5 !important;
+}
+:is([class*="hover:bg-amber-"], [class*="hover:bg-orange-"]):hover {
+  background-color: #EAD6D3 !important;
+}
+:is([class*="hover:text-amber-"], [class*="hover:text-orange-"]):hover {
+  color: #7D1412 !important;
+}
+:is([class*="hover:border-amber-"], [class*="hover:border-orange-"]):hover {
+  border-color: #9C1917 !important;
 }
 
 /* O histórico do chamado não deve herdar sublinhado nos valores alterados. */
