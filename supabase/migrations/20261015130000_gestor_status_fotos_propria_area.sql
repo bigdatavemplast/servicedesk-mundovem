@@ -67,7 +67,7 @@ WITH CHECK (
         OR (
           public.has_role((SELECT auth.uid()), 'gestor'::public.app_role)
           AND NOT public.has_role((SELECT auth.uid()), 'admin'::public.app_role)
-          AND lower(coalesce(objects.name, '')) ~ '\\.(png|jpe?g|webp)$'
+          AND (lower(objects.name) LIKE '%.png' OR lower(objects.name) LIKE '%.jpg' OR lower(objects.name) LIKE '%.jpeg' OR lower(objects.name) LIKE '%.webp')
           AND EXISTS (
             SELECT 1
             FROM public.profiles p
