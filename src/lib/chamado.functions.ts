@@ -155,7 +155,6 @@ export const comentarChamado = createServerFn({ method: "POST" }).middleware([re
   const roles = await getRoles(supabase, context.userId);
   const isAdmin = roles.includes("admin");
   const isManager = roles.includes("gestor") && !isAdmin;
-  if (isManager && isRequester) throw new Error("Você não pode comentar em um chamado que registrou; somente adicionar imagens aos anexos.");
   if (isManager && data.interno) throw new Error("Gestores podem adicionar apenas comentários públicos.");
   const canInteract = isManager ? await canAccessTicket(admin, context.userId, ticket) : isRequester || await canEditFilaTicket(admin, context.userId, ticket);
   if (!canInteract) throw new Error("Somente o solicitante, o admin ou o atendente autorizado pode comentar neste chamado.");
@@ -225,7 +224,7 @@ export const atualizarChamado = createServerFn({ method: "POST" }).middleware([r
   const atorRole = getPrimaryRole(roles);
   const patch: Record<string, any> = {}; const historico: any[] = [];
   if (data.status && data.status !== ticket.status) { patch.status = data.status; historico.push({ chamado_id: data.chamadoId, autor_id: context.userId, acao: data.status === "reaberto" ? "chamado_reaberto" : "status_alterado", de: ticket.status, para: data.status, ator_role: atorRole }); if (data.status === "resolvido") patch.resolvido_em = new Date().toISOString(); if (data.status === "fechado") patch.fechado_em = new Date().toISOString(); if (data.status === "reaberto") { patch.reaberto_em = new Date().toISOString(); patch.sla_pausado = false; patch.atendente_id = ticket.atendente_id ?? null; } }
-  if (data.prioridade && data.prioridade !== ticket.prioridade) { patch.prioridade = data.prioridade; historico.push({ chamado_id: data.chamadoId, autor_id: context.userId, acao: "prioridade_alterada", de: ticket.prioridade, para: data.prioridade, ator_role: atorRole }); }
+  if (data.prioridade && data.prioridade !== ticket.prioridade) { patch.prioridade = data.prioridade; historico.push({ chamado_id: data.chamadoId, autor_id: context.userId, acao: "prioridade_alterada", de: ticket.prioridade, para: data.prioridade, ator_role: atorRole }); if (data.justificativa?.trim()) historico.push({ chamado_id: data.chamadoId, autor_id: context.userId, acao: "justificativa_prioridade", de: "", para: data.justificativa.trim(), ator_role: atorRole }); }
   if (data.atendenteId !== undefined && data.atendenteId !== ticket.atendente_id) { patch.atendente_id = data.atendenteId; historico.push({ chamado_id: data.chamadoId, autor_id: context.userId, acao: "atendente_alterado", de: ticket.atendente_id ?? "", para: data.atendenteId ?? "", ator_role: atorRole }); }
   if (data.tipoChamadoId !== undefined && data.tipoChamadoId !== ticket.tipo_chamado_id) { patch.tipo_chamado_id = data.tipoChamadoId; historico.push({ chamado_id: data.chamadoId, autor_id: context.userId, acao: "tipo_chamado_alterado", de: ticket.tipo_chamado_id ?? "", para: data.tipoChamadoId, ator_role: atorRole }); }
   if (!Object.keys(patch).length) return { ok: true, chamado: ticket };
