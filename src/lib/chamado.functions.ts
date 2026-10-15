@@ -211,7 +211,7 @@ export const atualizarChamado = createServerFn({ method: "POST" }).middleware([r
   if (data.status === "reaberto") {
     if (!isRequester && !isAdmin && !managerOwnAreaEdit) throw new Error("Somente o solicitante ou o gestor da área pode reabrir o chamado.");
     if (ticket.status !== "fechado" || !ticket.fechado_em) throw new Error("Somente chamados fechados podem ser reabertos.");
-    if (Date.now() - new Date(ticket.fechado_em).getTime() > 48 * 60 * 60 * 1000) throw new Error("O prazo de 2 dias para reabrir o chamado expirou.");
+    if (!managerOwnAreaEdit && Date.now() - new Date(ticket.fechado_em).getTime() > 48 * 60 * 60 * 1000) throw new Error("O prazo de 2 dias para reabrir o chamado expirou.");
   } else if (data.status !== undefined && !managerOwnAreaEdit && !(await hasPermission(supabase, context.userId, "ticket.update.status"))) throw new Error("Somente a equipe de atendimento pode alterar o status do chamado.");
   if (data.prioridade !== undefined && !managerOwnAreaEdit && !(await hasPermission(supabase, context.userId, "ticket.update.priority"))) throw new Error("Você não tem permissão para alterar a prioridade.");
   if (data.atendenteId !== undefined && !(await hasPermission(supabase, context.userId, "ticket.assign"))) throw new Error("Você não tem permissão para atribuir o chamado.");
