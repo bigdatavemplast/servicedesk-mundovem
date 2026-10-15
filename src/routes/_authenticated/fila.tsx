@@ -46,7 +46,7 @@ function statusLabel(s: string) {
 }
 function prioStyle(p: string) {
   if (p === "critica") return "bg-red-50 text-red-700 border border-red-200";
-  if (p === "alta") return "bg-amber-50 text-amber-800 border border-amber-200";
+  if (p === "alta") return "bg-[#F4EBDD] text-[#9C1917] border border-[#D8B9B5]";
   if (p === "media") return "bg-blue-50 text-blue-700 border border-blue-200";
   if (p === "baixa") return "bg-slate-100 text-slate-600 border border-slate-200";
   return "bg-muted text-muted-foreground border border-border";
@@ -112,7 +112,7 @@ function slaInfo(c: any, now: number, regras: Map<string, Regra>, horarios: Hora
 function duration(seconds: number | null) {
   if (seconds == null) return "—"; const s = Math.max(0, Math.floor(seconds)); const h = Math.floor(s / 3600); const m = Math.floor((s % 3600) / 60); return h ? `${h}h ${m}min` : `${m}min`;
 }
-function slaClass(status: string) { if (status === "vencido") return "text-red-600 font-medium"; if (status === "vencendo") return "text-amber-600 font-medium"; if (status === "pausado") return "text-blue-600 font-medium"; if (status === "finalizado") return "text-muted-foreground"; return "text-emerald-600"; }
+function slaClass(status: string) { if (status === "vencido") return "text-red-600 font-medium"; if (status === "vencendo") return "text-[#9C1917] font-medium"; if (status === "pausado") return "text-blue-600 font-medium"; if (status === "finalizado") return "text-muted-foreground"; return "text-emerald-600"; }
 
 function FilaPage() {
   const navigate = useNavigate();
