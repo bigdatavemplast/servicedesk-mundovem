@@ -178,6 +178,7 @@ export const atualizarChamado = createServerFn({ method: "POST" }).middleware([r
   const isAdmin = roles.includes("admin");
   const isGestor = roles.includes("gestor");
   const isManager = isGestor && !isAdmin;
+  if (isManager) throw new Error("Gestores não podem alterar chamados. Você pode adicionar comentários públicos.");
   // Gestores podem editar os campos do chamado, exceto o atendente,
   // somente quando o chamado pertence à área vinculada ao seu perfil.
   let managerOwnArea = false;
@@ -256,6 +257,7 @@ export const acaoSolicitanteChamado = createServerFn({ method: "POST" }).middlew
   const admin = await getAdminClient(supabase);
   const roles = await getRoles(supabase, context.userId);
   const isAdmin = roles.includes("admin");
+  if (roles.includes("gestor") && !isAdmin) throw new Error("Gestores não podem alterar o status dos chamados. Você pode adicionar comentários públicos.");
   const isRequesterRole = roles.includes("colaborador") || roles.includes("gestor");
   if (isAdmin || !isRequesterRole) throw new Error("Esta ação está disponível para solicitantes nos chamados que registraram.");
 
@@ -291,8 +293,18 @@ export const acaoSolicitanteChamado = createServerFn({ method: "POST" }).middlew
   }
   return { ok: true, status: resultado.status };
 });
+export const reabrirChamado = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((d) => z.object({ chamadoId: z.string().uuid() }).parse(d)).handler(async ({ data, context }) => {
+  const roles = await getRoles(context.supabase, context.userId);
+  if (roles.includes("gestor") && !roles.includes("admin")) throw new Error("Gestores não podem reabrir chamados. Você pode adicionar comentários públicos.");
+  const { data: resultado, error } = await (context.supabase.rpc as any)("reabrir_chamado", { _chamado_id: data.chamadoId });
+  if (error) throw new Error(error.message);
+  if (!resultado) throw new Error("Não foi possível reabrir o chamado.");
+  return { ok: true };
+});
+
 export const avaliarChamado = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((d) => z.object({ chamadoId: z.string().uuid(), nota: z.number().int().min(1).max(5), comentario: z.string().nullable().optional() }).parse(d)).handler(async ({ data, context }) => {
   const roles = await getRoles(context.supabase, context.userId);
+  if (roles.includes("gestor") && !roles.includes("admin")) throw new Error("Gestores não podem avaliar chamados. Você pode adicionar comentários públicos.");
   if (roles.includes("gestor") && !roles.includes("admin")) {
     const { data: ticket, error } = await context.supabase.from("chamados").select("solicitante_id").eq("id", data.chamadoId).maybeSingle();
     if (error) throw new Error(error.message);
