@@ -266,7 +266,15 @@ function DetalheChamadoPage() {
   if (isLoading || !chamado) return <div className="p-6">Carregando…</div>;
   return (<div className="mx-auto max-w-6xl p-4 md:p-6">
     <div className="mb-4 flex items-center justify-between gap-3"><div><Button variant="ghost" size="sm" asChild><Link to="/chamados"><ArrowLeft className="mr-2 h-4 w-4" />Voltar</Link></Button><h1 className="mt-2 text-xl font-semibold">{chamado.numero} — {chamado.titulo}</h1></div><Badge className={statusClass(chamado.status)}>{statusLabel(chamado.status)}</Badge></div>
-    {chamadoEmAbertoAposVirada && <div className="mb-4 flex items-start gap-3 rounded-md border border-[#D8B9B5] bg-[#F4EBDD] px-4 py-3 text-sm text-[#9C1917]"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[#9C1917]" /><div><div className="font-semibold">Atenção: este chamado atravessou o dia</div><div className="mt-0.5 text-[#9C1917]">Aberto em {fmt(chamado.aberto_em)} e ainda não foi resolvido. Priorize o atendimento para evitar novo atraso.</div></div></div>}
+    {chamadoEmAbertoAposVirada && <div role="status" className="mb-4 flex items-start gap-3 rounded-lg border border-[#E8D3D2] border-l-[3px] border-l-[#9C1917] bg-[#FBF5F4] px-4 py-3 text-sm">
+      <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[#F0DEDC] text-[#8F292D]">
+        <AlertTriangle className="h-4 w-4" aria-hidden="true" />
+      </div>
+      <div className="min-w-0">
+        <p className="font-medium text-[#57272A]">Atenção: este chamado atravessou o dia</p>
+        <p className="mt-0.5 leading-relaxed text-[#70585A]">Aberto em {fmt(chamado.aberto_em)} e ainda não foi resolvido. Priorize o atendimento para evitar novo atraso.</p>
+      </div>
+    </div>}
     {!isStaff && ["resolvido", "fechado"].includes(chamado.status) && <div role="status" className={`mb-4 flex items-start gap-3 rounded-lg border px-4 py-4 shadow-sm ${chamado.status === "resolvido" ? "border-emerald-200 bg-emerald-50/70 text-emerald-950 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-100" : "border-border bg-muted/40 text-foreground"}`}>
       <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${chamado.status === "resolvido" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-200" : "bg-muted text-muted-foreground"}`}>
         {chamado.status === "resolvido" ? <CheckCircle2 className="h-5 w-5" aria-hidden="true" /> : <LockKeyhole className="h-5 w-5" aria-hidden="true" />}
