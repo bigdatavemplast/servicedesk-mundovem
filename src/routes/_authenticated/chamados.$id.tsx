@@ -277,7 +277,13 @@ function DetalheChamadoPage() {
         {chamado.resolvido_em && <p className="mt-2 text-xs text-muted-foreground">{chamado.status === "resolvido" ? "Resolvido em" : "Data da resolução"} {fmt(chamado.resolvido_em)}</p>}
       </div>
     </div>}
-    {isManager && <div className="mb-4 rounded-md border border-[#D8B9B5] bg-[#F4EBDD] px-4 py-3 text-sm text-[#9C1917]">Perfil Gestor: você pode consultar os chamados e adicionar comentários públicos. Não é permitido alterar campos, status ou anexos.</div>}
+    {isManager && <div role="status" className="mb-4 flex items-start gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm text-foreground">
+      <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-[#9C1917]" aria-hidden="true" />
+      <div className="min-w-0">
+        <p className="font-medium">Acesso do perfil Gestor</p>
+        <p className="mt-0.5 leading-relaxed text-muted-foreground">Você pode consultar os chamados e adicionar comentários públicos. A edição de campos, status e anexos não está disponível para este perfil.</p>
+      </div>
+    </div>}
     <div className="grid gap-4 lg:grid-cols-[2fr_1fr]"><div className="space-y-4">
       <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Descrição</CardTitle></CardHeader><CardContent><p className="whitespace-pre-wrap text-sm">{chamado.descricao}</p></CardContent></Card>
       <AnexosSecao chamadoId={id} userId={user.id} somenteImagens={isManager} podeRemoverTodos={roles.includes("admin") && !paginaSomenteLeitura} podeRemoverProprio={!gestorNoProprioChamado} podeAdicionar={!isManager && (!isAttendant || atendentePodeAlterar)} onTentativaSemPermissao={() => { if (isAttendant && !atendentePodeAlterar) toast.error("Você não pode alterar este chamado. Ele já possui um atendente ou não pertence ao seu grupo/área."); }} />
