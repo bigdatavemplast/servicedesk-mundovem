@@ -84,6 +84,15 @@ function DetalheChamadoPage() {
   const isStaff = roles.some((r) => ["atendente", "gestor", "admin"].includes(r));
   const isAttendant = roles.includes("atendente") && !roles.includes("gestor") && !roles.includes("admin");
   const isManager = roles.includes("gestor") && !roles.includes("admin");
+  const { data: perfilGestor } = useQuery({
+    queryKey: ["perfil-area-gestor", user.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("profiles").select("departamento").eq("id", user.id).maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: isManager,
+  });
 
   const { data: chamado, isLoading } = useQuery({
     queryKey: ["chamado", id],
@@ -252,6 +261,9 @@ function DetalheChamadoPage() {
 
   const sla = slaInfo(chamado, now);
   const gestorNoProprioChamado = isManager && chamado?.solicitante_id === user.id;
+  const mesmaAreaDoGestor = !!perfilGestor?.departamento && !!(chamado?.solicitante as any)?.departamento
+    && perfilGestor.departamento.trim().toLocaleLowerCase("pt-BR") === (chamado.solicitante as any).departamento.trim().toLocaleLowerCase("pt-BR");
+  const exibirAvisoAcessoGestor = isManager && !gestorNoProprioChamado && mesmaAreaDoGestor;
   const paginaSomenteLeitura = isManager;
   const podeAlterarChamado = !isManager;
   const podeAlterarPrioridade = !isManager;
@@ -285,7 +297,7 @@ function DetalheChamadoPage() {
         {chamado.resolvido_em && <p className="mt-2 text-xs text-muted-foreground">{chamado.status === "resolvido" ? "Resolvido em" : "Data da resolução"} {fmt(chamado.resolvido_em)}</p>}
       </div>
     </div>}
-    {isManager && <div role="status" className="mb-4 flex items-start gap-3 rounded-lg border border-[#E8D3D2] border-l-[3px] border-l-[#9C1917] bg-[#FBF5F4] px-4 py-3 text-sm text-[#57272A]">
+    {exibirAvisoAcessoGestor && <div role="status" className="mb-4 flex items-start gap-3 rounded-lg border border-[#E8D3D2] border-l-[3px] border-l-[#9C1917] bg-[#FBF5F4] px-4 py-3 text-sm text-[#57272A]">
       <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[#F0DEDC] text-[#8F292D]">
         <LockKeyhole className="h-4 w-4" aria-hidden="true" />
       </div>
