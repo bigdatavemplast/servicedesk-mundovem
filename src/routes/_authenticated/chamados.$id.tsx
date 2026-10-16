@@ -277,7 +277,7 @@ function DetalheChamadoPage() {
 
   if (isLoading || !chamado) return <div className="p-6">Carregando…</div>;
   return (<div className="mx-auto max-w-6xl p-4 md:p-6">
-    <div className="mb-4 flex items-center justify-between gap-3"><div><Button variant="ghost" size="sm" asChild><Link to="/chamados"><ArrowLeft className="mr-2 h-4 w-4" />Voltar</Link></Button><h1 className="mt-2 text-xl font-semibold">{chamado.numero} — {chamado.titulo}</h1></div><Badge className={`${statusClass(chamado.status)} hover:text-white`}>{statusLabel(chamado.status)}</Badge></div>
+    <div className="mb-4 flex items-center justify-between gap-3"><div><Button variant="ghost" size="sm" asChild><Link to="/chamados"><ArrowLeft className="mr-2 h-4 w-4" />Voltar</Link></Button><h1 className="mt-2 text-xl font-semibold">{chamado.numero} — {chamado.titulo}</h1></div><Badge className="border border-[#E8D3D2] bg-[#F0DEDC] text-[#8F292D] transition-colors hover:border-[#9C1917] hover:bg-[#9C1917] hover:text-white">{statusLabel(chamado.status)}</Badge></div>
     {chamadoEmAbertoAposVirada && <div role="status" className="mb-4 flex items-start gap-3 rounded-lg border border-[#E8D3D2] border-l-[3px] border-l-[#9C1917] bg-[#FBF5F4] px-4 py-3 text-sm">
       <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[#F0DEDC] text-[#8F292D]">
         <AlertTriangle className="h-4 w-4" aria-hidden="true" />
