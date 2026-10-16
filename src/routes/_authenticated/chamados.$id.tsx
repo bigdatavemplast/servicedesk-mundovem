@@ -97,22 +97,6 @@ function DetalheChamadoPage() {
     },
   });
 
-  const { data: gestorPodeOperarNaArea = false } = useQuery({
-    queryKey: ["gestor-area-chamado", user.id, id, chamado?.segmento_id],
-    enabled: isManager && !!chamado?.segmento_id,
-    queryFn: async () => {
-      const { data: perfil, error: perfilError } = await supabase.from("profiles").select("area_id").eq("id", user.id).maybeSingle();
-      if (perfilError || !perfil?.area_id || !chamado?.segmento_id) return false;
-      const [{ data: area, error: areaError }, { data: segmento, error: segmentoError }] = await Promise.all([
-        supabase.from("areas").select("nome").eq("id", perfil.area_id).maybeSingle(),
-        supabase.from("segmentos").select("nome").eq("id", chamado.segmento_id).maybeSingle(),
-      ]);
-      if (areaError || segmentoError) return false;
-      const normalizar = (valor: unknown) => String(valor ?? "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
-      return !!area?.nome && !!segmento?.nome && normalizar(area.nome) === normalizar(segmento.nome);
-    },
-  });
-
   useEffect(() => { if (chamado?.numero) document.title = chamado.numero; }, [chamado?.numero]);
 
   const { data: comentarios = [] } = useQuery({ queryKey: ["chamado-comentarios", id, isAttendant], queryFn: async () => { let q = supabase.from("comentarios_chamado").select("id,conteudo,interno,criado_em,autor:profiles(nome)").eq("chamado_id", id).order("criado_em", { ascending: true }); if (!isAttendant) q = q.eq("interno", false); const { data } = await q; return data ?? []; } });
@@ -268,7 +252,6 @@ function DetalheChamadoPage() {
 
   const sla = slaInfo(chamado, now);
   const gestorNoProprioChamado = isManager && chamado?.solicitante_id === user.id;
-  const gestorPodeEditarStatus = false;
   const paginaSomenteLeitura = isManager;
   const podeAlterarChamado = !isManager;
   const podeAlterarPrioridade = !isManager;
