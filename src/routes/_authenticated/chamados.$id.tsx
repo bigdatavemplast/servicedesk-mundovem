@@ -277,11 +277,13 @@ function DetalheChamadoPage() {
         {chamado.resolvido_em && <p className="mt-2 text-xs text-muted-foreground">{chamado.status === "resolvido" ? "Resolvido em" : "Data da resolução"} {fmt(chamado.resolvido_em)}</p>}
       </div>
     </div>}
-    {isManager && <div role="status" className="mb-4 flex items-start gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm text-foreground">
-      <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-[#9C1917]" aria-hidden="true" />
+    {isManager && <div role="status" className="mb-4 flex items-start gap-3 rounded-lg border border-[#E8D3D2] border-l-[3px] border-l-[#9C1917] bg-[#FBF5F4] px-4 py-3 text-sm text-[#57272A]">
+      <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[#F0DEDC] text-[#8F292D]">
+        <LockKeyhole className="h-4 w-4" aria-hidden="true" />
+      </div>
       <div className="min-w-0">
-        <p className="font-medium">Acesso do perfil Gestor</p>
-        <p className="mt-0.5 leading-relaxed text-muted-foreground">Você pode consultar os chamados e adicionar comentários públicos. A edição de campos, status e anexos não está disponível para este perfil.</p>
+        <p className="font-medium text-[#57272A]">Acesso do perfil Gestor</p>
+        <p className="mt-0.5 leading-relaxed text-[#70585A]">Você pode consultar os chamados e adicionar comentários públicos. A edição de campos, status e anexos não está disponível para este perfil.</p>
       </div>
     </div>}
     <div className="grid gap-4 lg:grid-cols-[2fr_1fr]"><div className="space-y-4">
