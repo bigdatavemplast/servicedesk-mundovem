@@ -66,7 +66,7 @@
   --accent: #9C1917;
   --accent-foreground: #FFFFFF;
   --destructive: #9C1917;
-  --destructive-foreground: #F4EBDD;
+  --destructive-foreground: #FFFFFF;
   --border: #E8E3DA;
   --input: #E8E3DA;
   --ring: #9C1917;
@@ -101,7 +101,7 @@
   --accent: #9C1917;
   --accent-foreground: #FFFFFF;
   --destructive: #C9302C;
-  --destructive-foreground: #F4EBDD;
+  --destructive-foreground: #FFFFFF;
   --border: oklch(1 0 0 / 14%);
   --input: oklch(1 0 0 / 16%);
   --ring: #9C1917;
