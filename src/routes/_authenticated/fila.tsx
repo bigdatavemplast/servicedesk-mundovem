@@ -45,10 +45,10 @@ function statusLabel(s: string) {
   return s;
 }
 function prioStyle(p: string) {
-  if (p === "critica") return "bg-red-50 text-red-700 border border-red-200";
-  if (p === "alta") return "bg-[#F4EBDD] text-[#9C1917] border border-[#D8B9B5]";
-  if (p === "media") return "bg-blue-50 text-blue-700 border border-blue-200";
-  if (p === "baixa") return "bg-slate-100 text-slate-600 border border-slate-200";
+  if (p === "critica") return "bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900";
+  if (p === "alta") return "bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900";
+  if (p === "media") return "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900";
+  if (p === "baixa") return "bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800/60 dark:text-slate-300 dark:border-slate-700";
   return "bg-muted text-muted-foreground border border-border";
 }
 function prioLabel(p: string) {
