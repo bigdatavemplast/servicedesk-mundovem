@@ -262,7 +262,7 @@ function DetalheChamadoPage() {
   const sla = slaInfo(chamado, now);
   const gestorNoProprioChamado = isManager && chamado?.solicitante_id === user.id;
   const mesmaAreaDoGestor = !!perfilGestor?.departamento && !!(chamado?.solicitante as any)?.departamento
-    && perfilGestor.departamento.trim().toLocaleLowerCase("pt-BR") === (chamado.solicitante as any).departamento.trim().toLocaleLowerCase("pt-BR");
+    && perfilGestor.departamento.trim().toLocaleLowerCase("pt-BR") === (chamado?.solicitante as any).departamento.trim().toLocaleLowerCase("pt-BR");
   const exibirAvisoAcessoGestor = isManager && mesmaAreaDoGestor;
   const paginaSomenteLeitura = isManager;
   const podeAlterarChamado = !isManager;
