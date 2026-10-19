@@ -45,18 +45,20 @@ function sugestaoAbertura(texto: string) {
 }
 function exemploTituloPorArea(nome: string) {
   const area = normalizarTipo(nome);
-  if (area === "rh") return "Solicitação de férias";
+  if (area === "rh") return "Solicitação de férias ou ajuste de ponto";
   if (area === "marketing") return "Criar material para campanha";
-  if (area === "financeiro") return "Dúvida sobre pagamento";
+  if (area === "financeiro") return "Dúvida sobre pagamento ou reembolso";
   if (area === "projetos") return "Atualização do cronograma do projeto";
-  if (area === "fabrica") return "Máquina com problema na produção";
-  if (area === "expedicao") return "Pedido aguardando envio";
+  if (area === "fabrica") return "Máquina parada na linha de produção";
+  if (area === "expedicao") return "Pedido separado aguardando envio";
   if (area === "logistica") return "Pedido atrasado ou problema na entrega";
   if (area === "controladoria") return "Divergência em relatório ou fechamento";
   if (area === "ti") return "Notebook não liga ou problema de acesso";
-  if (area === "e-commerce" || area === "ecommerce") return "Produto não aparece no site";
-  if (area === "comercial") return "Proposta comercial para cliente";
-  return "Descreva o problema ou a solicitação";
+  if (area === "e-commerce") return "Produto não aparece no site";
+  if (area === "ecommerce") return "Pedido do e-commerce com problema";
+  if (area === "comercial") return "Solicitação de proposta comercial para cliente";
+  if (area === "diretoria") return "Solicitação de relatório para reunião executiva";
+  return "Descreva a solicitação desta área";
 }
 function lerAreaSelecionada(): Area | null { try { const raw = localStorage.getItem("service_desk_segmento"); if (!raw) return null; const value = JSON.parse(raw); if (!value?.id) return null; return { id: String(value.id), nome: String(value.nome ?? "") }; } catch { return null; } }
 function lerItemCatalogoSelecionado() {
