@@ -45,8 +45,8 @@ const ROLES = [
   { v: "admin", l: "Administrador (Acesso total)" },
 ] as const;
 
-const AREAS_CADASTRO = ["TI", "RH", "Financeiro", "Expedição", "Comercial", "Projetos", "E-commerce", "Fábrica", "Marketing"];
-const AREAS_EDICAO = ["Financeiro", "Projetos", "E-commerce", "TI", "Expedição", "RH", "Comercial", "Fábrica", "Marketing"];
+const AREAS_CADASTRO = ["TI", "RH", "Financeiro", "Logística", "Expedição", "Comercial", "Projetos", "E-commerce", "Fábrica", "Marketing"];
+const AREAS_EDICAO = ["Financeiro", "Logística", "Projetos", "E-commerce", "TI", "Expedição", "RH", "Comercial", "Fábrica", "Marketing"];
 
 const ROLE_LABEL: Record<string, string> = {
   colaborador: "COLABORADOR", atendente: "ATENDENTE", gestor: "GESTOR", admin: "ADMIN",
