@@ -30,6 +30,17 @@ const descricoes: Record<string, string> = {
 
 const normalizarNome = (nome: string) => nome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, "");
 
+const prioridadeAreas = ["TI", "FINANCEIRO", "LOGISTICA", "COMERCIAL"];
+const ordenarAreas = (a: Segmento, b: Segmento) => {
+  const nomeA = normalizarNome(a.nome);
+  const nomeB = normalizarNome(b.nome);
+  const indiceA = prioridadeAreas.indexOf(nomeA);
+  const indiceB = prioridadeAreas.indexOf(nomeB);
+  const prioridadeA = indiceA === -1 ? prioridadeAreas.length : indiceA;
+  const prioridadeB = indiceB === -1 ? prioridadeAreas.length : indiceB;
+  return prioridadeA - prioridadeB || a.nome.localeCompare(b.nome, "pt-BR");
+};
+
 const iconesPorArea: Record<string, LucideIcon> = {
   TI: Monitor,
   RH: Users,
@@ -52,7 +63,7 @@ function AreasPage() {
   const { data: perfil, isLoading: loadingPerfil, error: perfilError } = useQuery({ queryKey: ["areas-current-profile", user?.id], enabled: restringirPorArea, queryFn: async () => { const { data, error } = await supabase.from("profiles").select("area_id").eq("id", user!.id).single(); if (error) throw error; return data as Perfil; } });
   const { data: areaAtribuida, isLoading: loadingArea, error: areaError } = useQuery({ queryKey: ["areas-current-assigned-area", perfil?.area_id], enabled: restringirPorArea && !!perfil?.area_id, queryFn: async () => { const { data, error } = await supabase.from("areas").select("id,nome,ativo").eq("id", perfil!.area_id!).maybeSingle(); if (error) throw error; return data as Area | null; } });
   const { data: segmentos = [], isLoading: loadingSegmentos, error: segmentosError } = useQuery({ queryKey: ["areas-service-desk", user?.id, modoColaborador], enabled: !!user?.id && isAtendente !== undefined && (isAtendente === false || preferencia !== undefined), queryFn: async () => { const { data, error } = await supabase.from("segmentos").select("id,nome,ativo,ordem").eq("ativo", true).order("ordem").order("nome"); if (error) throw error; return (data ?? []) as Segmento[]; } });
-  const segmentosVisiveis = restringirPorArea ? (perfil?.area_id ? segmentos.filter((segmento) => !!areaAtribuida && areaAtribuida.ativo && normalizarNome(segmento.nome) === normalizarNome(areaAtribuida.nome)) : []) : segmentos;
+  const segmentosVisiveis = (restringirPorArea ? (perfil?.area_id ? segmentos.filter((segmento) => !!areaAtribuida && areaAtribuida.ativo && normalizarNome(segmento.nome) === normalizarNome(areaAtribuida.nome)) : []) : segmentos).slice().sort(ordenarAreas);
   const isLoading = !user || loadingRole || loadingModo || (restringirPorArea && (loadingPerfil || loadingArea)) || loadingSegmentos;
   const error = roleError || modoError || perfilError || areaError || segmentosError;
   const entrar = (segmento: Segmento) => { localStorage.setItem("service_desk_segmento", JSON.stringify({ id: segmento.id, nome: segmento.nome })); navigate({ to: "/dashboard" }); };
