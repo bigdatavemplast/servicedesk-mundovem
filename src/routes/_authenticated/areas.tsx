@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Building2, BriefcaseBusiness, ChevronRight, Factory, FolderKanban, Loader2, LogOut, Megaphone, Monitor, PackageCheck, ShoppingCart, Users, Wallet, type LucideIcon } from "lucide-react";
+import { Building2, BriefcaseBusiness, Boxes, ChevronRight, Factory, FolderKanban, Loader2, LogOut, Megaphone, Monitor, PackageCheck, ShoppingCart, Users, Wallet, type LucideIcon } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/areas")({
   head: () => ({ meta: [{ title: "Áreas de atendimento | Mundo Vem Service Desk" }, { name: "description", content: "Escolha a área responsável para acessar seu ambiente no Service Desk." }] }),
@@ -47,7 +47,7 @@ const iconesPorArea: Record<string, LucideIcon> = {
   FINANCEIRO: Wallet,
   PROJETOS: FolderKanban,
   MARKETING: Megaphone,
-  EXPEDICAO: PackageCheck,
+  EXPEDICAO: PackageCheck,\n  LOGISTICA: Boxes,
   COMERCIAL: BriefcaseBusiness,
   ECOMMERCE: ShoppingCart,
   FABRICA: Factory,
