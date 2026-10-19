@@ -46,7 +46,7 @@ function statusLabel(s: string) {
 }
 function prioStyle(p: string) {
   if (p === "critica") return "bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900";
-  if (p === "alta") return "bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900";
+  if (p === "alta") return "bg-violet-50 text-violet-700 border border-violet-200 dark:bg-violet-950/40 dark:text-violet-300 dark:border-violet-900";
   if (p === "media") return "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900";
   if (p === "baixa") return "bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800/60 dark:text-slate-300 dark:border-slate-700";
   return "bg-muted text-muted-foreground border border-border";
