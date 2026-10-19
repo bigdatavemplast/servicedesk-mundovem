@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Building2, BriefcaseBusiness, Boxes, ChevronRight, Factory, FolderKanban, Loader2, LogOut, Megaphone, Monitor, PackageCheck, ShoppingCart, Users, Wallet, type LucideIcon } from "lucide-react";
+import { Building2, BriefcaseBusiness, Boxes, ChevronRight, Factory, FolderKanban, Loader2, LogOut, Megaphone, Monitor, PackageCheck, ShoppingCart, Truck, Users, Wallet, type LucideIcon } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/areas")({
   head: () => ({ meta: [{ title: "Áreas de atendimento | Mundo Vem Service Desk" }, { name: "description", content: "Escolha a área responsável para acessar seu ambiente no Service Desk." }] }),
@@ -23,6 +23,7 @@ const descricoes: Record<string, string> = {
   Projetos: "Projetos, demandas e serviços relacionados às iniciativas da empresa.",
   Marketing: "Campanhas, comunicação, materiais e ações de marketing.",
   Expedição: "Separação, conferência, embalagem e expedição de pedidos.",
+  Logística: "Armazenagem, movimentação, transporte e fluxo de mercadorias.",
   Comercial: "Vendas, clientes, propostas e processos da área comercial.",
   "E-commerce": "Pedidos, produtos, integrações e operações do canal digital.",
   Fábrica: "Produção, operação, equipamentos e demandas da fábrica.",
@@ -48,7 +49,7 @@ const iconesPorArea: Record<string, LucideIcon> = {
   PROJETOS: FolderKanban,
   MARKETING: Megaphone,
   EXPEDICAO: PackageCheck,
-  LOGISTICA: Boxes,
+  LOGISTICA: Truck,
   COMERCIAL: BriefcaseBusiness,
   ECOMMERCE: ShoppingCart,
   FABRICA: Factory,
