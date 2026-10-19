@@ -51,9 +51,12 @@ function exemploTituloPorArea(nome: string) {
   if (area === "projetos") return "Atualização do cronograma do projeto";
   if (area === "fabrica") return "Máquina com problema na produção";
   if (area === "expedicao") return "Pedido aguardando envio";
+  if (area === "logistica") return "Pedido atrasado ou problema na entrega";
+  if (area === "controladoria") return "Divergência em relatório ou fechamento";
+  if (area === "ti") return "Notebook não liga ou problema de acesso";
   if (area === "e-commerce" || area === "ecommerce") return "Produto não aparece no site";
   if (area === "comercial") return "Proposta comercial para cliente";
-  return "notebook não liga";
+  return "Descreva o problema ou a solicitação";
 }
 function lerAreaSelecionada(): Area | null { try { const raw = localStorage.getItem("service_desk_segmento"); if (!raw) return null; const value = JSON.parse(raw); if (!value?.id) return null; return { id: String(value.id), nome: String(value.nome ?? "") }; } catch { return null; } }
 function lerItemCatalogoSelecionado() {
