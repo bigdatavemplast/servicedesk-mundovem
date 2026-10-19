@@ -60,11 +60,11 @@ function slaInfo(chamado: any, now: number) {
 function formatDuration(seconds: number | null) { if (seconds == null) return "—"; const s = Math.max(0, Math.floor(seconds)); const h = Math.floor(s / 3600); const m = Math.floor((s % 3600) / 60); if (h > 0) return `${h}h ${m}min`; return `${m}min`; }
 function slaClass(status: string) { if (status === "vencido" || status === "finalizado_vencido") return "text-red-600"; if (status === "vencendo") return "text-[#9C1917]"; if (status === "pausado") return "text-blue-600"; if (status === "finalizado_cancelado") return "text-slate-600"; if (status === "finalizado") return "text-emerald-700"; return "text-emerald-600"; }
 function statusClass(s: string) {
-  const vinho = "bg-[#F0DEDC] text-[#8F292D] border border-[#E8D3D2] dark:bg-[#4A2526]/40 dark:text-[#E9B8B6] dark:border-[#704143]";
   const neutro = "bg-muted/40 text-muted-foreground border border-border";
+  const azul = "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900";
   const classes: Record<string, string> = {
-    aberto: vinho,
-    reaberto: vinho,
+    aberto: azul,
+    reaberto: azul,
     em_andamento: "bg-sky-50 text-sky-700 border border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-900",
     aguardando_usuario: "bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900",
     aguardando_terceiro: "bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900",
