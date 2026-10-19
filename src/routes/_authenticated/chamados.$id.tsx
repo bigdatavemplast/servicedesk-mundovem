@@ -60,9 +60,18 @@ function slaInfo(chamado: any, now: number) {
 function formatDuration(seconds: number | null) { if (seconds == null) return "—"; const s = Math.max(0, Math.floor(seconds)); const h = Math.floor(s / 3600); const m = Math.floor((s % 3600) / 60); if (h > 0) return `${h}h ${m}min`; return `${m}min`; }
 function slaClass(status: string) { if (status === "vencido" || status === "finalizado_vencido") return "text-red-600"; if (status === "vencendo") return "text-[#9C1917]"; if (status === "pausado") return "text-blue-600"; if (status === "finalizado_cancelado") return "text-slate-600"; if (status === "finalizado") return "text-emerald-700"; return "text-emerald-600"; }
 function statusClass(s: string) {
-  if (["resolvido", "fechado"].includes(s)) return "bg-muted/60 text-muted-foreground border border-border";
-  if (s === "cancelado") return "bg-muted/40 text-muted-foreground border border-border";
-  return "bg-muted/40 text-foreground/80 border border-border";
+  const classes: Record<string, string> = {
+    aberto: "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900",
+    em_triagem: "bg-violet-50 text-violet-700 border border-violet-200 dark:bg-violet-950/40 dark:text-violet-300 dark:border-violet-900",
+    em_andamento: "bg-sky-50 text-sky-700 border border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-900",
+    aguardando_usuario: "bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900",
+    aguardando_terceiro: "bg-orange-50 text-orange-800 border border-orange-200 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-900",
+    resolvido: "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900",
+    fechado: "bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
+    reaberto: "bg-cyan-50 text-cyan-700 border border-cyan-200 dark:bg-cyan-950/40 dark:text-cyan-300 dark:border-cyan-900",
+    cancelado: "bg-slate-100 text-slate-500 border border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700",
+  };
+  return classes[s] ?? "bg-muted/60 text-muted-foreground border border-border";
 }
 function statusLabel(s: string | null | undefined) { return STATUS.find((item) => item.v === s)?.l ?? (s ? s.replaceAll("_", " ") : "—"); }
 function dateKey(d: string | null | undefined) { return d ? new Date(d).toLocaleDateString("pt-BR") : ""; }
@@ -277,7 +286,7 @@ function DetalheChamadoPage() {
 
   if (isLoading || !chamado) return <div className="p-6">Carregando…</div>;
   return (<div className="mx-auto max-w-6xl p-4 md:p-6">
-    <div className="mb-4 flex items-center justify-between gap-3"><div><Button variant="ghost" size="sm" asChild><Link to="/chamados"><ArrowLeft className="mr-2 h-4 w-4" />Voltar</Link></Button><h1 className="mt-2 text-xl font-semibold">{chamado.numero} — {chamado.titulo}</h1></div><Badge className="border border-[#E8D3D2] bg-[#F0DEDC] text-[#8F292D] transition-colors hover:border-[#9C1917] hover:bg-[#9C1917] hover:text-white">{statusLabel(chamado.status)}</Badge></div>
+    <div className="mb-4 flex items-center justify-between gap-3"><div><Button variant="ghost" size="sm" asChild><Link to="/chamados"><ArrowLeft className="mr-2 h-4 w-4" />Voltar</Link></Button><h1 className="mt-2 text-xl font-semibold">{chamado.numero} — {chamado.titulo}</h1></div><Badge className={statusClass(chamado.status)}>{statusLabel(chamado.status)}</Badge></div>
     {chamadoEmAbertoAposVirada && <div role="status" className="mb-4 flex items-start gap-3 rounded-lg border border-[#E8D3D2] border-l-[3px] border-l-[#9C1917] bg-[#FBF5F4] px-4 py-3 text-sm">
       <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[#F0DEDC] text-[#8F292D]">
         <AlertTriangle className="h-4 w-4" aria-hidden="true" />
