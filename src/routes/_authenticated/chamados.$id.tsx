@@ -31,7 +31,7 @@ export const Route = createFileRoute("/_authenticated/chamados/$id")({
 });
 
 const STATUS: { v: string; l: string }[] = [
-  { v: "aberto", l: "Aberto" }, { v: "em_triagem", l: "Em triagem" }, { v: "em_andamento", l: "Em andamento" },
+  { v: "aberto", l: "Aberto" }, { v: "em_andamento", l: "Em andamento" },
   { v: "aguardando_usuario", l: "Aguardando usu√°rio" }, { v: "aguardando_terceiro", l: "Aguardando terceiro" },
   { v: "resolvido", l: "Resolvido" }, { v: "fechado", l: "Fechado" }, { v: "reaberto", l: "Reaberto" }, { v: "cancelado", l: "Cancelado" },
 ];
@@ -61,16 +61,15 @@ function formatDuration(seconds: number | null) { if (seconds == null) return "‚
 function slaClass(status: string) { if (status === "vencido" || status === "finalizado_vencido") return "text-red-600"; if (status === "vencendo") return "text-[#9C1917]"; if (status === "pausado") return "text-blue-600"; if (status === "finalizado_cancelado") return "text-slate-600"; if (status === "finalizado") return "text-emerald-700"; return "text-emerald-600"; }
 function statusClass(s: string) {
   const vinho = "bg-[#F0DEDC] text-[#8F292D] border border-[#E8D3D2] dark:bg-[#4A2526]/40 dark:text-[#E9B8B6] dark:border-[#704143]";
-  const neutro = "bg-muted/60 text-muted-foreground border border-border";
+  const neutro = "bg-muted/40 text-muted-foreground border border-border";
   const classes: Record<string, string> = {
     aberto: vinho,
-    em_triagem: vinho,
     reaberto: vinho,
-    em_andamento: neutro,
-    aguardando_usuario: neutro,
-    aguardando_terceiro: neutro,
+    em_andamento: "bg-sky-50 text-sky-700 border border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-900",
+    aguardando_usuario: "bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900",
+    aguardando_terceiro: "bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900",
     fechado: neutro,
-    cancelado: "bg-muted/40 text-muted-foreground border border-border",
+    cancelado: "bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900",
     resolvido: "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900",
   };
   return classes[s] ?? neutro;
