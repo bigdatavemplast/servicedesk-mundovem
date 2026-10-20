@@ -117,7 +117,7 @@ function CatalogoPage() {
           onChange={(event) => setBusca(event.target.value)}
           placeholder="Buscar serviço..."
           aria-label="Buscar serviços por nome ou descrição"
-          className="h-10 w-full max-w-md bg-white text-gray-900 placeholder:text-gray-500 dark:bg-white dark:text-gray-900 dark:placeholder:text-gray-500"
+          className="h-10 w-full max-w-md border-gray-300 bg-white text-gray-900 placeholder:text-gray-500 focus-visible:border-gray-300 focus-visible:ring-0 focus-visible:ring-offset-0 dark:border-gray-300 dark:bg-white dark:text-gray-900 dark:placeholder:text-gray-500 dark:focus-visible:border-gray-300"
         />
       </div>
 
