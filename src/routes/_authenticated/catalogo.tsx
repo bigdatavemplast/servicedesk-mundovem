@@ -110,14 +110,14 @@ function CatalogoPage() {
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <Search className="h-4 w-4 text-muted-foreground" />
+      <div className="relative w-full max-w-md">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
         <Input
           value={busca}
           onChange={(event) => setBusca(event.target.value)}
           placeholder="Buscar serviço..."
           aria-label="Buscar serviços por nome ou descrição"
-          className="h-10 w-full max-w-md border-gray-300 bg-white text-gray-900 placeholder:text-gray-500 focus-visible:border-gray-300 focus-visible:ring-0 focus-visible:ring-offset-0 dark:border-gray-300 dark:bg-white dark:text-gray-900 dark:placeholder:text-gray-500 dark:focus-visible:border-gray-300"
+          className="h-10 w-full border-gray-300 bg-white pl-9 text-gray-900 placeholder:text-gray-500 focus-visible:border-gray-300 focus-visible:ring-0 focus-visible:ring-offset-0 dark:border-gray-300 dark:bg-white dark:pl-9 dark:text-gray-900 dark:placeholder:text-gray-500 dark:focus-visible:border-gray-300"
         />
       </div>
 
