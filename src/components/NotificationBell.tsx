@@ -163,7 +163,7 @@ export function NotificationBell({ userId }: { userId: string }) {
         }
       }}>
         <PopoverTrigger asChild>
-          <Button variant="ghost" size="icon" className={`relative transition-colors ${naoLidas > 0 ? "border border-[#9C1917] text-[#9C1917] hover:border-[#9C1917] hover:bg-[#9C1917]/5 hover:text-[#9C1917] dark:border-[#E07A75] dark:text-[#E07A75] dark:hover:border-[#E07A75] dark:hover:bg-[#E07A75]/10 dark:hover:text-[#E07A75]" : "border border-transparent"}`} aria-label={naoLidas > 0 ? `Notificações (${naoLidas} não lidas)` : "Notificações"}>
+          <Button variant="ghost" size="icon" className="relative" aria-label={naoLidas > 0 ? `Notificações (${naoLidas} não lidas)` : "Notificações"}>
             {naoLidas > 0 ? <BellRing className="h-5 w-5" /> : <Bell className="h-5 w-5" />}
             {naoLidas > 0 && <span className="absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">{naoLidas}</span>}
           </Button>
