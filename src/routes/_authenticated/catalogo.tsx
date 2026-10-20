@@ -160,7 +160,7 @@ function CatalogoPage() {
                 </CardHeader>
                 <CardContent className="flex flex-1 flex-col">
                   {removerPrefixoExemplo(item.descricao) && <p className="text-sm text-muted-foreground">{removerPrefixoExemplo(item.descricao)}</p>}
-                  <Button className="mt-auto w-full border border-border/80 bg-background text-foreground shadow-none hover:border-primary/50 hover:bg-muted/30 hover:text-primary dark:bg-background dark:hover:bg-muted/20" onClick={() => solicitar(item)}>Solicitar</Button>
+                  <Button className="mt-auto w-full border border-[#9C1917] bg-[#9C1917] text-white shadow-none hover:border-[#841512] hover:bg-[#841512] hover:text-white dark:border-[#C9302C] dark:bg-[#C9302C] dark:text-white dark:hover:border-[#A82420] dark:hover:bg-[#A82420]" onClick={() => solicitar(item)}>Solicitar</Button>
                 </CardContent>
               </Card>
             );
