@@ -164,8 +164,8 @@ export function NotificationBell({ userId }: { userId: string }) {
       }}>
         <PopoverTrigger asChild>
           <Button variant="ghost" size="icon" className="relative" aria-label={naoLidas > 0 ? `Notificações (${naoLidas} não lidas)` : "Notificações"}>
-            {naoLidas > 0 ? <BellRing className="h-5 w-5" /> : <Bell className="h-5 w-5" />}
-            {naoLidas > 0 && <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">{naoLidas}</span>}
+            {naoLidas > 0 ? <BellRing className="h-6 w-6" /> : <Bell className="h-6 w-6" />}
+            {naoLidas > 0 && <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">{naoLidas}</span>}
           </Button>
         </PopoverTrigger>
         <PopoverContent align="end" className="w-80 p-0">
