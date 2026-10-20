@@ -154,7 +154,7 @@ function CatalogoPage() {
                 <CardHeader>
                   <div className="flex items-start justify-between gap-3">
                     <CardTitle className="text-base">{removerPrefixoExemplo(item.nome)}</CardTitle>
-                    {item.requer_aprovacao && <Badge variant="outline">Aprovação</Badge>}
+
                   </div>
                   <p className="text-xs text-muted-foreground">{segmento} · {categoria}{subcategoria ? ` · ${subcategoria}` : ""} · {tipo}</p>
                 </CardHeader>
