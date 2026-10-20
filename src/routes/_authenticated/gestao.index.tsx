@@ -1107,7 +1107,7 @@ function GestaoPage() {
               setDias
             }
           >
-            <SelectTrigger className="w-[160px] border-gray-200 bg-white text-gray-900 dark:border-gray-200 dark:bg-white dark:text-gray-900">
+            <SelectTrigger className="w-[160px] border border-gray-200 bg-white text-gray-900 ring-0 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 dark:border-gray-200 dark:bg-white dark:text-gray-900">
               <SelectValue />
             </SelectTrigger>
 
