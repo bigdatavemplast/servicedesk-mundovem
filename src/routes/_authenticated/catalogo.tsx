@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, ListChecks, Search, AlertCircle } from "lucide-react";
+import { Loader2, ListChecks, Search, AlertCircle, X } from "lucide-react";
 import { useMemo, useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/catalogo")({
@@ -111,14 +111,15 @@ function CatalogoPage() {
       </div>
 
       <div className="relative w-full max-w-md">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           value={busca}
           onChange={(event) => setBusca(event.target.value)}
           placeholder="Buscar serviço..."
           aria-label="Buscar serviços por nome ou descrição"
-          className="h-10 w-full border-0 bg-white pl-9 text-gray-900 shadow-none placeholder:text-gray-500 focus-visible:border-0 focus-visible:ring-0 focus-visible:ring-offset-0 dark:border-0 dark:bg-white dark:pl-9 dark:text-gray-900 dark:placeholder:text-gray-500 dark:focus-visible:border-0"
+          className={`border-border bg-white shadow-none placeholder:text-muted-foreground transition-colors hover:border-border hover:bg-white focus-visible:border-border focus-visible:bg-white focus-visible:ring-0 pl-9 pr-9 dark:bg-white ${busca.trim() ? "border-border bg-white focus-visible:ring-0" : ""}`}
         />
+        {busca && <button type="button" aria-label="Limpar busca" onClick={() => setBusca("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>}
       </div>
 
       {isLoading && (
