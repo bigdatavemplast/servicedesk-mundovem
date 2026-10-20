@@ -158,11 +158,9 @@ function CatalogoPage() {
                   </div>
                   <p className="text-xs text-muted-foreground">{segmento} · {categoria}{subcategoria ? ` · ${subcategoria}` : ""} · {tipo}</p>
                 </CardHeader>
-                <CardContent className="flex flex-1 flex-col">
+                <CardContent className="flex flex-1 flex-col gap-4">
                   {removerPrefixoExemplo(item.descricao) && <p className="text-sm text-muted-foreground">{removerPrefixoExemplo(item.descricao)}</p>}
-                  <div className="mt-auto pt-4">
-                    <Button className="w-full border border-[#9C1917] bg-[#9C1917] text-white shadow-none hover:border-[#841512] hover:bg-[#841512] hover:text-white dark:border-[#C9302C] dark:bg-[#C9302C] dark:text-white dark:hover:border-[#A82420] dark:hover:bg-[#A82420]" onClick={() => solicitar(item)}>Solicitar</Button>
-                  </div>
+                  <Button className="mt-auto w-full border border-[#9C1917] bg-[#9C1917] text-white shadow-none hover:border-[#841512] hover:bg-[#841512] hover:text-white dark:border-[#C9302C] dark:bg-[#C9302C] dark:text-white dark:hover:border-[#A82420] dark:hover:bg-[#A82420]" onClick={() => solicitar(item)}>Solicitar</Button>
                 </CardContent>
               </Card>
             );
