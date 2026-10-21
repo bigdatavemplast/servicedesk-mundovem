@@ -16,7 +16,7 @@ export const Route = createFileRoute("/_authenticated/chamados/")({
 const statusLabel: Record<string, string> = { aberto: "Aberto", em_triagem: "Em triagem", em_andamento: "Em andamento", aguardando_usuario: "Aguardando você", aguardando_terceiro: "Aguardando terceiro", resolvido: "Resolvido", fechado: "Fechado", reaberto: "Reaberto", cancelado: "Cancelado" };
 const prioLabel: Record<string, string> = { baixa: "Baixa", media: "Média", alta: "Alta", critica: "Crítica" };
 function statusStyle(s: string) {
-  const neutro = "bg-muted/40 text-muted-foreground border border-border";
+  const neutro = "bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800/70 dark:text-slate-200 dark:border-slate-700";
   const azul = "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900";
   const classes: Record<string, string> = {
     aberto: azul,
