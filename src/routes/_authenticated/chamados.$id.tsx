@@ -40,9 +40,9 @@ const PRIOS = [
 ];
 function fmt(d: string | null) { if (!d) return "—"; return new Date(d).toLocaleString("pt-BR"); }
 function prioClass(p: string) {
-  if (p === "critica") return "bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900";
+  if (p === "critica") return "bg-rose-50 text-rose-700 border border-rose-200 transition-colors hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900 dark:hover:bg-rose-900/60";
   if (p === "alta") return "bg-violet-50 text-violet-700 border border-violet-200 dark:bg-violet-950/40 dark:text-violet-300 dark:border-violet-900";
-  if (p === "media") return "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900";
+  if (p === "media") return "bg-blue-50 text-blue-700 border border-blue-200 transition-colors hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900 dark:hover:bg-blue-900/60";
   if (p === "baixa") return "bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800/60 dark:text-slate-300 dark:border-slate-700";
   return "bg-muted text-muted-foreground border border-border";
 }
@@ -60,18 +60,18 @@ function slaInfo(chamado: any, now: number) {
 function formatDuration(seconds: number | null) { if (seconds == null) return "—"; const s = Math.max(0, Math.floor(seconds)); const h = Math.floor(s / 3600); const m = Math.floor((s % 3600) / 60); if (h > 0) return `${h}h ${m}min`; return `${m}min`; }
 function slaClass(status: string) { if (status === "vencido" || status === "finalizado_vencido") return "text-red-600"; if (status === "vencendo") return "text-[#9C1917]"; if (status === "pausado") return "text-blue-600"; if (status === "finalizado_cancelado") return "text-slate-600"; if (status === "finalizado") return "text-emerald-700"; return "text-emerald-600"; }
 function statusClass(s: string) {
-  const neutro = "bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800/70 dark:text-slate-200 dark:border-slate-700";
-  const azul = "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900";
+  const neutro = "bg-slate-100 text-slate-700 border border-slate-200 transition-colors hover:bg-slate-200 dark:bg-slate-800/70 dark:text-slate-200 dark:border-slate-700 dark:hover:bg-slate-700";
+  const azul = "bg-blue-50 text-blue-700 border border-blue-200 transition-colors hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900 dark:hover:bg-blue-900/60";
   const classes: Record<string, string> = {
     aberto: azul,
     reaberto: azul,
-    em_triagem: "bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-900",
-    em_andamento: "bg-sky-50 text-sky-700 border border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-900",
-    aguardando_usuario: "bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900",
-    aguardando_terceiro: "bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900",
+    em_triagem: "bg-indigo-50 text-indigo-700 border border-indigo-200 transition-colors hover:bg-indigo-100 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-900 dark:hover:bg-indigo-900/60",
+    em_andamento: "bg-sky-50 text-sky-700 border border-sky-200 transition-colors hover:bg-sky-100 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-900 dark:hover:bg-sky-900/60",
+    aguardando_usuario: "bg-amber-50 text-amber-800 border border-amber-200 transition-colors hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900 dark:hover:bg-amber-900/60",
+    aguardando_terceiro: "bg-amber-50 text-amber-800 border border-amber-200 transition-colors hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900 dark:hover:bg-amber-900/60",
     fechado: neutro,
-    cancelado: "bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900",
-    resolvido: "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900",
+    cancelado: "bg-rose-50 text-rose-700 border border-rose-200 transition-colors hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900 dark:hover:bg-rose-900/60",
+    resolvido: "bg-emerald-50 text-emerald-700 border border-emerald-200 transition-colors hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900 dark:hover:bg-emerald-900/60",
   };
   return classes[s] ?? neutro;
 }
