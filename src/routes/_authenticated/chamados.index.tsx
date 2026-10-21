@@ -16,9 +16,14 @@ export const Route = createFileRoute("/_authenticated/chamados/")({
 const statusLabel: Record<string, string> = { aberto: "Aberto", em_triagem: "Em triagem", em_andamento: "Em andamento", aguardando_usuario: "Aguardando você", aguardando_terceiro: "Aguardando terceiro", resolvido: "Resolvido", fechado: "Fechado", reaberto: "Reaberto", cancelado: "Cancelado" };
 const prioLabel: Record<string, string> = { baixa: "Baixa", media: "Média", alta: "Alta", critica: "Crítica" };
 function statusStyle(s: string) {
-  if (s === "aguardando_usuario" || s === "aguardando_terceiro" || s === "cancelado") return "border border-[#E8D2CF] bg-[#FBF3F1] text-[#8A2420] dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-200";
-  if (s === "aberto" || s === "em_triagem" || s === "em_andamento" || s === "reaberto") return "border border-border bg-muted/50 text-foreground";
-  if (s === "resolvido" || s === "fechado") return "border border-border bg-muted/30 text-muted-foreground";
+  // Cores semânticas do status: manter o hover da linha neutro, sem apagar a leitura do estado.
+  if (s === "aberto" || s === "reaberto") return "border border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-200";
+  if (s === "em_triagem") return "border border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200";
+  if (s === "em_andamento") return "border border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-200";
+  if (s === "aguardando_usuario" || s === "aguardando_terceiro") return "border border-orange-200 bg-orange-50 text-orange-800 dark:border-orange-900/60 dark:bg-orange-950/30 dark:text-orange-200";
+  if (s === "resolvido") return "border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-200";
+  if (s === "fechado") return "border border-border bg-muted/40 text-muted-foreground";
+  if (s === "cancelado") return "border border-red-200 bg-red-50 text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-200";
   return "border border-border bg-muted/30 text-muted-foreground";
 }
 function prioridadeStyle(p: string) {
