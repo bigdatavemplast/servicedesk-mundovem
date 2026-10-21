@@ -40,10 +40,21 @@ type Area = { id:string; nome:string };
 function getArea(): Area|null { try { const raw=localStorage.getItem("service_desk_segmento"); if(!raw) return null; const v=JSON.parse(raw); return v?.id ? {id:String(v.id),nome:String(v.nome??"")} : null; } catch { return null; } }
 function slaStatus(c:Chamado,now:number){ if(c.sla_pausado)return "pausado"; if(!c.prazo_resolucao)return "sem_sla"; const sec=(new Date(c.prazo_resolucao).getTime()-now)/1000; if(sec<=0)return "vencido"; if(sec<=3600)return "vencendo"; return "ok"; }
 function statusLabel(s:string){ return ({aberto:"Aberto",em_triagem:"Em triagem",em_andamento:"Em andamento",aguardando_usuario:"Aguardando usuário",aguardando_terceiro:"Aguardando terceiro",resolvido:"Resolvido",fechado:"Fechado",reaberto:"Reaberto",cancelado:"Cancelado"} as Record<string,string>)[s]??s; }
-function statusStyle(s:string){
-  if(s==="resolvido"||s==="fechado") return "bg-muted/60 hover:bg-muted/60 text-muted-foreground border border-border";
-  if(s==="cancelado") return "bg-muted/40 hover:bg-muted/60 text-muted-foreground border border-border";
-  return "bg-muted/40 hover:bg-muted/60 text-foreground/80 border border-border";
+function statusStyle(s:string) {
+  const neutro = "bg-muted/40 text-muted-foreground border border-border";
+  const azul = "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900";
+  const classes: Record<string, string> = {
+    aberto: azul,
+    reaberto: azul,
+    em_triagem: "bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-900",
+    em_andamento: "bg-sky-50 text-sky-700 border border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-900",
+    aguardando_usuario: "bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900",
+    aguardando_terceiro: "bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900",
+    fechado: neutro,
+    cancelado: "bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900",
+    resolvido: "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900",
+  };
+  return classes[s] ?? neutro;
 }
 function prioridadeStyle(p:string){
   if(p==="critica") return "bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900";
