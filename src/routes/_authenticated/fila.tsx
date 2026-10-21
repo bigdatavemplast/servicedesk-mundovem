@@ -28,9 +28,20 @@ type Horario = { calendario_id: string; dia_semana: number; hora_inicio: string;
 type Regra = { id: string; calendario_id: string | null; usa_sla_resolucao: boolean };
 
 function statusStyle(s: string) {
-  if (["resolvido", "fechado"].includes(s)) return "bg-muted/60 text-muted-foreground border border-border";
-  if (s === "cancelado") return "bg-muted/40 text-muted-foreground border border-border";
-  return "bg-muted/40 text-foreground/80 border border-border";
+  const neutro = "bg-muted/40 text-muted-foreground border border-border";
+  const azul = "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900";
+  const classes: Record<string, string> = {
+    aberto: azul,
+    reaberto: azul,
+    em_triagem: "bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-900",
+    em_andamento: "bg-sky-50 text-sky-700 border border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-900",
+    aguardando_usuario: "bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900",
+    aguardando_terceiro: "bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900",
+    fechado: neutro,
+    cancelado: "bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900",
+    resolvido: "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900",
+  };
+  return classes[s] ?? neutro;
 }
 function statusLabel(s: string) {
   if (s === "aberto") return "Aberto";
