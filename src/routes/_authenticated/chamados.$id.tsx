@@ -279,7 +279,7 @@ function DetalheChamadoPage() {
   const paginaSomenteLeitura = isManager;
   const podeAlterarChamado = !isManager;
   const podeAlterarPrioridade = !isManager;
-  const podeAvaliar = !gestorNoProprioChamado && !!chamado && chamado.solicitante_id === user.id && chamado.status === "resolvido" && chamado.avaliacao_nota == null && !!chamado.resolvido_em && (Date.now() - new Date(chamado.resolvido_em).getTime() <= 48 * 60 * 60 * 1000);
+  const podeAvaliar = !gestorNoProprioChamado && !!chamado && chamado.solicitante_id === user.id && chamado.status === "resolvido" && chamado.avaliacao_nota == null;
   const jaAvaliado = chamado?.avaliacao_nota != null;
   const podeReabrir = !!chamado && chamado.solicitante_id === user.id && ["resolvido", "fechado"].includes(chamado.status) && !!chamado.resolvido_em && (Date.now() - new Date(chamado.resolvido_em).getTime() < 48 * 60 * 60 * 1000);
   const exibirAvisoReabertura = !!chamado && ["resolvido", "fechado"].includes(chamado.status);
