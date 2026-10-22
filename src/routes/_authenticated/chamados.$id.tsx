@@ -247,7 +247,19 @@ function DetalheChamadoPage() {
     onSuccess: () => {
       toast.success("Chamado reaberto");
       setConfirmacaoReabertura(false);
-      qc.invalidateQueries({ queryKey: ["chamado", id] });
+      // Limpa a avaliação no cache imediatamente para não exibir dados antigos
+      // enquanto a consulta atualizada do Supabase é recarregada.
+      qc.setQueryData(["chamado", id], (atual: any) => atual ? {
+        ...atual,
+        status: "reaberto",
+        avaliacao_nota: null,
+        avaliacao_comentario: null,
+        fechado_em: null,
+        reaberto_em: new Date().toISOString(),
+        sla_pausado: false,
+        sla_pausado_em: null,
+      } : atual);
+      qc.invalidateQueries({ queryKey: ["chamado", id], refetchType: "active" });
       qc.invalidateQueries({ queryKey: ["chamado-historico", id] });
       qc.invalidateQueries({ queryKey: ["fila"] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
