@@ -296,7 +296,6 @@ export const acaoSolicitanteChamado = createServerFn({ method: "POST" }).middlew
 });
 export const reabrirChamado = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((d) => z.object({ chamadoId: z.string().uuid() }).parse(d)).handler(async ({ data, context }) => {
   const roles = await getRoles(context.supabase, context.userId);
-  if (roles.includes("gestor") && !roles.includes("admin")) throw new Error("Gestores não podem reabrir chamados. Você pode adicionar comentários públicos.");
   const { data: resultado, error } = await (context.supabase.rpc as any)("reabrir_chamado", { _chamado_id: data.chamadoId });
   if (error) throw new Error(error.message);
   if (!resultado) throw new Error("Não foi possível reabrir o chamado.");
