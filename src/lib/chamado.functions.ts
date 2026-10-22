@@ -305,12 +305,6 @@ export const reabrirChamado = createServerFn({ method: "POST" }).middleware([req
 
 export const avaliarChamado = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((d) => z.object({ chamadoId: z.string().uuid(), nota: z.number().int().min(1).max(5), comentario: z.string().nullable().optional() }).parse(d)).handler(async ({ data, context }) => {
   const roles = await getRoles(context.supabase, context.userId);
-  if (roles.includes("gestor") && !roles.includes("admin")) throw new Error("Gestores não podem avaliar chamados. Você pode adicionar comentários públicos.");
-  if (roles.includes("gestor") && !roles.includes("admin")) {
-    const { data: ticket, error } = await context.supabase.from("chamados").select("solicitante_id").eq("id", data.chamadoId).maybeSingle();
-    if (error) throw new Error(error.message);
-    if (ticket?.solicitante_id === context.userId) throw new Error("Gestores não podem avaliar chamados que registraram.");
-  }
   // A avaliação usa a sessão autenticada para que a RPC valide auth.uid().
   // A RPC também fecha o chamado e grava o histórico de forma atômica.
   const { data: resultado, error } = await context.supabase.rpc("avaliar_chamado", {
