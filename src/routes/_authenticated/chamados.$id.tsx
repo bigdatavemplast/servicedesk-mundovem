@@ -328,7 +328,66 @@ function DetalheChamadoPage() {
       <AnexosSecao chamadoId={id} userId={user.id} somenteImagens={isManager} podeRemoverTodos={roles.includes("admin") && !paginaSomenteLeitura} podeRemoverProprio={!gestorNoProprioChamado} podeAdicionar={!isManager && (!isAttendant || atendentePodeAlterar)} onTentativaSemPermissao={() => { if (isAttendant && !atendentePodeAlterar) toast.error("Você não pode alterar este chamado. Ele já possui um atendente ou não pertence ao seu grupo/área."); }} />
       {!roles.includes("admin") && !isManager && roles.includes("colaborador") && chamado.solicitante_id === user.id && chamado.status === "aguardando_usuario" && <Card className="border-slate-200 shadow-sm"><CardHeader className="pb-1 pt-4"><CardTitle className="text-sm font-medium">A solicitação ainda não foi concluída?</CardTitle></CardHeader><CardContent className="space-y-3 pb-4"><div className="space-y-1.5"><label htmlFor="motivo-retomada" className="text-sm font-medium">Justificativa <span className="text-destructive">*</span></label><Textarea id="motivo-retomada" value={motivoSolicitante} onChange={(e) => setMotivoSolicitante(e.target.value)} placeholder="Informe o que ainda precisa ser resolvido." rows={2} maxLength={2000} disabled={acaoSolicitante.isPending} /></div><div className="flex flex-wrap gap-2"><Button disabled={acaoSolicitante.isPending || !motivoSolicitante.trim()} onClick={() => acaoSolicitante.mutate({ acao: "retomar", motivo: motivoSolicitante.trim() })}>{acaoSolicitante.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Solicitar continuidade</Button><Button variant="outline" disabled={acaoSolicitante.isPending} onClick={() => acaoSolicitante.mutate({ acao: "fechar" })}>{acaoSolicitante.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Encerrar chamado</Button></div></CardContent></Card>}
 
-      {podeAvaliar && (<Card className="overflow-hidden border-2 border-emerald-300 bg-emerald-50/70 shadow-md dark:border-emerald-800 dark:bg-emerald-950/20"><CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-base"><span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-[#9C1917] dark:bg-emerald-900/60"><Star className="h-5 w-5 fill-current" /></span><span>Avalie o atendimento</span></CardTitle><p className="text-sm text-muted-foreground">Sua opinião ajuda a melhorar nosso serviço. Escolha de 1 a 5 estrelas.</p></CardHeader><CardContent className="space-y-4"><div><div className="flex flex-wrap items-center gap-2" role="group" aria-label="Nota do atendimento">{[1,2,3,4,5].map((n) => (<button type="button" key={n} onClick={() => setNota(n)} aria-label={`${n} ${n === 1 ? "estrela" : "estrelas"}`} aria-pressed={nota === n} className={`flex min-h-12 min-w-12 items-center justify-center rounded-xl border-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 ${n <= nota ? "border-amber-400 bg-amber-100 text-amber-500 shadow-sm dark:bg-amber-950/50" : "border-slate-200 bg-white text-slate-300 hover:border-amber-300 hover:bg-amber-50 hover:text-amber-400 dark:border-slate-700 dark:bg-slate-900"}`}><Star className={`h-7 w-7 ${n <= nota ? "fill-current" : ""}`} /></button>))}</div><p className="mt-2 text-sm font-medium text-foreground" aria-live="polite">{nota === 0 ? "Toque em uma estrela para dar sua nota" : ({1:"1 estrela — Muito ruim",2:"2 estrelas — Ruim",3:"3 estrelas — Regular",4:"4 estrelas — Bom",5:"5 estrelas — Excelente"} as Record<number,string>)[nota]}</p></div><div className="space-y-1.5"><label htmlFor="avaliacao-comentario" className="text-sm font-medium">Comentário <span className="font-normal text-muted-foreground">(opcional)</span></label><Textarea id="avaliacao-comentario" rows={3} placeholder="Conte como foi sua experiência..." value={avaliacaoComentario} onChange={(e) => setAvaliacaoComentario(e.target.value)} disabled={avaliar.isPending} /></div><Button disabled={nota < 1 || avaliar.isPending} onClick={() => avaliar.mutate()} className="h-12 w-full text-base font-semibold shadow-sm transition-all hover:shadow-md focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2">{avaliar.isPending ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Enviando avaliação...</> : <><CheckCircle2 className="mr-2 h-5 w-5" />{nota < 1 ? "Escolha uma nota para continuar" : "Enviar minha avaliação"}</>}</Button></CardContent></Card>)}
+      {podeAvaliar && (
+        <Card className="overflow-hidden border border-border/80 bg-card shadow-sm">
+          <CardHeader className="space-y-1 pb-4">
+            <CardTitle className="flex items-center gap-2.5 text-base font-semibold">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-[#9C1917]">
+                <Star className="h-4 w-4" />
+              </span>
+              Avalie o atendimento
+            </CardTitle>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              Como foi sua experiência? Sua opinião nos ajuda a melhorar.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <div className="space-y-2.5">
+              <p className="text-sm font-medium">Sua nota</p>
+              <div className="flex items-center gap-1.5" role="group" aria-label="Nota do atendimento">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button
+                    type="button"
+                    key={n}
+                    onClick={() => setNota(n)}
+                    aria-label={`${n} ${n === 1 ? "estrela" : "estrelas"}`}
+                    aria-pressed={nota === n}
+                    className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${n <= nota ? "text-amber-500" : "text-muted-foreground/35 hover:bg-muted hover:text-amber-400"}`}
+                  >
+                    <Star className={`h-6 w-6 ${n <= nota ? "fill-current" : ""}`} />
+                  </button>
+                ))}
+                <span className="ml-2 text-sm text-muted-foreground" aria-live="polite">
+                  {nota === 0 ? "Selecione de 1 a 5" : ({1:"Muito ruim",2:"Ruim",3:"Regular",4:"Bom",5:"Excelente"} as Record<number,string>)[nota]}
+                </span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="avaliacao-comentario" className="text-sm font-medium">
+                Comentário <span className="font-normal text-muted-foreground">(opcional)</span>
+              </label>
+              <Textarea
+                id="avaliacao-comentario"
+                rows={2}
+                placeholder="Quer compartilhar algum detalhe?"
+                value={avaliacaoComentario}
+                onChange={(e) => setAvaliacaoComentario(e.target.value)}
+                disabled={avaliar.isPending}
+                className="resize-y"
+              />
+            </div>
+            <div className="flex justify-end border-t border-border/70 pt-4">
+              <Button
+                disabled={nota < 1 || avaliar.isPending}
+                onClick={() => avaliar.mutate()}
+                className="min-w-44"
+              >
+                {avaliar.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Enviando...</> : <><CheckCircle2 className="mr-2 h-4 w-4" />Enviar avaliação</>}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       {exibirAvisoReabertura && chamado.solicitante_id === user.id && roles.some((r) => ["colaborador", "gestor"].includes(r)) && (<Card className="border-sky-200 bg-sky-50/40"><CardContent className="flex flex-wrap items-center justify-between gap-3 p-4"><div><div className="font-medium">{prazoReaberturaExpirado ? "Prazo para reabrir encerrado" : "O problema não foi resolvido?"}</div><div className="text-sm text-muted-foreground">{podeReabrir ? "Reabra este chamado em até 48 horas após a resolução." : prazoReaberturaExpirado ? "As 48 horas terminaram e a opção de reabertura não está mais disponível. Se o problema persistir, abra um novo chamado." : "A reabertura fica disponível para quem abriu o chamado somente durante as 48 horas após a resolução."}</div></div>{podeReabrir && <Button variant="default" className="h-11 font-semibold shadow-sm transition-colors hover:bg-sky-100 hover:text-sky-900 hover:border-sky-300 dark:hover:bg-sky-900/60 dark:hover:text-sky-100" onClick={() => setConfirmacaoReabertura(true)} disabled={reabrir.isPending}>{reabrir.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Reabrindo chamado...</> : <><RotateCcw className="mr-2 h-4 w-4" />Reabrir chamado</>}</Button>}</CardContent></Card>)}
       {jaAvaliado && (<Card><CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Star className="h-4 w-4 text-[#9C1917]" />Avaliação</CardTitle></CardHeader><CardContent className="space-y-2"><div className="flex gap-1">{[1,2,3,4,5].map((n) => (<Star key={n} className={`h-5 w-5 ${n <= (chamado.avaliacao_nota ?? 0) ? "fill-[#9C1917] text-[#9C1917]" : "text-muted-foreground"}`} />))}</div>{chamado.avaliacao_comentario && <p className="text-sm text-muted-foreground">"{chamado.avaliacao_comentario}"</p>}</CardContent></Card>)}
       {isStaff && !isManager && (<Card><CardHeader className="pb-2"><CardTitle className="text-sm">{isManager ? "Ações do chamado" : "Ações do atendimento"}</CardTitle></CardHeader><CardContent className="flex flex-wrap gap-3">
