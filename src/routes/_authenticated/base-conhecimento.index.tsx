@@ -57,7 +57,7 @@ function BasePage() {
           <h1 className="text-2xl font-bold">Base de conhecimento</h1>
           <p className="text-sm text-muted-foreground">Soluções, tutoriais e procedimentos para você encontrar a resposta antes de abrir um chamado.</p>
         </div>
-        {podeCriar && <Link to="/base-conhecimento/novo"><Button><PlusCircle className="mr-2 h-4 w-4" />Novo artigo</Button></Link>}
+        {podeCriar && <Link to="/base-conhecimento/novo"><Button className="bg-[#9C1917] text-white shadow-sm hover:bg-[#7F1412] hover:text-white [&_svg]:text-white"><PlusCircle className="mr-2 h-4 w-4" />Novo artigo</Button></Link>}
       </div>
 
       <div className="relative">
