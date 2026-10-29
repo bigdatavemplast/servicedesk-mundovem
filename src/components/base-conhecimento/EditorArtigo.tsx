@@ -59,8 +59,8 @@ export function EditorArtigo({ id }: { id?: string }) {
 
   async function salvar(e: React.FormEvent) {
     e.preventDefault();
-    if (!id && !isAdmin) {
-      toast.error("Somente administradores do Service Desk podem criar artigos.");
+    if (!isAdmin) {
+      toast.error("Somente administradores do Service Desk podem criar ou editar artigos.");
       return;
     }
     setSaving(true);
@@ -95,7 +95,7 @@ export function EditorArtigo({ id }: { id?: string }) {
   }
 
   if (loadingRoles) return <p className="text-sm text-muted-foreground">Verificando permissões…</p>;
-  if (!id && !isAdmin) return <div className="mx-auto max-w-3xl space-y-3"><h1 className="text-2xl font-bold">Acesso restrito</h1><p className="text-sm text-muted-foreground">Somente administradores do Service Desk podem criar artigos.</p><Button variant="outline" onClick={() => navigate({ to: "/base-conhecimento" })}>Voltar à base de conhecimento</Button></div>;
+  if (!isAdmin) return <div className="mx-auto max-w-3xl space-y-3"><h1 className="text-2xl font-bold">Acesso restrito</h1><p className="text-sm text-muted-foreground">Somente administradores do Service Desk podem criar ou editar artigos.</p><Button variant="outline" onClick={() => navigate({ to: "/base-conhecimento" })}>Voltar à base de conhecimento</Button></div>;
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
