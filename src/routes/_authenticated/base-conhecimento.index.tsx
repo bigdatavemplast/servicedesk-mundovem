@@ -27,7 +27,7 @@ function BasePage() {
       return (data ?? []).map((r) => r.role as string);
     },
   });
-  const podeCriar = roles.some((r) => ["atendente", "gestor", "admin"].includes(r));
+  const podeCriar = roles.includes("admin");
 
   const { data: artigos = [], isLoading } = useQuery({
     queryKey: ["bc-artigos"],
