@@ -19,6 +19,18 @@ export function EditorArtigo({ id }: { id?: string }) {
   const [publicado, setPublicado] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  const { data: roles = [], isLoading: loadingRoles } = useQuery({
+    queryKey: ["my-roles", "editor-artigo", id],
+    queryFn: async () => {
+      const { data: userRes } = await supabase.auth.getUser();
+      if (!userRes.user) return [];
+      const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", userRes.user.id);
+      if (error) throw error;
+      return (data ?? []).map((r) => r.role as string);
+    },
+  });
+  const isAdmin = roles.includes("admin");
+
   const { data: categorias = [] } = useQuery({
     queryKey: ["categorias-bc"],
     queryFn: async () => {
@@ -47,6 +59,10 @@ export function EditorArtigo({ id }: { id?: string }) {
 
   async function salvar(e: React.FormEvent) {
     e.preventDefault();
+    if (!id && !isAdmin) {
+      toast.error("Somente administradores do Service Desk podem criar artigos.");
+      return;
+    }
     setSaving(true);
     const { data: userRes } = await supabase.auth.getUser();
    const payload: any = {
@@ -77,6 +93,9 @@ export function EditorArtigo({ id }: { id?: string }) {
     toast.success(id ? "Artigo atualizado" : "Artigo criado");
     navigate({ to: "/base-conhecimento" });
   }
+
+  if (loadingRoles) return <p className="text-sm text-muted-foreground">Verificando permissões…</p>;
+  if (!id && !isAdmin) return <div className="mx-auto max-w-3xl space-y-3"><h1 className="text-2xl font-bold">Acesso restrito</h1><p className="text-sm text-muted-foreground">Somente administradores do Service Desk podem criar artigos.</p><Button variant="outline" onClick={() => navigate({ to: "/base-conhecimento" })}>Voltar à base de conhecimento</Button></div>;
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
