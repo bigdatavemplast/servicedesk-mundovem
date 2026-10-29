@@ -50,7 +50,7 @@ function DetalhePage() {
   const [votando, setVotando] = useState(false); const registrouVisualizacao = useRef(false);
   if (location.pathname.endsWith("/editar")) return <Outlet />;
   const { data: roles = [] } = useQuery({ queryKey: ["my-roles", user.id], queryFn: async () => { const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id); return (data ?? []).map((r) => r.role as string); } });
-  const podeEditar = roles.some((r) => ["atendente", "gestor", "admin"].includes(r));
+  const podeEditar = roles.includes("admin");
   const { data: artigo, isLoading } = useQuery({ queryKey: ["bc-artigo", id], queryFn: async () => { const { data, error } = await supabase.from("base_conhecimento").select("*").eq("id", id).maybeSingle(); if (error) console.error("Erro ao carregar artigo:", error); return data; } });
   const { data: feedback } = useQuery({
     queryKey: ["bc-feedback", id, user.id],
