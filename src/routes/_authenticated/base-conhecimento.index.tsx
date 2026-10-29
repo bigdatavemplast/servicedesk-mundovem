@@ -62,7 +62,7 @@ function BasePage() {
 
       <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input placeholder="Buscar por título, conteúdo ou categoria (ex: VPN, Wi-Fi, impressora)…" value={busca} onChange={(e) => setBusca(e.target.value)} className="bg-white text-[#3D3D3D] placeholder:text-[#6B6360] pl-9 pr-9 dark:bg-white dark:text-[#3D3D3D]" />
+        <Input placeholder="Buscar por título, conteúdo ou categoria (ex: VPN, Wi-Fi, impressora)…" value={busca} onChange={(e) => setBusca(e.target.value)} className="bg-white text-[#3D3D3D] placeholder:text-[#6B6360] pl-9 pr-9 dark:bg-white dark:text-[#3D3D3D] focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-[#E8E3DA] focus-visible:border-[#E8E3DA]" />
         {busca && <button type="button" aria-label="Limpar busca" onClick={() => setBusca("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>}
       </div>
 
