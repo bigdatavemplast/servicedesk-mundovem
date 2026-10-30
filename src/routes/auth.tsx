@@ -54,6 +54,16 @@ function AuthPage() {
   const [regPass, setRegPass] = useState("");
 
   useEffect(() => {
+    let mounted = true;
+    supabase.auth.getUser().then(({ data }) => {
+      if (mounted && data.user?.app_metadata?.must_change_password === true) {
+        setForcePasswordChange(true);
+      }
+    });
+    return () => { mounted = false; };
+  }, []);
+
+  useEffect(() => {
     if (recovery !== "1") return;
     let mounted = true;
     const check = async () => {
