@@ -188,7 +188,6 @@ function AuthPage() {
                     <div className="space-y-2"><Label htmlFor="login-email">E-mail</Label><Input id="login-email" type="email" required value={loginEmail} onChange={e => setLoginEmail(e.target.value)} /></div>
                     <div className="space-y-2"><Label htmlFor="login-pass">Senha</Label><Input id="login-pass" type="password" required value={loginPass} onChange={e => setLoginPass(e.target.value)} /></div>
                     <Button type="submit" className="w-full bg-[#9C1917] text-white hover:bg-[#821513] hover:text-white" disabled={loading}>{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Entrar</Button>
-                    <div className="pt-1"><Button asChild type="button" className="w-full bg-[#9C1917] text-white hover:bg-[#821513] hover:text-white"><Link to="/forgot-password">Esqueci minha senha</Link></Button></div>
                   </form>
                 </TabsContent>
                 <TabsContent value="register">
