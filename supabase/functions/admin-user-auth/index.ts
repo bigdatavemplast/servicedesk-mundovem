@@ -113,8 +113,6 @@ Deno.serve(async (req) => {
       return json({ ok: true, id: uid })
     }
 
-    if (!body.id) return json({ error: "ID do usuário é obrigatório" }, 400)
-
     if (body.action === "update") {
       const authUpdate: Record<string, string> = {}
       if (body.email) authUpdate.email = body.email
@@ -142,6 +140,8 @@ Deno.serve(async (req) => {
       if (error) throw new Error(error.message)
       return json({ ok: true })
     }
+
+    if (!body.id) return json({ error: "ID do usuário é obrigatório" }, 400)
 
     if (body.action === "delete") {
       if (body.id === callerId) return json({ error: "Você não pode excluir a si mesmo" }, 400)
