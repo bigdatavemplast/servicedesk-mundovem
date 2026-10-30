@@ -118,7 +118,7 @@ function AuthPage() {
 
   async function handlePasswordUpdate(e: React.FormEvent) {
     e.preventDefault();
-    if (newPassword.length < 6) return toast.error("A senha deve ter pelo menos 6 caracteres.");
+    if (newPassword.length < 8) return toast.error("A senha deve ter pelo menos 8 caracteres.");
     if (newPassword !== confirmPassword) return toast.error("As senhas não coincidem.");
     setLoading(true);
     if (forcePasswordChange) {
