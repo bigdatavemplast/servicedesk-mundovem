@@ -13,8 +13,19 @@ type Payload = {
   role?: "colaborador" | "atendente" | "gestor" | "admin"
 }
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "https://servicedesk-mundovem.vercel.app",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Max-Age": "86400",
+  "Vary": "Origin",
+}
+
 function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json" } })
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  })
 }
 
 function getSecretKey() {
@@ -86,6 +97,10 @@ async function removeOwnedStorageObjects(admin: ReturnType<typeof adminClient>, 
 }
 
 Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { status: 200, headers: corsHeaders })
+  }
+
   try {
     if (req.method !== "POST") return json({ error: "Method not allowed" }, 405)
     const body = (await req.json()) as Payload
