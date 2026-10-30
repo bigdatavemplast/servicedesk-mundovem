@@ -98,6 +98,16 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server
       throw new Error('Unauthorized: No user ID found in token');
     }
 
+    // Consult the current Auth user record (not only JWT claims) so a password
+    // reset made by an administrator takes effect for existing sessions too.
+    const { data: authUser, error: authUserError } = await supabase.auth.getUser(token);
+    if (authUserError || !authUser.user) {
+      throw new Error('Unauthorized: Unable to validate current user');
+    }
+    if (authUser.user.app_metadata?.must_change_password === true) {
+      throw new Error('Password change required before accessing the application');
+    }
+
     return next({
       context: {
         supabase,

@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2"
 
-type Action = "create" | "update" | "delete"
+type Action = "create" | "update" | "delete" | "change_password"
 type Payload = {
   action: Action
   id?: string
@@ -28,7 +28,7 @@ function getSecretKey() {
   throw new Error("Supabase secret key is not configured for Edge Functions")
 }
 
-async function getCaller(req: Request) {
+async function getCaller(req: Request, requireAdmin = true) {
   const auth = req.headers.get("Authorization")
   if (!auth?.startsWith("Bearer ")) throw new Error("Unauthorized")
   const publishable = Deno.env.get("SUPABASE_PUBLISHABLE_KEYS")
@@ -43,8 +43,8 @@ async function getCaller(req: Request) {
   if (error || !data.user) throw new Error("Unauthorized")
   const { data: roles, error: rolesError } = await userClient.from("user_roles").select("role").eq("user_id", data.user.id)
   if (rolesError) throw new Error(rolesError.message)
-  if (!(roles ?? []).some((r) => r.role === "admin" || r.role === "gestor")) throw new Error("Forbidden: permissão insuficiente")
-  return { userId: data.user.id }
+  if (requireAdmin && !(roles ?? []).some((r) => r.role === "admin" || r.role === "gestor")) throw new Error("Forbidden: permissão insuficiente")
+  return { userId: data.user.id, user: data.user }
 }
 
 function adminClient() {
@@ -86,8 +86,8 @@ async function removeOwnedStorageObjects(admin: ReturnType<typeof adminClient>, 
 Deno.serve(async (req) => {
   try {
     if (req.method !== "POST") return json({ error: "Method not allowed" }, 405)
-    const { userId: callerId } = await getCaller(req)
     const body = (await req.json()) as Payload
+    const { userId: callerId, user: caller } = await getCaller(req, body.action !== "change_password")
     const admin = adminClient()
 
     if (body.action === "create") {
@@ -113,18 +113,35 @@ Deno.serve(async (req) => {
       return json({ ok: true, id: uid })
     }
 
-    if (!body.id) return json({ error: "ID do usuário é obrigatório" }, 400)
-
     if (body.action === "update") {
       const authUpdate: Record<string, string> = {}
       if (body.email) authUpdate.email = body.email
       if (body.senha) authUpdate.password = body.senha
-      if (Object.keys(authUpdate).length) {
+      if (body.senha) {
+        const { data: target, error: targetError } = await admin.auth.admin.getUserById(body.id)
+        if (targetError || !target.user) throw new Error(targetError?.message ?? "Usuário não encontrado")
+        const appMetadata = { ...(target.user.app_metadata ?? {}), must_change_password: true }
+        const { error } = await admin.auth.admin.updateUserById(body.id, { ...authUpdate, app_metadata: appMetadata })
+        if (error) throw new Error(error.message)
+      } else if (Object.keys(authUpdate).length) {
         const { error } = await admin.auth.admin.updateUserById(body.id, authUpdate)
         if (error) throw new Error(error.message)
       }
+      return json({ ok: true, must_change_password: !!body.senha })
+    }
+
+    if (body.action === "change_password") {
+      if (!body.senha || body.senha.length < 8 || body.senha.length > 128) return json({ error: "A nova senha deve ter entre 8 e 128 caracteres." }, 400)
+      if (caller.app_metadata?.must_change_password !== true) return json({ error: "Não há troca obrigatória de senha pendente." }, 403)
+      const { error } = await admin.auth.admin.updateUserById(callerId, {
+        password: body.senha,
+        app_metadata: { ...(caller.app_metadata ?? {}), must_change_password: false },
+      })
+      if (error) throw new Error(error.message)
       return json({ ok: true })
     }
+
+    if (!body.id) return json({ error: "ID do usuário é obrigatório" }, 400)
 
     if (body.action === "delete") {
       if (body.id === callerId) return json({ error: "Você não pode excluir a si mesmo" }, 400)
