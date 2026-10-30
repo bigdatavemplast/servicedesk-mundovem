@@ -147,7 +147,7 @@ function AuthPage() {
         return toast.error("Senha alterada, mas não foi possível iniciar sua sessão automaticamente. Tente entrar com a nova senha.");
       }
       setForcePasswordChange(false);
-      toast.success("Senha pessoal definida com sucesso!");
+      toast.success("Senha pessoal definida com sucesso!", { className: "!border-green-500 !bg-green-50 !text-green-800 dark:!border-green-700 dark:!bg-green-950 dark:!text-green-200" });
       navigate({ to: "/areas", replace: true });
       return;
     }
