@@ -47,7 +47,7 @@ begin
     join public.user_roles ur on ur.user_id = p.id and ur.role = 'gestor'::public.app_role
     left join public.categorias cat on cat.id = chamado.categoria_id
     where p.ativo = true
-      and (p.id = chamado.solicitante_id or (p.area_id is not null and (p.area_id = chamado.segmento_id or p.area_id = cat.segmento_id))
+      and (p.id = chamado.solicitante_id or (p.area_id is not null and (p.area_id = chamado.segmento_id or p.area_id = cat.segmento_id)))
       and (autor_id is null or p.id <> autor_id)
   loop
     insert into public.notificacoes (destinatario_id, tipo, titulo, mensagem, chamado_id)
