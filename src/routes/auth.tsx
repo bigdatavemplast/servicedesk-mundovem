@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -48,10 +47,6 @@ function AuthPage() {
   const [forcePasswordChange, setForcePasswordChange] = useState(false);
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPass, setLoginPass] = useState("");
-  const [nome, setNome] = useState("");
-  const [depto, setDepto] = useState("");
-  const [regEmail, setRegEmail] = useState("");
-  const [regPass, setRegPass] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -147,14 +142,6 @@ function AuthPage() {
     toast.success("Senha alterada com sucesso!");
   }
 
-  async function handleSignup(e: React.FormEvent) {
-    e.preventDefault(); setLoading(true);
-    const { error } = await supabase.auth.signUp({ email: regEmail, password: regPass, options: { emailRedirectTo: window.location.origin + "/areas", data: { nome, departamento: depto } } });
-    setLoading(false);
-    if (error) return toast.error(error.message);
-    toast.success("Conta criada! Verifique seu e-mail se necessário.");
-  }
-
   const recoveryView = recovery === "1";
   const passwordChangeView = recoveryView || forcePasswordChange;
 
@@ -181,25 +168,11 @@ function AuthPage() {
                   <Button type="submit" className="w-full" disabled={loading}>{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Alterar senha e continuar</Button>
                 </form>
             ) : (
-              <Tabs defaultValue="login">
-                <TabsList className="grid w-full grid-cols-2"><TabsTrigger value="login">Entrar</TabsTrigger><TabsTrigger value="register">Criar conta</TabsTrigger></TabsList>
-                <TabsContent value="login">
-                  <form className="space-y-4 pt-4" onSubmit={handleLogin}>
-                    <div className="space-y-2"><Label htmlFor="login-email">E-mail</Label><Input id="login-email" type="email" required value={loginEmail} onChange={e => setLoginEmail(e.target.value)} /></div>
-                    <div className="space-y-2"><Label htmlFor="login-pass">Senha</Label><Input id="login-pass" type="password" required value={loginPass} onChange={e => setLoginPass(e.target.value)} /></div>
-                    <Button type="submit" className="w-full bg-[#9C1917] text-white hover:bg-[#821513] hover:text-white" disabled={loading}>{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Entrar</Button>
-                  </form>
-                </TabsContent>
-                <TabsContent value="register">
-                  <form className="space-y-4 pt-4" onSubmit={handleSignup}>
-                    <div className="space-y-2"><Label htmlFor="reg-nome">Nome completo</Label><Input id="reg-nome" required value={nome} onChange={e => setNome(e.target.value)} /></div>
-                    <div className="space-y-2"><Label htmlFor="reg-depto">Departamento</Label><Input id="reg-depto" value={depto} onChange={e => setDepto(e.target.value)} placeholder="Ex.: Comercial" /></div>
-                    <div className="space-y-2"><Label htmlFor="reg-email">E-mail corporativo</Label><Input id="reg-email" type="email" required value={regEmail} onChange={e => setRegEmail(e.target.value)} /></div>
-                    <div className="space-y-2"><Label htmlFor="reg-pass">Senha</Label><Input id="reg-pass" type="password" required minLength={6} value={regPass} onChange={e => setRegPass(e.target.value)} /></div>
-                    <Button type="submit" className="w-full bg-[#9C1917] text-white hover:bg-[#821513] hover:text-white" disabled={loading}>{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Criar conta</Button>
-                  </form>
-                </TabsContent>
-              </Tabs>
+              <form className="space-y-4 pt-2" onSubmit={handleLogin}>
+                <div className="space-y-2"><Label htmlFor="login-email">E-mail</Label><Input id="login-email" type="email" required value={loginEmail} onChange={e => setLoginEmail(e.target.value)} /></div>
+                <div className="space-y-2"><Label htmlFor="login-pass">Senha</Label><Input id="login-pass" type="password" required value={loginPass} onChange={e => setLoginPass(e.target.value)} /></div>
+                <Button type="submit" className="w-full bg-[#9C1917] text-white hover:bg-[#821513] hover:text-white" disabled={loading}>{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Entrar</Button>
+              </form>
             )}
           </CardContent>
         </Card>
