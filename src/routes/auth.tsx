@@ -129,14 +129,25 @@ function AuthPage() {
         setLoading(false);
         return toast.error(data?.error ?? "Não foi possível alterar a senha. Tente novamente.");
       }
-      const { error: refreshError } = await supabase.auth.refreshSession();
+      // A redefinição administrativa pode invalidar o refresh token da sessão provisória.
+      // Autentica novamente em segundo plano com a nova senha para manter o usuário no fluxo,
+      // sem pedir que ele volte à tela de login.
+      const { data: currentUser } = await supabase.auth.getUser();
+      const email = currentUser.user?.email;
+      if (!email) {
+        setLoading(false);
+        return toast.error("Senha alterada, mas não foi possível recuperar seu e-mail para concluir o acesso. Entre em contato com o administrador.");
+      }
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password: newPassword,
+      });
       setLoading(false);
-      if (refreshError) {
-        await supabase.auth.signOut();
-        return toast.error("Senha alterada. Entre novamente com sua nova senha.");
+      if (signInError) {
+        return toast.error("Senha alterada, mas não foi possível iniciar sua sessão automaticamente. Tente entrar com a nova senha.");
       }
       setForcePasswordChange(false);
-      toast.success("Senha pessoal definida com sucesso!");
+      toast.success("Senha pessoal definida com sucesso!", { className: "!border-green-500 !bg-green-50 !text-green-800 dark:!border-green-700 dark:!bg-green-950 dark:!text-green-200" });
       navigate({ to: "/areas", replace: true });
       return;
     }

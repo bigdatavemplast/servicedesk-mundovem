@@ -13,8 +13,19 @@ type Payload = {
   role?: "colaborador" | "atendente" | "gestor" | "admin"
 }
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "https://servicedesk-mundovem.vercel.app",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Max-Age": "86400",
+  "Vary": "Origin",
+}
+
 function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json" } })
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  })
 }
 
 function getSecretKey() {
@@ -41,9 +52,11 @@ async function getCaller(req: Request, requireAdmin = true) {
   const token = auth.slice("Bearer ".length)
   const { data, error } = await userClient.auth.getUser(token)
   if (error || !data.user) throw new Error("Unauthorized")
-  const { data: roles, error: rolesError } = await userClient.from("user_roles").select("role").eq("user_id", data.user.id)
-  if (rolesError) throw new Error(rolesError.message)
-  if (requireAdmin && !(roles ?? []).some((r) => r.role === "admin" || r.role === "gestor")) throw new Error("Forbidden: permissão insuficiente")
+  if (requireAdmin) {
+    const { data: roles, error: rolesError } = await userClient.from("user_roles").select("role").eq("user_id", data.user.id)
+    if (rolesError) throw new Error(rolesError.message)
+    if (!(roles ?? []).some((r) => r.role === "admin" || r.role === "gestor")) throw new Error("Forbidden: permissão insuficiente")
+  }
   return { userId: data.user.id, user: data.user }
 }
 
@@ -84,6 +97,10 @@ async function removeOwnedStorageObjects(admin: ReturnType<typeof adminClient>, 
 }
 
 Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { status: 200, headers: corsHeaders })
+  }
+
   try {
     if (req.method !== "POST") return json({ error: "Method not allowed" }, 405)
     const body = (await req.json()) as Payload
