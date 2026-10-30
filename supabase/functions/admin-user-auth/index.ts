@@ -41,9 +41,11 @@ async function getCaller(req: Request, requireAdmin = true) {
   const token = auth.slice("Bearer ".length)
   const { data, error } = await userClient.auth.getUser(token)
   if (error || !data.user) throw new Error("Unauthorized")
-  const { data: roles, error: rolesError } = await userClient.from("user_roles").select("role").eq("user_id", data.user.id)
-  if (rolesError) throw new Error(rolesError.message)
-  if (requireAdmin && !(roles ?? []).some((r) => r.role === "admin" || r.role === "gestor")) throw new Error("Forbidden: permissão insuficiente")
+  if (requireAdmin) {
+    const { data: roles, error: rolesError } = await userClient.from("user_roles").select("role").eq("user_id", data.user.id)
+    if (rolesError) throw new Error(rolesError.message)
+    if (!(roles ?? []).some((r) => r.role === "admin" || r.role === "gestor")) throw new Error("Forbidden: permissão insuficiente")
+  }
   return { userId: data.user.id, user: data.user }
 }
 
