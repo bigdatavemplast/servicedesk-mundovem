@@ -10,6 +10,14 @@ const NOME_APP = "Service Desk Mundo Vem";
 const LOGO_MUNDO_VEM = "/favicon.png";
 const PAGE_SIZE = 20;
 const PUSH_POLL_INTERVAL = 5_000;
+const VAPID_PUBLIC_KEY = (import.meta as any).env?.VITE_VAPID_PUBLIC_KEY as string | undefined;
+
+function base64UrlToUint8Array(value: string) {
+  const padding = "=".repeat((4 - (value.length % 4)) % 4);
+  const base64 = (value + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = window.atob(base64);
+  return Uint8Array.from(raw, (char) => char.charCodeAt(0));
+}
 
 function montarNotificacao(titulo?: string | null, mensagem?: string | null) {
   const tituloOriginal = titulo?.trim() || "Nova atualização";
@@ -29,6 +37,8 @@ export function NotificationBell({ userId }: { userId: string }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission | "unsupported">("default");
+  const [pushAtivo, setPushAtivo] = useState(false);
+  const [ativandoPush, setAtivandoPush] = useState(false);
   const [page, setPage] = useState(0);
   const idsComPush = useRef<Set<string>>(new Set());
 
@@ -64,11 +74,14 @@ export function NotificationBell({ userId }: { userId: string }) {
   });
 
   useEffect(() => {
-    if (typeof window === "undefined" || !("Notification" in window)) {
+    if (typeof window === "undefined" || !("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) {
       setPermission("unsupported");
       return;
     }
     setPermission(window.Notification.permission);
+    void navigator.serviceWorker.ready.then((registration) =>
+      registration.pushManager.getSubscription().then((subscription) => setPushAtivo(!!subscription))
+    ).catch(() => setPushAtivo(false));
   }, []);
 
   const emitirPush = (n: NotificacaoRecebida) => {
@@ -128,12 +141,50 @@ export function NotificationBell({ userId }: { userId: string }) {
   }, [userId, navigate]);
 
   async function solicitarPermissao() {
-    if (typeof window === "undefined" || !("Notification" in window)) return;
-    if (window.Notification.permission === "default") {
-      const result = await window.Notification.requestPermission();
+    if (typeof window === "undefined" || !("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) {
+      setPermission("unsupported");
+      return;
+    }
+    if (!VAPID_PUBLIC_KEY) {
+      toast.error("As notificações em segundo plano ainda precisam ser configuradas pelo administrador.");
+      return;
+    }
+    setAtivandoPush(true);
+    try {
+      const result = window.Notification.permission === "default"
+        ? await window.Notification.requestPermission()
+        : window.Notification.permission;
       setPermission(result);
-    } else {
-      setPermission(window.Notification.permission);
+      if (result !== "granted") {
+        toast.error("Permita as notificações do navegador para receber alertas com o navegador fechado.");
+        return;
+      }
+      const registration = await navigator.serviceWorker.ready;
+      let subscription = await registration.pushManager.getSubscription();
+      if (!subscription) {
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: base64UrlToUint8Array(VAPID_PUBLIC_KEY) as BufferSource,
+        });
+      }
+      const json = subscription.toJSON();
+      const p256dh = json.keys?.p256dh;
+      const auth = json.keys?.auth;
+      if (!subscription.endpoint || !p256dh || !auth) throw new Error("O navegador não forneceu os dados necessários para a assinatura push.");
+      const { error } = await (supabase as any).from("push_subscriptions").upsert({
+        user_id: userId,
+        endpoint: subscription.endpoint,
+        p256dh,
+        auth,
+        atualizado_em: new Date().toISOString(),
+      }, { onConflict: "endpoint" });
+      if (error) throw error;
+      setPushAtivo(true);
+      toast.success("Notificações em segundo plano ativadas neste computador.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível ativar as notificações.");
+    } finally {
+      setAtivandoPush(false);
     }
   }
 
@@ -157,10 +208,7 @@ export function NotificationBell({ userId }: { userId: string }) {
     <div className="flex items-center gap-2">
       <Popover open={open} onOpenChange={(next) => {
         setOpen(next);
-        if (next) {
-          setPage(0);
-          void solicitarPermissao();
-        }
+        if (next) setPage(0);
       }}>
         <PopoverTrigger asChild>
           <Button variant="ghost" size="icon" className="relative" aria-label={naoLidas > 0 ? `Notificações (${naoLidas} não lidas)` : "Notificações"}>
@@ -174,9 +222,18 @@ export function NotificationBell({ userId }: { userId: string }) {
               <span className="text-sm font-semibold">Notificações</span>
               {permission === "granted" && <div className="text-[10px] text-emerald-600">Notificações do navegador ativas</div>}
               {permission === "denied" && <div className="text-[10px] text-muted-foreground">Notificações do navegador bloqueadas</div>}
+              {pushAtivo && <div className="text-[10px] text-emerald-600">Alertas mesmo com o navegador fechado</div>}
             </div>
             {naoLidas > 0 && <button className="text-xs text-primary hover:underline" onClick={marcarTodas}>Marcar todas como lidas</button>}
           </div>
+          {!pushAtivo && permission !== "unsupported" && (
+            <div className="border-b bg-muted/20 px-3 py-2">
+              <Button type="button" size="sm" className="w-full" onClick={solicitarPermissao} disabled={ativandoPush || permission === "denied"}>
+                {ativandoPush ? "Ativando…" : "Ativar notificações neste computador"}
+              </Button>
+              <p className="mt-1 text-[10px] text-muted-foreground">Receba alertas de novos chamados mesmo em outra aba ou com o navegador fechado.</p>
+            </div>
+          )}
           <div className="max-h-96 overflow-y-auto">
             {notifs.length === 0 && <div className="p-6 text-center text-sm text-muted-foreground">Sem notificações</div>}
             {notifs.map((n) => (
