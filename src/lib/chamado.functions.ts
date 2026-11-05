@@ -325,6 +325,12 @@ export const avaliarChamado = createServerFn({ method: "POST" }).middleware([req
       throw new Error("Gestores só podem avaliar chamados que abriram.");
     }
   }
+  const admin = await getAdminClient(context.supabase);
+  const { data: ticket, error: ticketError } = await admin.from("chamados").select("solicitante_id,resolvido_em").eq("id", data.chamadoId).maybeSingle();
+  if (ticketError || !ticket) throw new Error(ticketError?.message ?? "Chamado não encontrado");
+  if (ticket.solicitante_id === context.userId && ticket.resolvido_em && Date.now() - new Date(ticket.resolvido_em).getTime() >= 48 * 60 * 60 * 1000) {
+    throw new Error("O prazo de 48 horas terminou. Este chamado está disponível somente para consulta.");
+  }
   // A avaliação usa a sessão autenticada para que a RPC valide auth.uid().
   // A RPC também fecha o chamado e grava o histórico de forma atômica.
   const { data: resultado, error } = await context.supabase.rpc("avaliar_chamado", {
