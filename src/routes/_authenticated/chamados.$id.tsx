@@ -331,7 +331,8 @@ function DetalheChamadoPage() {
   const mesmaAreaDoGestor = !!perfilGestor?.departamento && !!(chamado?.solicitante as any)?.departamento
     && perfilGestor.departamento.trim().toLocaleLowerCase("pt-BR") === (chamado?.solicitante as any).departamento.trim().toLocaleLowerCase("pt-BR");
   const exibirAvisoAcessoGestor = isManager && mesmaAreaDoGestor;
-  const paginaSomenteLeitura = isManager;
+  const prazoSolicitanteExpirado = !!chamado && chamado.solicitante_id === user.id && !!chamado.resolvido_em && Date.now() - new Date(chamado.resolvido_em).getTime() >= 48 * 60 * 60 * 1000;
+  const paginaSomenteLeitura = isManager || prazoSolicitanteExpirado;
   const podeAlterarChamado = !isManager;
   const podeAlterarPrioridade = !isManager;
   const tempoDesdeResolucao = chamado?.resolvido_em ? Date.now() - new Date(chamado.resolvido_em).getTime() : -1;
@@ -368,8 +369,8 @@ function DetalheChamadoPage() {
 
     <div className="grid gap-4 lg:grid-cols-[2fr_1fr]"><div className="space-y-4">
       <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Descrição</CardTitle></CardHeader><CardContent><p className="whitespace-pre-wrap text-sm">{chamado.descricao}</p></CardContent></Card>
-      <AnexosSecao chamadoId={id} userId={user.id} somenteImagens={isManager} podeRemoverTodos={roles.includes("admin") && !paginaSomenteLeitura} podeRemoverProprio={!gestorNoProprioChamado} podeAdicionar={!isManager && (!isAttendant || atendentePodeAlterar)} onTentativaSemPermissao={() => { if (isAttendant && !atendentePodeAlterar) toast.error("Você não pode alterar este chamado. Ele já possui um atendente ou não pertence ao seu grupo/área."); }} />
-      {!roles.includes("admin") && !isManager && roles.includes("colaborador") && chamado.solicitante_id === user.id && chamado.status === "aguardando_usuario" && <Card className="border-slate-200 shadow-sm"><CardHeader className="pb-1 pt-4"><CardTitle className="text-sm font-medium">A solicitação ainda não foi concluída?</CardTitle></CardHeader><CardContent className="space-y-3 pb-4"><div className="space-y-1.5"><label htmlFor="motivo-retomada" className="text-sm font-medium">Justificativa <span className="text-destructive">*</span></label><Textarea id="motivo-retomada" value={motivoSolicitante} onChange={(e) => setMotivoSolicitante(e.target.value)} placeholder="Informe o que ainda precisa ser resolvido." rows={2} maxLength={2000} disabled={acaoSolicitante.isPending} /></div><div className="flex flex-wrap gap-2"><Button disabled={acaoSolicitante.isPending || !motivoSolicitante.trim()} onClick={() => acaoSolicitante.mutate({ acao: "retomar", motivo: motivoSolicitante.trim() })}>{acaoSolicitante.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Solicitar continuidade</Button><Button variant="outline" disabled={acaoSolicitante.isPending} onClick={() => acaoSolicitante.mutate({ acao: "fechar" })}>{acaoSolicitante.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Encerrar chamado</Button></div></CardContent></Card>}
+      <AnexosSecao chamadoId={id} userId={user.id} somenteImagens={isManager} podeRemoverTodos={roles.includes("admin") && !paginaSomenteLeitura} podeRemoverProprio={!gestorNoProprioChamado && !prazoSolicitanteExpirado} podeAdicionar={!paginaSomenteLeitura && (!isAttendant || atendentePodeAlterar)} onTentativaSemPermissao={() => { if (isAttendant && !atendentePodeAlterar) toast.error("Você não pode alterar este chamado. Ele já possui um atendente ou não pertence ao seu grupo/área."); }} />
+      {!roles.includes("admin") && !isManager && !prazoSolicitanteExpirado && roles.includes("colaborador") && chamado.solicitante_id === user.id && chamado.status === "aguardando_usuario" && <Card className="border-slate-200 shadow-sm"><CardHeader className="pb-1 pt-4"><CardTitle className="text-sm font-medium">A solicitação ainda não foi concluída?</CardTitle></CardHeader><CardContent className="space-y-3 pb-4"><div className="space-y-1.5"><label htmlFor="motivo-retomada" className="text-sm font-medium">Justificativa <span className="text-destructive">*</span></label><Textarea id="motivo-retomada" value={motivoSolicitante} onChange={(e) => setMotivoSolicitante(e.target.value)} placeholder="Informe o que ainda precisa ser resolvido." rows={2} maxLength={2000} disabled={acaoSolicitante.isPending} /></div><div className="flex flex-wrap gap-2"><Button disabled={acaoSolicitante.isPending || !motivoSolicitante.trim()} onClick={() => acaoSolicitante.mutate({ acao: "retomar", motivo: motivoSolicitante.trim() })}>{acaoSolicitante.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Solicitar continuidade</Button><Button variant="outline" disabled={acaoSolicitante.isPending} onClick={() => acaoSolicitante.mutate({ acao: "fechar" })}>{acaoSolicitante.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Encerrar chamado</Button></div></CardContent></Card>}
 
       {podeAvaliar && (
         <Card className="overflow-hidden border border-border/80 bg-card shadow-sm">
@@ -443,7 +444,7 @@ function DetalheChamadoPage() {
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-sm">Adicionar comentário</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <Textarea rows={4} value={comentario} onChange={(e) => setComentario(e.target.value)} placeholder={interno ? "Nota interna (não visível ao solicitante)" : "Escreva sua resposta…"} />
+          <Textarea rows={4} disabled={prazoSolicitanteExpirado} value={comentario} onChange={(e) => setComentario(e.target.value)} placeholder={interno ? "Nota interna (não visível ao solicitante)" : "Escreva sua resposta…"} />
           {(isAttendant || roles.includes("admin")) && (
             <div className="space-y-2">
               <input
@@ -490,7 +491,7 @@ function DetalheChamadoPage() {
           )}
           <div className="flex items-center justify-between">
             {(isAttendant || roles.includes("admin")) ? (<label className={`flex items-center gap-2 text-xs ${paginaSomenteLeitura ? "opacity-50" : ""}`}><input type="checkbox" disabled={paginaSomenteLeitura} checked={interno} onChange={(e) => { if (bloquearAlteracaoAtendente()) return; setInterno(e.target.checked); }} />Nota interna (não visível ao solicitante)</label>) : <div />}
-            <Button size="sm" disabled={(!comentario.trim() && fotosComentario.length === 0) || comentar.isPending} onClick={() => { if (bloquearAlteracaoAtendente()) return; comentar.mutate(); }}>
+            <Button size="sm" disabled={prazoSolicitanteExpirado || (!comentario.trim() && fotosComentario.length === 0) || comentar.isPending} onClick={() => { if (bloquearAlteracaoAtendente()) return; comentar.mutate(); }}>
               {comentar.isPending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}Enviar
             </Button>
           </div>
