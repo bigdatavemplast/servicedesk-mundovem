@@ -27,6 +27,8 @@ CREATE TABLE IF NOT EXISTS public.comentarios_anexos (
 
 CREATE INDEX IF NOT EXISTS comentarios_anexos_comentario_id_idx
   ON public.comentarios_anexos (comentario_id);
+CREATE INDEX IF NOT EXISTS comentarios_anexos_autor_id_idx
+  ON public.comentarios_anexos (autor_id);
 
 ALTER TABLE public.comentarios_anexos ENABLE ROW LEVEL SECURITY;
 GRANT SELECT, INSERT ON public.comentarios_anexos TO authenticated;
