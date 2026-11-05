@@ -9,10 +9,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectValue, SelectTrigger } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { ArrowLeft, AlertTriangle, Clock, Loader2, RotateCcw, Star, CheckCircle2, LockKeyhole } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Clock, Loader2, RotateCcw, Star, CheckCircle2, LockKeyhole, ImagePlus, X } from "lucide-react";
 import { AnexosSecao } from "@/components/anexos/AnexosSecao";
 import { useServerFn } from "@tanstack/react-start";
 import { atualizarChamado, comentarChamado, avaliarChamado, acaoSolicitanteChamado, reabrirChamado } from "@/lib/chamado.functions";
+import { enviarFotoComentario, TAMANHO_MAXIMO_ANEXO, ehImagem } from "@/lib/anexos";
 
 export const Route = createFileRoute("/_authenticated/chamados/$id")({
   head: ({ params }) => {
@@ -76,18 +77,25 @@ function statusClass(s: string) {
   return classes[s] ?? neutro;
 }
 function statusLabel(s: string | null | undefined) { return STATUS.find((item) => item.v === s)?.l ?? (s ? s.replaceAll("_", " ") : "—"); }
-function dateKey(d: string | null | undefined) { return d ? new Date(d).toLocaleDateString("pt-BR") : ""; }
-function dayLabel(d: string | null | undefined, now: number) {
-  if (!d) return "Data não informada";
-  const date = new Date(d);
-  const today = new Date(now);
-  if (date.toLocaleDateString("pt-BR") === today.toLocaleDateString("pt-BR")) return "Hoje";
-  return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }).replace(".", "");
+
+
+type FotoComentario = { id: string; nome_arquivo: string; storage_path: string; content_type: string | null };
+function FotoAnexadaComentario({ foto }: { foto: FotoComentario }) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let ativo = true;
+    void supabase.storage.from("comentarios-anexos").createSignedUrl(foto.storage_path, 600).then(({ data, error }) => {
+      if (ativo && !error) setUrl(data?.signedUrl ?? null);
+    });
+    return () => { ativo = false; };
+  }, [foto.storage_path]);
+  if (!url) return <div className="h-24 w-24 animate-pulse rounded-md bg-muted" />;
+  return <a href={url} target="_blank" rel="noreferrer" title={foto.nome_arquivo} className="block overflow-hidden rounded-md border bg-background focus:outline-none focus:ring-2 focus:ring-ring"><img src={url} alt={foto.nome_arquivo} loading="lazy" className="h-24 w-24 object-cover" /></a>;
 }
 
 function DetalheChamadoPage() {
   const { id } = Route.useParams(); const { user } = Route.useRouteContext(); const navigate = useNavigate(); const qc = useQueryClient();
-  const [comentario, setComentario] = useState(""); const [interno, setInterno] = useState(false); const [justificativaPrioridade, setJustificativaPrioridade] = useState(""); const [motivoSolicitante, setMotivoSolicitante] = useState(""); const [nota, setNota] = useState(0); const [avaliacaoComentario, setAvaliacaoComentario] = useState(""); const [now, setNow] = useState(Date.now());
+  const [comentario, setComentario] = useState(""); const [fotosComentario, setFotosComentario] = useState<File[]>([]); const [interno, setInterno] = useState(false); const [justificativaPrioridade, setJustificativaPrioridade] = useState(""); const [motivoSolicitante, setMotivoSolicitante] = useState(""); const [nota, setNota] = useState(0); const [avaliacaoComentario, setAvaliacaoComentario] = useState(""); const [now, setNow] = useState(Date.now());
   const [confirmacaoReabertura, setConfirmacaoReabertura] = useState(false); const [confirmacao, setConfirmacao] = useState<{ campo: "status" | "prioridade" | "atendente" | "tipo"; valor: string | null; label: string; atual: string; atualLabel: string } | null>(null);
   const atualizarServer = useServerFn(atualizarChamado); const comentarServer = useServerFn(comentarChamado); const avaliarServer = useServerFn(avaliarChamado); const acaoSolicitanteServer = useServerFn(acaoSolicitanteChamado); const reabrirServer = useServerFn(reabrirChamado);
   useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 1000); return () => window.clearInterval(timer); }, []);
@@ -121,6 +129,18 @@ function DetalheChamadoPage() {
 
   const podeVerNotasInternas = roles.includes("admin") || isAttendant;
   const { data: comentarios = [] } = useQuery({ queryKey: ["chamado-comentarios", id, podeVerNotasInternas], queryFn: async () => { let q = supabase.from("comentarios_chamado").select("id,conteudo,interno,criado_em,autor:profiles(nome)").eq("chamado_id", id).order("criado_em", { ascending: true }); if (!podeVerNotasInternas) q = q.eq("interno", false); const { data } = await q; return data ?? []; } });
+  const comentarioIds = comentarios.map((c: any) => c.id);
+  const { data: fotosComentarios = [] } = useQuery({
+    queryKey: ["comentario-fotos", comentarioIds],
+    enabled: comentarioIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("comentarios_anexos")
+        .select("id,comentario_id,nome_arquivo,storage_path,content_type")
+        .in("comentario_id", comentarioIds);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
   const { data: historico = [] } = useQuery({ queryKey: ["chamado-historico", id], queryFn: async () => { const { data } = await supabase.from("historico_chamado").select("id,acao,de,para,ator_role,criado_em,autor:profiles(id,nome)").eq("chamado_id", id).order("criado_em", { ascending: false }); return data ?? []; } });
 
   const historicoAutorIds = [...new Set(historico.map((h: any) => h.autor?.id).filter((value: unknown): value is string => typeof value === "string" && value.length > 0))];
@@ -230,8 +250,31 @@ function DetalheChamadoPage() {
     onError: (e: any) => toast.error(e.message),
   });
   const comentar = useMutation({
-    mutationFn: async () => { await comentarServer({ data: { chamadoId: id, conteudo: comentario, interno } }); },
-    onSuccess: () => { setComentario(""); setInterno(false); qc.invalidateQueries({ queryKey: ["chamado", id] }); qc.invalidateQueries({ queryKey: ["chamado-comentarios", id] }); qc.invalidateQueries({ queryKey: ["chamado-historico", id] }); qc.invalidateQueries({ queryKey: ["fila"] }); qc.invalidateQueries({ queryKey: ["dashboard"] }); toast.success("Resposta enviada"); },
+    mutationFn: async () => {
+      const inserted = await comentarServer({ data: { chamadoId: id, conteudo: comentario.trim() || "Imagem anexada", interno } });
+      const falhas: string[] = [];
+      for (const foto of fotosComentario) {
+        try {
+          await enviarFotoComentario({ comentarioId: inserted.id, file: foto });
+        } catch (error) {
+          falhas.push(error instanceof Error ? error.message : foto.name);
+        }
+      }
+      return { falhas };
+    },
+    onSuccess: ({ falhas }) => {
+      setComentario("");
+      setFotosComentario([]);
+      setInterno(false);
+      qc.invalidateQueries({ queryKey: ["chamado", id] });
+      qc.invalidateQueries({ queryKey: ["chamado-comentarios", id] });
+      qc.invalidateQueries({ queryKey: ["comentario-fotos"] });
+      qc.invalidateQueries({ queryKey: ["chamado-historico", id] });
+      qc.invalidateQueries({ queryKey: ["fila"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      if (falhas.length) toast.error(`Comentário enviado, mas ${falhas.length} foto(s) não puderam ser anexadas: ${falhas.join("; ")}`);
+      else toast.success("Resposta enviada");
+    },
     onError: (e: any) => toast.error(e.message),
   });
   const avaliar = useMutation({
@@ -288,11 +331,12 @@ function DetalheChamadoPage() {
   const mesmaAreaDoGestor = !!perfilGestor?.departamento && !!(chamado?.solicitante as any)?.departamento
     && perfilGestor.departamento.trim().toLocaleLowerCase("pt-BR") === (chamado?.solicitante as any).departamento.trim().toLocaleLowerCase("pt-BR");
   const exibirAvisoAcessoGestor = isManager && mesmaAreaDoGestor;
-  const paginaSomenteLeitura = isManager;
+  const prazoSolicitanteExpirado = !!chamado && chamado.solicitante_id === user.id && !!chamado.resolvido_em && Date.now() - new Date(chamado.resolvido_em).getTime() >= 48 * 60 * 60 * 1000;
+  const paginaSomenteLeitura = isManager || prazoSolicitanteExpirado;
   const podeAlterarChamado = !isManager;
   const podeAlterarPrioridade = !isManager;
   const tempoDesdeResolucao = chamado?.resolvido_em ? Date.now() - new Date(chamado.resolvido_em).getTime() : -1;
-  const podeAvaliar = !!chamado && (!isManager || chamado.solicitante_id === user.id) && chamado.solicitante_id === user.id && chamado.status === "resolvido" && chamado.avaliacao_nota == null && tempoDesdeResolucao >= 0 && tempoDesdeResolucao <= 48 * 60 * 60 * 1000;
+  const podeAvaliar = !!chamado && (!isManager || chamado.solicitante_id === user.id) && chamado.solicitante_id === user.id && chamado.status === "resolvido" && chamado.avaliacao_nota == null && tempoDesdeResolucao >= 0 && tempoDesdeResolucao < 48 * 60 * 60 * 1000;
   const jaAvaliado = chamado?.avaliacao_nota != null;
   const podeReabrir = !!chamado && chamado.solicitante_id === user.id && ["resolvido", "fechado"].includes(chamado.status) && !!chamado.resolvido_em && tempoDesdeResolucao >= 0 && tempoDesdeResolucao < 48 * 60 * 60 * 1000;
   const exibirAvisoReabertura = !!chamado && ["resolvido", "fechado"].includes(chamado.status);
@@ -325,8 +369,8 @@ function DetalheChamadoPage() {
 
     <div className="grid gap-4 lg:grid-cols-[2fr_1fr]"><div className="space-y-4">
       <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Descrição</CardTitle></CardHeader><CardContent><p className="whitespace-pre-wrap text-sm">{chamado.descricao}</p></CardContent></Card>
-      <AnexosSecao chamadoId={id} userId={user.id} somenteImagens={isManager} podeRemoverTodos={roles.includes("admin") && !paginaSomenteLeitura} podeRemoverProprio={!gestorNoProprioChamado} podeAdicionar={!isManager && (!isAttendant || atendentePodeAlterar)} onTentativaSemPermissao={() => { if (isAttendant && !atendentePodeAlterar) toast.error("Você não pode alterar este chamado. Ele já possui um atendente ou não pertence ao seu grupo/área."); }} />
-      {!roles.includes("admin") && !isManager && roles.includes("colaborador") && chamado.solicitante_id === user.id && chamado.status === "aguardando_usuario" && <Card className="border-slate-200 shadow-sm"><CardHeader className="pb-1 pt-4"><CardTitle className="text-sm font-medium">A solicitação ainda não foi concluída?</CardTitle></CardHeader><CardContent className="space-y-3 pb-4"><div className="space-y-1.5"><label htmlFor="motivo-retomada" className="text-sm font-medium">Justificativa <span className="text-destructive">*</span></label><Textarea id="motivo-retomada" value={motivoSolicitante} onChange={(e) => setMotivoSolicitante(e.target.value)} placeholder="Informe o que ainda precisa ser resolvido." rows={2} maxLength={2000} disabled={acaoSolicitante.isPending} /></div><div className="flex flex-wrap gap-2"><Button disabled={acaoSolicitante.isPending || !motivoSolicitante.trim()} onClick={() => acaoSolicitante.mutate({ acao: "retomar", motivo: motivoSolicitante.trim() })}>{acaoSolicitante.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Solicitar continuidade</Button><Button variant="outline" disabled={acaoSolicitante.isPending} onClick={() => acaoSolicitante.mutate({ acao: "fechar" })}>{acaoSolicitante.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Encerrar chamado</Button></div></CardContent></Card>}
+      <AnexosSecao chamadoId={id} userId={user.id} somenteImagens={isManager} podeRemoverTodos={roles.includes("admin") && !paginaSomenteLeitura} podeRemoverProprio={!gestorNoProprioChamado && !prazoSolicitanteExpirado} podeAdicionar={!paginaSomenteLeitura && (!isAttendant || atendentePodeAlterar)} onTentativaSemPermissao={() => { if (isAttendant && !atendentePodeAlterar) toast.error("Você não pode alterar este chamado. Ele já possui um atendente ou não pertence ao seu grupo/área."); }} />
+      {!roles.includes("admin") && !isManager && !prazoSolicitanteExpirado && roles.includes("colaborador") && chamado.solicitante_id === user.id && chamado.status === "aguardando_usuario" && <Card className="border-slate-200 shadow-sm"><CardHeader className="pb-1 pt-4"><CardTitle className="text-sm font-medium">A solicitação ainda não foi concluída?</CardTitle></CardHeader><CardContent className="space-y-3 pb-4"><div className="space-y-1.5"><label htmlFor="motivo-retomada" className="text-sm font-medium">Justificativa <span className="text-destructive">*</span></label><Textarea id="motivo-retomada" value={motivoSolicitante} onChange={(e) => setMotivoSolicitante(e.target.value)} placeholder="Informe o que ainda precisa ser resolvido." rows={2} maxLength={2000} disabled={acaoSolicitante.isPending} /></div><div className="flex flex-wrap gap-2"><Button disabled={acaoSolicitante.isPending || !motivoSolicitante.trim()} onClick={() => acaoSolicitante.mutate({ acao: "retomar", motivo: motivoSolicitante.trim() })}>{acaoSolicitante.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Solicitar continuidade</Button><Button variant="outline" disabled={acaoSolicitante.isPending} onClick={() => acaoSolicitante.mutate({ acao: "fechar" })}>{acaoSolicitante.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Encerrar chamado</Button></div></CardContent></Card>}
 
       {podeAvaliar && (
         <Card className="overflow-hidden border border-border/80 bg-card shadow-sm">
@@ -397,9 +441,78 @@ function DetalheChamadoPage() {
         <div className="min-w-[220px] flex-1 space-y-1"><label className="text-xs text-muted-foreground">Tipo de Chamado</label><Select disabled={!podeAlterarChamado} value={chamado.tipo_chamado_id ?? "__none__"} onValueChange={(v) => { if (bloquearAlteracaoAtendente()) return; const tipo = tiposChamado.find((t: any) => t.id === v); if (v !== (chamado.tipo_chamado_id ?? null) && v !== "__none__") setConfirmacao({ campo: "tipo", valor: v, label: tipo?.nome ?? v, atual: chamado.tipo_chamado_id ?? "", atualLabel: (chamado.tipo as any)?.nome ?? "Sem tipo definido" }); }}><SelectTrigger className="h-9"><SelectValue placeholder="Selecione o tipo" /></SelectTrigger><SelectContent>{tiposChamado.map((tipo: any) => <SelectItem key={tipo.id} value={tipo.id}>{tipo.nome}</SelectItem>)}</SelectContent></Select></div>
         {chamado.atendente_id !== user.id && (<Button variant="outline" size="sm" className="self-end" disabled={isManager || !podeAlterarChamado} onClick={() => { if (bloquearAlteracaoAtendente()) return; setConfirmacao({ campo: "atendente", valor: user.id, label: "Você", atual: chamado.atendente_id ?? "", atualLabel: (chamado.atendente as any)?.nome ?? "Não atribuído" }); }}>Atribuir a mim</Button>)}
       </CardContent></Card>)}
-      <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Adicionar comentário</CardTitle></CardHeader><CardContent className="space-y-3"><Textarea rows={4} value={comentario} onChange={(e) => setComentario(e.target.value)} placeholder={interno ? "Nota interna (não visível ao solicitante)" : "Escreva sua resposta…"} /><div className="flex items-center justify-between">{(isAttendant || roles.includes("admin")) ? (<label className={`flex items-center gap-2 text-xs ${paginaSomenteLeitura ? "opacity-50" : ""}`}><input type="checkbox" disabled={paginaSomenteLeitura} checked={interno} onChange={(e) => { if (bloquearAlteracaoAtendente()) return; setInterno(e.target.checked); }} />Nota interna (não visível ao solicitante)</label>) : <div /> }<Button size="sm" disabled={!comentario.trim() || comentar.isPending} onClick={() => { if (bloquearAlteracaoAtendente()) return; comentar.mutate(); }}>{comentar.isPending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}Enviar</Button></div></CardContent></Card>
-      <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Conversas</CardTitle></CardHeader><CardContent className="space-y-3">{comentarios.length === 0 && <p className="text-sm text-muted-foreground">Nenhum comentário ainda.</p>}{comentarios.map((c: any) => (<div key={c.id} className={`rounded-md border-l-4 p-3 text-sm ${c.interno ? "border-[#9C1917]/40 bg-[#F4EBDD]" : "border-slate-300 bg-muted/40"}`}><div className="mb-1 flex justify-between text-xs text-muted-foreground"><span>{c.autor?.nome ?? "Sistema"} {c.interno && <span className="font-medium text-[#9C1917]">(interno)</span>}</span><span>{fmt(c.criado_em)}</span></div><p className="whitespace-pre-wrap">{c.conteudo}</p></div>))}</CardContent></Card>
-      <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Histórico</CardTitle></CardHeader><CardContent><ul className="space-y-2 text-sm"><li className="text-muted-foreground"><Clock className="mr-1 inline h-3 w-3" /> Aberto em {fmt(chamado.aberto_em)}</li>{historico.map((h: any, index: number) => { const anterior = historico[index + 1]; const novoDia = !anterior || dateKey(h.criado_em) !== dateKey(anterior.criado_em); return (<li key={h.id} className={`text-muted-foreground${novoDia ? " historico-item-com-dia" : ""}`}>{novoDia && <div className="historico-dia" aria-label={`Alterações de ${dayLabel(h.criado_em, now)}`}><span>{dayLabel(h.criado_em, now)}</span></div>}<Clock className="mr-1 inline h-3 w-3" />{h.acao === "atendente_alterado" ? "Atendente alterado" : h.acao === "tipo_chamado_alterado" ? "Tipo de chamado alterado" : h.acao === "justificativa_prioridade" ? "Justificativa da prioridade" : h.acao === "solicitante_pediu_mais_ajuda" ? "Continuidade do atendimento solicitada" : h.acao.replaceAll("_", " ")}{h.acao === "justificativa_prioridade" ? ": " : ": "}<span className="text-foreground" style={{ textDecoration: "none" }}>{h.acao === "atendente_alterado" ? `${getAtendenteNome(h.de)} → ${getAtendenteNome(h.para)}` : h.acao === "tipo_chamado_alterado" ? `${getTipoChamadoNome(h.de)} → ${getTipoChamadoNome(h.para)}` : h.acao === "status_alterado" ? `${statusLabel(h.de)} → ${statusLabel(h.para)}` : h.acao === "avaliacao_registrada" || h.acao === "justificativa_prioridade" || h.acao === "solicitante_pediu_mais_ajuda" ? h.para : `${h.de || "—"} → ${h.para || "—"}`}</span><span className="ml-2 text-xs">por <strong className="no-underline">{h.autor?.nome ?? "Sistema"}{historicoRoleLabel(getHistoricoAutorRole(h)) ? ` (${historicoRoleLabel(getHistoricoAutorRole(h))})` : ""}</strong> · {fmt(h.criado_em)}</span></li>); })}</ul></CardContent></Card>
+      <Card>
+        <CardHeader className="pb-2"><CardTitle className="text-sm">Adicionar comentário</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <Textarea rows={4} disabled={prazoSolicitanteExpirado} value={comentario} onChange={(e) => setComentario(e.target.value)} placeholder={interno ? "Nota interna (não visível ao solicitante)" : "Escreva sua resposta…"} />
+          {(isAttendant || roles.includes("admin")) && (
+            <div className="space-y-2">
+              <input
+                id="fotos-comentario"
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                multiple
+                className="hidden"
+                disabled={paginaSomenteLeitura || comentar.isPending}
+                onChange={(e) => {
+                  const selecionadas = Array.from(e.target.files ?? []);
+                  const validas: File[] = [];
+                  for (const file of selecionadas) {
+                    if (!ehImagem(file.name, file.type)) toast.error(`${file.name}: formato não permitido. Use PNG, JPG ou WEBP.`);
+                    else if (file.size > TAMANHO_MAXIMO_ANEXO) toast.error(`${file.name}: excede o limite de 10 MB.`);
+                    else validas.push(file);
+                  }
+                  setFotosComentario((atuais) => {
+                    const disponiveis = Math.max(0, 5 - atuais.length);
+                    if (validas.length > disponiveis) toast.error("É possível anexar até 5 fotos por comentário.");
+                    return [...atuais, ...validas.slice(0, disponiveis)];
+                  });
+                  e.target.value = "";
+                }}
+              />
+              <Button type="button" size="sm" variant="outline" disabled={paginaSomenteLeitura || comentar.isPending || fotosComentario.length >= 5} onClick={() => document.getElementById("fotos-comentario")?.click()}>
+                <ImagePlus className="mr-2 h-4 w-4" />Anexar fotos
+              </Button>
+              {fotosComentario.length > 0 && (
+                <ul className="flex flex-wrap gap-2">
+                  {fotosComentario.map((foto, index) => (
+                    <li key={`${foto.name}-${index}`} className="flex max-w-full items-center gap-2 rounded-md border px-2 py-1 text-xs">
+                      <span className="max-w-48 truncate">{foto.name}</span>
+                      <span className="text-muted-foreground">{(foto.size / (1024 * 1024)).toFixed(1)} MB</span>
+                      <button type="button" aria-label={`Remover ${foto.name}`} disabled={comentar.isPending} onClick={() => setFotosComentario((atuais) => atuais.filter((_, i) => i !== index))}>
+                        <X className="h-3 w-3" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <p className="text-xs text-muted-foreground">PNG, JPG ou WEBP · até 10 MB por foto · máximo de 5 fotos.</p>
+            </div>
+          )}
+          <div className="flex items-center justify-between">
+            {(isAttendant || roles.includes("admin")) ? (<label className={`flex items-center gap-2 text-xs ${paginaSomenteLeitura ? "opacity-50" : ""}`}><input type="checkbox" disabled={paginaSomenteLeitura} checked={interno} onChange={(e) => { if (bloquearAlteracaoAtendente()) return; setInterno(e.target.checked); }} />Nota interna (não visível ao solicitante)</label>) : <div />}
+            <Button size="sm" disabled={prazoSolicitanteExpirado || (!comentario.trim() && fotosComentario.length === 0) || comentar.isPending} onClick={() => { if (bloquearAlteracaoAtendente()) return; comentar.mutate(); }}>
+              {comentar.isPending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}Enviar
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="pb-2"><CardTitle className="text-sm">Conversas</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          {comentarios.length === 0 && <p className="text-sm text-muted-foreground">Nenhum comentário ainda.</p>}
+          {comentarios.map((c: any) => (
+            <div key={c.id} className={`rounded-md border-l-4 p-3 text-sm ${c.interno ? "border-[#9C1917]/40 bg-[#F4EBDD]" : "border-slate-300 bg-muted/40"}`}>
+              <div className="mb-1 flex justify-between text-xs text-muted-foreground"><span>{c.autor?.nome ?? "Sistema"} {c.interno && <span className="font-medium text-[#9C1917]">(interno)</span>}</span><span>{fmt(c.criado_em)}</span></div>
+              <p className="whitespace-pre-wrap">{c.conteudo}</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {(fotosComentarios as any[]).filter((foto) => foto.comentario_id === c.id).map((foto: any) => <FotoAnexadaComentario key={foto.id} foto={foto} />)}
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+      <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Histórico</CardTitle></CardHeader><CardContent><ul className="space-y-2 text-sm"><li className="text-muted-foreground"><Clock className="mr-1 inline h-3 w-3" /> Aberto em {fmt(chamado.aberto_em)}</li>{historico.map((h: any) => (<li key={h.id} className="text-muted-foreground"><Clock className="mr-1 inline h-3 w-3" />{h.acao === "atendente_alterado" ? "Atendente alterado" : h.acao === "tipo_chamado_alterado" ? "Tipo de chamado alterado" : h.acao === "justificativa_prioridade" ? "Justificativa da prioridade" : h.acao === "solicitante_pediu_mais_ajuda" ? "Continuidade do atendimento solicitada" : h.acao.replaceAll("_", " ")}{h.acao === "justificativa_prioridade" ? ": " : ": "}<span className="text-foreground" style={{ textDecoration: "none" }}>{h.acao === "atendente_alterado" ? `${getAtendenteNome(h.de)} → ${getAtendenteNome(h.para)}` : h.acao === "tipo_chamado_alterado" ? `${getTipoChamadoNome(h.de)} → ${getTipoChamadoNome(h.para)}` : h.acao === "status_alterado" ? `${statusLabel(h.de)} → ${statusLabel(h.para)}` : h.acao === "avaliacao_registrada" || h.acao === "justificativa_prioridade" || h.acao === "solicitante_pediu_mais_ajuda" ? h.para : `${h.de || "—"} → ${h.para || "—"}`}</span><span className="ml-2 text-xs">por <strong className="no-underline">{h.autor?.nome ?? "Sistema"}{historicoRoleLabel(getHistoricoAutorRole(h)) ? ` (${historicoRoleLabel(getHistoricoAutorRole(h))})` : ""}</strong> · {fmt(h.criado_em)}</span></li>))}</ul></CardContent></Card>
     </div><div><Card><CardContent className="space-y-3 p-4 text-sm"><Info label="Solicitante" value={(chamado.solicitante as any)?.nome} /><Info label="Departamento" value={(chamado.solicitante as any)?.departamento} /><Info label="Atendente" value={(chamado.atendente as any)?.nome ?? "Sem atendente atribuído"} /><Info label="Tipo de Chamado" value={(chamado.tipo as any)?.nome} /><Info label="Categoria" value={(chamado.categoria as any)?.nome} /><Info label="Subcategoria" value={(chamado.subcategoria as any)?.nome} /><Info label="Aberto em" value={fmt(chamado.aberto_em)} /><Info label="Resolvido em" value={fmt(chamado.resolvido_em)} />{chamado.prazo_resolucao && (<div className="border-t pt-3"><div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">SLA de resolução</div><div className={`mt-1 font-semibold ${slaClass(sla.status)}`}>{sla.label}</div><div className="mt-1 text-xs text-muted-foreground">{sla.status === "vencido" ? `Vencido há ${formatDuration(Math.floor((now - new Date(chamado.prazo_resolucao).getTime()) / 1000))}` : sla.status === "finalizado_vencido" ? "O prazo de resolução foi ultrapassado." : sla.status === "finalizado" ? "Concluído dentro do prazo." : sla.status === "finalizado_cancelado" ? "SLA encerrado por cancelamento." : `${formatDuration(sla.seconds)} restantes`}</div>{sla.status !== "pausado" && <div className="mt-1 text-[11px] text-muted-foreground">Vencimento: {fmt(chamado.prazo_resolucao)}</div>}{sla.status === "pausado" && <div className="mt-1 flex items-center gap-1 text-xs text-blue-600"><Clock className="h-3 w-3" /> Aguardando resposta do solicitante</div>}</div>)}</CardContent></Card></div></div>
     <AlertDialog open={confirmacaoReabertura} onOpenChange={setConfirmacaoReabertura}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Reabrir chamado?</AlertDialogTitle><AlertDialogDescription>A avaliação atual será removida e o chamado voltará para <strong>Reaberto</strong>. O prazo de 48 horas é contado a partir da resolução original.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={reabrir.isPending}>Cancelar</AlertDialogCancel><AlertDialogAction disabled={reabrir.isPending} onClick={() => reabrir.mutate()}>{reabrir.isPending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}Reabrir chamado</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
     <AlertDialog open={!!confirmacao} onOpenChange={(open) => !open && setConfirmacao(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Confirmar alteração</AlertDialogTitle><AlertDialogDescription>Confirma a alteração de <strong>{confirmacao?.atualLabel}</strong> para <strong>{confirmacao?.label}</strong>?{isManager && confirmacao?.campo === "prioridade" ? " Informe a justificativa para registrar a alteração no histórico." : ""}</AlertDialogDescription>{isManager && confirmacao?.campo === "prioridade" && <div className="space-y-2"><label className="text-sm font-medium" htmlFor="justificativa-prioridade">Justificativa obrigatória</label><Textarea id="justificativa-prioridade" rows={3} maxLength={1000} value={justificativaPrioridade} onChange={(e) => setJustificativaPrioridade(e.target.value)} placeholder="Explique por que a prioridade precisa ser alterada..." /></div>}</AlertDialogHeader><AlertDialogFooter><AlertDialogCancel onClick={() => setConfirmacao(null)}>Cancelar</AlertDialogCancel><AlertDialogAction disabled={isManager && confirmacao?.campo === "prioridade" && !justificativaPrioridade.trim()} onClick={() => { if (!confirmacao) return; const c = confirmacao; setConfirmacao(null); if (c.campo === "status") atualizar.mutate({ status: c.valor }); if (c.campo === "prioridade") { atualizar.mutate({ prioridade: c.valor, justificativa: isManager ? justificativaPrioridade.trim() : undefined }); setJustificativaPrioridade(""); } if (c.campo === "atendente") atualizar.mutate({ atendente_id: c.valor }); if (c.campo === "tipo") atualizar.mutate({ tipoChamadoId: c.valor }); }}>Confirmar</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>

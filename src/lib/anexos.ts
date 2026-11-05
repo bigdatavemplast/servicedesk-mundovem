@@ -4,6 +4,7 @@ export const TAMANHO_MAXIMO_ANEXO = 10 * 1024 * 1024;
 export const EXTENSOES_PERMITIDAS = ["png", "jpg", "jpeg", "webp", "pdf", "docx", "xlsx", "txt"] as const;
 export const ACCEPT_ANEXOS = ".png,.jpg,.jpeg,.webp,.pdf,.docx,.xlsx,.txt";
 export const BUCKET_ANEXOS = "chamados-anexos";
+export const BUCKET_COMENTARIOS = "comentarios-anexos";
 
 export function extensaoDe(nome: string): string {
   const partes = nome.split(".");
@@ -75,4 +76,32 @@ export async function urlAssinada(path: string, segundos = 120): Promise<string 
   const { data, error } = await supabase.storage.from(BUCKET_ANEXOS).createSignedUrl(path, segundos);
   if (error || !data) return null;
   return data.signedUrl;
+}
+
+/** Upload privado de uma foto vinculada a um comentário específico. */
+export async function enviarFotoComentario(opts: { comentarioId: string; file: File }): Promise<void> {
+  const { comentarioId, file } = opts;
+  if (!ehImagem(file.name, file.type)) throw new Error(`${file.name}: somente PNG, JPG ou WEBP são permitidos.`);
+  if (file.size > TAMANHO_MAXIMO_ANEXO) throw new Error(`${file.name}: excede o limite de 10 MB.`);
+  const mimePermitido = ["image/png", "image/jpeg", "image/webp"].includes(file.type);
+  if (!mimePermitido) throw new Error(`${file.name}: tipo de imagem inválido.`);
+  const path = `${comentarioId}/${crypto.randomUUID()}-${nomeSeguro(file.name)}`;
+  const { error: uploadError } = await supabase.storage.from(BUCKET_COMENTARIOS).upload(path, file, {
+    contentType: file.type,
+    cacheControl: "3600",
+    upsert: false,
+  });
+  if (uploadError) throw new Error(`Não foi possível enviar ${file.name}: ${uploadError.message}`);
+  const { error: insertError } = await (supabase as any).from("comentarios_anexos").insert({
+    comentario_id: comentarioId,
+    autor_id: (await supabase.auth.getUser()).data.user?.id,
+    nome_arquivo: file.name,
+    storage_path: path,
+    tamanho_bytes: file.size,
+    content_type: file.type,
+  });
+  if (insertError) {
+    await supabase.storage.from(BUCKET_COMENTARIOS).remove([path]);
+    throw new Error(`A foto foi enviada, mas não foi possível vinculá-la ao comentário: ${insertError.message}`);
+  }
 }

@@ -150,9 +150,10 @@ export const criarChamado = createServerFn({ method: "POST" }).middleware([requi
 
 export const comentarChamado = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((d) => z.object({ chamadoId: z.string().uuid(), conteudo: z.string().trim().min(1), interno: z.boolean().default(false) }).parse(d)).handler(async ({ data, context }) => {
   const supabase = context.supabase as any; const admin = await getAdminClient(supabase);
-  const { data: ticket, error: ticketError } = await admin.from("chamados").select("id,numero,titulo,status,prioridade,prazo_resolucao,sla_pausado,solicitante_id,atendente_id,segmento_id").eq("id", data.chamadoId).maybeSingle();
+  const { data: ticket, error: ticketError } = await admin.from("chamados").select("id,numero,titulo,status,prioridade,prazo_resolucao,sla_pausado,solicitante_id,atendente_id,segmento_id,resolvido_em").eq("id", data.chamadoId).maybeSingle();
   if (ticketError || !ticket) throw new Error(ticketError?.message ?? "Chamado não encontrado");
   const isRequester = ticket.solicitante_id === context.userId;
+  if (isRequester && ticket.resolvido_em && Date.now() - new Date(ticket.resolvido_em).getTime() >= 48 * 60 * 60 * 1000) throw new Error("O prazo de 48 horas terminou. Este chamado está disponível somente para consulta.");
   const roles = await getRoles(supabase, context.userId);
   const isAdmin = roles.includes("admin");
   const isManager = roles.includes("gestor") && !isAdmin;
@@ -264,11 +265,14 @@ export const acaoSolicitanteChamado = createServerFn({ method: "POST" }).middlew
 
   const { data: ticket, error: ticketError } = await admin
     .from("chamados")
-    .select("id,numero,titulo,status,solicitante_id,atendente_id,sla_pausado")
+    .select("id,numero,titulo,status,solicitante_id,atendente_id,sla_pausado,resolvido_em")
     .eq("id", data.chamadoId)
     .maybeSingle();
   if (ticketError || !ticket) throw new Error(ticketError?.message ?? "Chamado não encontrado");
   if (ticket.solicitante_id !== context.userId) throw new Error("Você só pode executar esta ação em um chamado que registrou.");
+  if (ticket.resolvido_em && Date.now() - new Date(ticket.resolvido_em).getTime() >= 48 * 60 * 60 * 1000) {
+    throw new Error("O prazo de 48 horas terminou. Este chamado está disponível somente para consulta.");
+  }
   if (ticket.status !== "aguardando_usuario") throw new Error("Estas ações só estão disponíveis quando o chamado está aguardando o usuário.");
 
   const { data: resultado, error: acaoError } = await supabase.rpc("acao_solicitante_chamado", {
@@ -295,7 +299,12 @@ export const acaoSolicitanteChamado = createServerFn({ method: "POST" }).middlew
   return { ok: true, status: resultado.status };
 });
 export const reabrirChamado = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((d) => z.object({ chamadoId: z.string().uuid() }).parse(d)).handler(async ({ data, context }) => {
-  const roles = await getRoles(context.supabase, context.userId);
+  const admin = await getAdminClient(context.supabase);
+  const { data: ticket, error: ticketError } = await admin.from("chamados").select("id,solicitante_id,resolvido_em").eq("id", data.chamadoId).maybeSingle();
+  if (ticketError || !ticket) throw new Error(ticketError?.message ?? "Chamado não encontrado");
+  if (ticket.solicitante_id === context.userId && ticket.resolvido_em && Date.now() - new Date(ticket.resolvido_em).getTime() >= 48 * 60 * 60 * 1000) {
+    throw new Error("O prazo de 48 horas terminou. Este chamado não pode mais ser reaberto pelo solicitante.");
+  }
   const { data: resultado, error } = await (context.supabase.rpc as any)("reabrir_chamado", { _chamado_id: data.chamadoId });
   if (error) throw new Error(error.message);
   if (!resultado) throw new Error("Não foi possível reabrir o chamado.");
@@ -315,6 +324,12 @@ export const avaliarChamado = createServerFn({ method: "POST" }).middleware([req
     if (!ticket || ticket.solicitante_id !== context.userId) {
       throw new Error("Gestores só podem avaliar chamados que abriram.");
     }
+  }
+  const admin = await getAdminClient(context.supabase);
+  const { data: ticket, error: ticketError } = await admin.from("chamados").select("solicitante_id,resolvido_em").eq("id", data.chamadoId).maybeSingle();
+  if (ticketError || !ticket) throw new Error(ticketError?.message ?? "Chamado não encontrado");
+  if (ticket.solicitante_id === context.userId && ticket.resolvido_em && Date.now() - new Date(ticket.resolvido_em).getTime() >= 48 * 60 * 60 * 1000) {
+    throw new Error("O prazo de 48 horas terminou. Este chamado está disponível somente para consulta.");
   }
   // A avaliação usa a sessão autenticada para que a RPC valide auth.uid().
   // A RPC também fecha o chamado e grava o histórico de forma atômica.
