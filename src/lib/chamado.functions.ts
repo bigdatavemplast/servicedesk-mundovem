@@ -265,11 +265,14 @@ export const acaoSolicitanteChamado = createServerFn({ method: "POST" }).middlew
 
   const { data: ticket, error: ticketError } = await admin
     .from("chamados")
-    .select("id,numero,titulo,status,solicitante_id,atendente_id,sla_pausado")
+    .select("id,numero,titulo,status,solicitante_id,atendente_id,sla_pausado,resolvido_em")
     .eq("id", data.chamadoId)
     .maybeSingle();
   if (ticketError || !ticket) throw new Error(ticketError?.message ?? "Chamado não encontrado");
   if (ticket.solicitante_id !== context.userId) throw new Error("Você só pode executar esta ação em um chamado que registrou.");
+  if (ticket.resolvido_em && Date.now() - new Date(ticket.resolvido_em).getTime() >= 48 * 60 * 60 * 1000) {
+    throw new Error("O prazo de 48 horas terminou. Este chamado está disponível somente para consulta.");
+  }
   if (ticket.status !== "aguardando_usuario") throw new Error("Estas ações só estão disponíveis quando o chamado está aguardando o usuário.");
 
   const { data: resultado, error: acaoError } = await supabase.rpc("acao_solicitante_chamado", {
