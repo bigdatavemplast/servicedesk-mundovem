@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 function safeNext(next: unknown): string | null { if (typeof next !== "string" || !next.startsWith("/") || next.startsWith("//")) return null; return next; }
@@ -47,6 +47,7 @@ function AuthPage() {
   const [forcePasswordChange, setForcePasswordChange] = useState(false);
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPass, setLoginPass] = useState("");
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -177,7 +178,21 @@ function AuthPage() {
             ) : (
               <form className="space-y-4 pt-2" onSubmit={handleLogin}>
                 <div className="space-y-2"><Label htmlFor="login-email">E-mail</Label><Input id="login-email" type="email" required value={loginEmail} onChange={e => setLoginEmail(e.target.value)} /></div>
-                <div className="space-y-2"><Label htmlFor="login-pass">Senha</Label><Input id="login-pass" type="password" required value={loginPass} onChange={e => setLoginPass(e.target.value)} /></div>
+                <div className="space-y-2">
+                  <Label htmlFor="login-pass">Senha</Label>
+                  <div className="relative">
+                    <Input id="login-pass" type={showLoginPassword ? "text" : "password"} required autoComplete="current-password" className="pr-10" value={loginPass} onChange={e => setLoginPass(e.target.value)} />
+                    <button
+                      type="button"
+                      onClick={() => setShowLoginPassword(visible => !visible)}
+                      className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground transition-colors hover:text-foreground"
+                      aria-label={showLoginPassword ? "Ocultar senha" : "Mostrar senha"}
+                      aria-pressed={showLoginPassword}
+                    >
+                      {showLoginPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
                 <Button type="submit" className="w-full bg-[#9C1917] text-white hover:bg-[#821513] hover:text-white" disabled={loading}>{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Entrar</Button>
               </form>
             )}
