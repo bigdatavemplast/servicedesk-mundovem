@@ -124,15 +124,15 @@ function AuthPage() {
         setLoading(false);
         return toast.error(data?.error ?? "Não foi possível alterar a senha. Tente novamente.");
       }
-      const { error: refreshError } = await supabase.auth.refreshSession();
+      // A senha provisória foi substituída. Encerra a sessão para que
+      // o colaborador entre novamente usando a nova senha pessoal.
       setLoading(false);
-      if (refreshError) {
-        await supabase.auth.signOut();
-        return toast.error("Senha alterada. Entre novamente com sua nova senha.");
-      }
+      await supabase.auth.signOut();
       setForcePasswordChange(false);
-      toast.success("Senha pessoal definida com sucesso!");
-      navigate({ to: "/areas", replace: true });
+      setNewPassword("");
+      setConfirmPassword("");
+      toast.success("Senha pessoal definida com sucesso! Entre com sua nova senha.");
+      navigate({ to: "/auth", replace: true });
       return;
     }
     const { error } = await supabase.auth.updateUser({ password: newPassword });
