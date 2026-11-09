@@ -155,11 +155,11 @@ function FilaPage() {
         if (!area) return [];
         const { data, error } = await q.eq("nome", area.nome);
         if (error) throw error;
-        return (data ?? []) as Segmento[];
+        return (data ?? []).filter((s: any) => s.nome?.toLowerCase().replace(/[^a-z0-9]/g, "") === "ti") as Segmento[];
       }
       const { data, error } = await q;
       if (error) throw error;
-      return (data ?? []) as Segmento[];
+      return (data ?? []).filter((s: any) => s.nome?.toLowerCase().replace(/[^a-z0-9]/g, "") === "ti") as Segmento[];
     },
   });
   const segmentoIdsPermitidos = useMemo(() => new Set(segmentos.map(s => s.id)), [segmentos]);
