@@ -234,6 +234,33 @@ export const criarChamadoComCatalogo = createServerFn({ method: "POST" })
 
     if (error || !criado) throw new Error(error?.message ?? "Falha ao criar chamado");
 
+    // O push é disparado no servidor, sem depender de o navegador de qualquer
+    // atendente estar aberto. A Edge Function valida novamente o papel do gestor.
+    if (roles.includes("gestor")) {
+      const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      if (supabaseUrl && serviceRoleKey) {
+        try {
+          const pushResponse = await fetch(supabaseUrl + "/functions/v1/enviar-push-chamado", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + serviceRoleKey,
+              apikey: serviceRoleKey,
+            },
+            body: JSON.stringify({ chamadoId: criado.id }),
+          });
+          if (!pushResponse.ok) {
+            console.error("[Push] Não foi possível enviar a notificação aos atendentes:", await pushResponse.text());
+          }
+        } catch (pushError) {
+          console.error("[Push] Falha ao acionar notificações em segundo plano:", pushError);
+        }
+      } else {
+        console.warn("[Push] Configure SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY no ambiente do servidor.");
+      }
+    }
+
     if (fluxo !== "projeto") {
       const { error: eventoError } = await admin.rpc("registrar_evento_sla", {
         p_chamado_id: criado.id,
