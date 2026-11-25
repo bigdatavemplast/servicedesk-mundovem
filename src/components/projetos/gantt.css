@@ -1,0 +1,17 @@
+@import "../../../node_modules/frappe-gantt/dist/frappe-gantt.css";
+.project-gantt {
+ --g-arrow-color: var(--foreground); --g-bar-color: var(--secondary); --g-bar-border: var(--border);
+ --g-tick-color-thick: var(--border); --g-tick-color: var(--muted); --g-actions-background: var(--secondary);
+ --g-border-color: var(--border); --g-text-muted: var(--muted-foreground); --g-text-light: var(--primary-foreground);
+ --g-text-dark: var(--foreground); --g-progress-color: var(--primary); --g-handle-color: var(--foreground);
+ --g-header-background: var(--card); --g-row-color: var(--card); --g-row-border-color: var(--border);
+ --g-today-highlight: var(--primary); --g-weekend-highlight-color: var(--muted);
+ --g-weekend-label-color: var(--secondary); --g-expected-progress: var(--border); --g-popup-actions: var(--muted);
+}
+.project-gantt .gantt-container { border-radius: 0; }
+.project-gantt .gantt .bar-label { font-family: var(--font-sans); fill: var(--foreground); }
+.project-gantt .gantt .bar-label.big { fill: var(--foreground); }
+.project-gantt .gantt .project-task .bar-progress { fill: var(--secondary-foreground); opacity: .25; }
+.project-gantt .gantt .project-milestone .bar { fill: var(--primary); }
+.project-gantt .gantt .project-milestone .bar-label:not(.big) { fill: var(--primary-foreground); }
+.project-gantt .gantt .project-milestone .bar-progress { fill: var(--primary); }

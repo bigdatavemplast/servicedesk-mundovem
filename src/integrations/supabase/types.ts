@@ -2454,6 +2454,257 @@ export type Database = {
           },
         ]
       }
+      projeto_atualizacoes: {
+        Row: {
+          autor_id: string
+          criado_em: string
+          entregas: string
+          id: string
+          impedimentos: string
+          projeto_id: string
+          proximos_passos: string
+        }
+        Insert: {
+          autor_id: string
+          criado_em?: string
+          entregas?: string
+          id?: string
+          impedimentos?: string
+          projeto_id: string
+          proximos_passos?: string
+        }
+        Update: {
+          autor_id?: string
+          criado_em?: string
+          entregas?: string
+          id?: string
+          impedimentos?: string
+          projeto_id?: string
+          proximos_passos?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_atualizacoes_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_atualizacoes_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projeto_compartilhamentos: {
+        Row: {
+          permissao: string
+          projeto_id: string
+          usuario_id: string
+        }
+        Insert: {
+          permissao: string
+          projeto_id: string
+          usuario_id: string
+        }
+        Update: {
+          permissao?: string
+          projeto_id?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_compartilhamentos_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_compartilhamentos_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projeto_fases: {
+        Row: {
+          id: string
+          nome: string
+          ordem: number
+          projeto_id: string
+        }
+        Insert: {
+          id?: string
+          nome: string
+          ordem?: number
+          projeto_id: string
+        }
+        Update: {
+          id?: string
+          nome?: string
+          ordem?: number
+          projeto_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_fases_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projeto_tarefas: {
+        Row: {
+          descricao: string
+          fase_id: string | null
+          fim: string
+          id: string
+          inicio: string
+          marco: boolean
+          ordem: number
+          predecessora_id: string | null
+          progresso: number
+          projeto_id: string
+          responsavel_id: string | null
+          titulo: string
+        }
+        Insert: {
+          descricao?: string
+          fase_id?: string | null
+          fim: string
+          id?: string
+          inicio: string
+          marco?: boolean
+          ordem?: number
+          predecessora_id?: string | null
+          progresso?: number
+          projeto_id: string
+          responsavel_id?: string | null
+          titulo: string
+        }
+        Update: {
+          descricao?: string
+          fase_id?: string | null
+          fim?: string
+          id?: string
+          inicio?: string
+          marco?: boolean
+          ordem?: number
+          predecessora_id?: string | null
+          progresso?: number
+          projeto_id?: string
+          responsavel_id?: string | null
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_tarefas_fase_id_projeto_id_fkey"
+            columns: ["fase_id", "projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_fases"
+            referencedColumns: ["id", "projeto_id"]
+          },
+          {
+            foreignKeyName: "projeto_tarefas_predecessora_id_projeto_id_fkey"
+            columns: ["predecessora_id", "projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id", "projeto_id"]
+          },
+          {
+            foreignKeyName: "projeto_tarefas_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_tarefas_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projetos: {
+        Row: {
+          area_id: string | null
+          criado_em: string
+          criado_por: string
+          farol: string
+          fim: string
+          gerente_id: string | null
+          id: string
+          inicio: string
+          numero: number
+          objetivo: string
+          sponsor: string
+          status: string
+          titulo: string
+        }
+        Insert: {
+          area_id?: string | null
+          criado_em?: string
+          criado_por: string
+          farol?: string
+          fim: string
+          gerente_id?: string | null
+          id?: string
+          inicio: string
+          numero?: never
+          objetivo?: string
+          sponsor?: string
+          status?: string
+          titulo: string
+        }
+        Update: {
+          area_id?: string | null
+          criado_em?: string
+          criado_por?: string
+          farol?: string
+          fim?: string
+          gerente_id?: string | null
+          id?: string
+          inicio?: string
+          numero?: never
+          objetivo?: string
+          sponsor?: string
+          status?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projetos_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projetos_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projetos_gerente_id_fkey"
+            columns: ["gerente_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       regras_atribuicao_automatica: {
         Row: {
           atendente_id: string
@@ -3107,6 +3358,15 @@ export type Database = {
           regra_id: string
         }[]
       }
+      projeto_acesso: {
+        Args: { p_edicao?: boolean; p_projeto: string }
+        Returns: boolean
+      }
+      projeto_atualizar_progresso: {
+        Args: { p_progresso: number; p_tarefa: string }
+        Returns: undefined
+      }
+      projeto_e_admin: { Args: never; Returns: boolean }
       proximo_numero_fila: { Args: { p_grupo_id: string }; Returns: number }
       registrar_evento_gestao_atendimento: {
         Args: {
