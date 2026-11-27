@@ -11,6 +11,7 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { GanttTimeline } from '@/components/projetos/GanttTimeline';
 import { TaskDialog, SharingDialog, PhaseForm, UpdateForm, ProjectForm } from '@/components/projetos/ProjectControls';
+import { ProjectWbs } from '@/components/projetos/ProjectWbs';
 import { ProjectPending, ProjectError } from '@/components/projetos/ProjectStates';
 
 export const Route = createFileRoute('/_authenticated/projetos/$id')({
@@ -29,6 +30,7 @@ function ProjectDetail() {
   const { project: p, tasks, phases, shares, updates, isAdmin, people } = data;
   const [mode, setMode] = useState('Week');
   const [taskOpen, setTaskOpen] = useState(false);
+  const [defaultPhase, setDefaultPhase] = useState<string | null>(null);
   const [editing, setEditing] = useState<Task | undefined>();
   const [shareOpen, setShareOpen] = useState(false);
   const [editProject, setEditProject] = useState(false);
@@ -43,7 +45,7 @@ function ProjectDetail() {
       <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><span className="text-xs text-muted-foreground">{projectCode(numero)}</span><Badge variant="outline">{projectStatuses[p.status]}</Badge></div>
         <h1 className="mt-2 break-words text-2xl font-bold">{p.titulo}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{formatDate(p.inicio)} — {formatDate(p.fim)} · Gerente: {name(p.gerente_id)}</p></div>
-      {isAdmin && <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => setEditProject(v => !v)}><Pencil />Editar</Button><Button variant="outline" onClick={() => setShareOpen(true)}><UserPlus />Compartilhar</Button><Button className={primaryAction} onClick={() => { setEditing(undefined); setTaskOpen(true); }}><Plus />Nova tarefa</Button></div>}
+      {isAdmin && <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => setEditProject(v => !v)}><Pencil />Editar</Button><Button variant="outline" onClick={() => setShareOpen(true)}><UserPlus />Compartilhar</Button><Button className={primaryAction} onClick={() => { setEditing(undefined); setDefaultPhase(null); setTaskOpen(true); }}><Plus />Nova tarefa</Button></div>}
     </header>
     <div className="max-w-md"><div className="mb-2 flex justify-between text-xs"><span>Progresso geral</span><span>{progress}%</span></div><Progress value={progress} aria-label="Progresso geral" /></div>
     {editProject && isAdmin && <ProjectForm id={p.id} initial={initial} people={people} areas={[]} onSaved={() => setEditProject(false)} />}
@@ -56,12 +58,7 @@ function ProjectDetail() {
       </TabsContent>
       <TabsContent value="tarefas" className="space-y-4">
         {isAdmin && <PhaseForm projectId={p.id} order={phases.length} />}
-        {!tasks.length ? <p className="py-8 text-center text-sm text-muted-foreground">Nenhuma tarefa cadastrada.</p> :
-          <div className="divide-y border-y">{tasks.map(t => <div key={t.id} className="grid gap-2 px-2 py-4 sm:grid-cols-[1fr_160px_auto] sm:items-center">
-            <div className="min-w-0"><p className="break-words font-medium">{t.marco ? '◆ ' : ''}{t.titulo}</p><p className="text-xs text-muted-foreground">{phases.find(f => f.id === t.fase_id)?.nome ?? 'Sem fase'} · {formatDate(t.inicio)} — {formatDate(t.fim)} · {name(t.responsavel_id)}</p></div>
-            <div><div className="mb-1 text-xs">{t.progresso}%</div><Progress value={t.progresso} aria-label={`Progresso de ${t.titulo}`} /></div>
-            {isAdmin ? <Button size="sm" variant="outline" onClick={() => { setEditing(t); setTaskOpen(true); }}>Editar</Button> : <span />}
-          </div>)}</div>}
+        <ProjectWbs title={p.titulo} tasks={tasks} phases={phases} people={people} isAdmin={isAdmin} onAdd={(faseId) => { setEditing(undefined); setDefaultPhase(faseId); setTaskOpen(true); }} onEdit={(t) => { setEditing(t); setTaskOpen(true); }} />
       </TabsContent>
       <TabsContent value="atualizacoes" className="space-y-4">
         {canUpdate && <UpdateForm projectId={p.id} />}
@@ -70,7 +67,7 @@ function ProjectDetail() {
             {u.entregas && <p><strong>Entregas:</strong> {u.entregas}</p>}{u.proximos_passos && <p><strong>Próximos passos:</strong> {u.proximos_passos}</p>}{u.impedimentos && <p><strong>Impedimentos:</strong> {u.impedimentos}</p>}</div>)}</div>}
       </TabsContent>
     </Tabs>
-    {taskOpen && <TaskDialog key={editing?.id ?? 'new'} open onClose={() => setTaskOpen(false)} projectId={p.id} tasks={tasks} phases={phases} people={people} {...(editing ? { task: editing } : {})} start={p.inicio} end={p.fim} />}
+    {taskOpen && <TaskDialog key={editing?.id ?? 'new'} open onClose={() => setTaskOpen(false)} projectId={p.id} tasks={tasks} phases={phases} people={people} {...(editing ? { task: editing } : {})} start={p.inicio} end={p.fim} defaultPhase={defaultPhase} />}
     {shareOpen && <SharingDialog open onClose={() => setShareOpen(false)} projectId={p.id} people={people} shares={shares} />}
   </div>;
 }
