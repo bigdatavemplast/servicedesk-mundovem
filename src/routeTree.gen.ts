@@ -53,6 +53,7 @@ import { Route as AuthenticatedChamadosNovoRouteImport } from './routes/_authent
 import { Route as AuthenticatedGestaoIndexRouteImport } from './routes/_authenticated/gestao.index'
 import { Route as AuthenticatedGestaoCapacidadeRouteImport } from './routes/_authenticated/gestao.capacidade'
 import { Route as AuthenticatedProjetosIndexRouteImport } from './routes/_authenticated/projetos.index'
+import { Route as AuthenticatedProjetosIdRouteImport } from './routes/_authenticated/projetos.$id'
 import { Route as AuthenticatedProjetosNovoRouteImport } from './routes/_authenticated/projetos.novo'
 import { Route as AuthenticatedBaseConhecimentoIdEditarRouteImport } from './routes/_authenticated/base-conhecimento.$id.editar'
 
@@ -304,6 +305,11 @@ const AuthenticatedProjetosIndexRoute =
     path: '/projetos/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedProjetosIdRoute = AuthenticatedProjetosIdRouteImport.update({
+  id: '/projetos/$id',
+  path: '/projetos/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedProjetosNovoRoute =
   AuthenticatedProjetosNovoRouteImport.update({
     id: '/projetos/novo',
@@ -355,6 +361,7 @@ export interface FileRoutesByFullPath {
   '/chamados/$id': typeof AuthenticatedChamadosIdRoute
   '/chamados/novo': typeof AuthenticatedChamadosNovoRoute
   '/gestao/capacidade': typeof AuthenticatedGestaoCapacidadeRoute
+  '/projetos/$id': typeof AuthenticatedProjetosIdRoute
   '/projetos/novo': typeof AuthenticatedProjetosNovoRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/assistente/': typeof AuthenticatedAssistenteIndexRoute
@@ -401,6 +408,7 @@ export interface FileRoutesByTo {
   '/chamados/$id': typeof AuthenticatedChamadosIdRoute
   '/chamados/novo': typeof AuthenticatedChamadosNovoRoute
   '/gestao/capacidade': typeof AuthenticatedGestaoCapacidadeRoute
+  '/projetos/$id': typeof AuthenticatedProjetosIdRoute
   '/projetos/novo': typeof AuthenticatedProjetosNovoRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/assistente': typeof AuthenticatedAssistenteIndexRoute
@@ -450,6 +458,7 @@ export interface FileRoutesById {
   '/_authenticated/chamados/$id': typeof AuthenticatedChamadosIdRoute
   '/_authenticated/chamados/novo': typeof AuthenticatedChamadosNovoRoute
   '/_authenticated/gestao/capacidade': typeof AuthenticatedGestaoCapacidadeRoute
+  '/_authenticated/projetos/$id': typeof AuthenticatedProjetosIdRoute
   '/_authenticated/projetos/novo': typeof AuthenticatedProjetosNovoRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/assistente/': typeof AuthenticatedAssistenteIndexRoute
@@ -499,6 +508,7 @@ export interface FileRouteTypes {
     | '/chamados/$id'
     | '/chamados/novo'
     | '/gestao/capacidade'
+    | '/projetos/$id'
     | '/projetos/novo'
     | '/admin/'
     | '/assistente/'
@@ -545,6 +555,7 @@ export interface FileRouteTypes {
     | '/chamados/$id'
     | '/chamados/novo'
     | '/gestao/capacidade'
+    | '/projetos/$id'
     | '/projetos/novo'
     | '/admin'
     | '/assistente'
@@ -593,6 +604,7 @@ export interface FileRouteTypes {
     | '/_authenticated/chamados/$id'
     | '/_authenticated/chamados/novo'
     | '/_authenticated/gestao/capacidade'
+    | '/_authenticated/projetos/$id'
     | '/_authenticated/projetos/novo'
     | '/_authenticated/admin/'
     | '/_authenticated/assistente/'
@@ -923,6 +935,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjetosIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/projetos/$id': {
+      id: '/_authenticated/projetos/$id'
+      path: '/projetos/$id'
+      fullPath: '/projetos/$id'
+      preLoaderRoute: typeof AuthenticatedProjetosIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/projetos/novo': {
       id: '/_authenticated/projetos/novo'
       path: '/projetos/novo'
@@ -999,6 +1018,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedBaseConhecimentoNovoRoute: typeof AuthenticatedBaseConhecimentoNovoRoute
   AuthenticatedChamadosIdRoute: typeof AuthenticatedChamadosIdRoute
   AuthenticatedChamadosNovoRoute: typeof AuthenticatedChamadosNovoRoute
+  AuthenticatedProjetosIdRoute: typeof AuthenticatedProjetosIdRoute
   AuthenticatedProjetosNovoRoute: typeof AuthenticatedProjetosNovoRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedAssistenteIndexRoute: typeof AuthenticatedAssistenteIndexRoute
@@ -1042,6 +1062,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedBaseConhecimentoNovoRoute,
   AuthenticatedChamadosIdRoute: AuthenticatedChamadosIdRoute,
   AuthenticatedChamadosNovoRoute: AuthenticatedChamadosNovoRoute,
+  AuthenticatedProjetosIdRoute: AuthenticatedProjetosIdRoute,
   AuthenticatedProjetosNovoRoute: AuthenticatedProjetosNovoRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   AuthenticatedAssistenteIndexRoute: AuthenticatedAssistenteIndexRoute,
